@@ -2,5 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root { height: 100%; }
-body { @apply bg-slate-50 text-slate-900 antialiased; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+html, body, #root {
+  height: 100%;
+  background: #050816;
+}
+body {
+  @apply text-bark-300 antialiased;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: radial-gradient(ellipse at 50% 120%, #10183f 0%, #050816 60%, #030510 100%);
+  background-attachment: fixed;
+}
+
+/* Shared glow-ring used on seed cards + signin button */
+.soul-ring {
+  position: relative;
+  isolation: isolate;
+}
+.soul-ring::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(62, 212, 193, 0.55), rgba(145, 119, 255, 0.55));
+  filter: blur(6px);
+  opacity: 0.6;
+  z-index: -1;
+  transition: opacity 300ms ease;
+}
+.soul-ring:hover::before {
+  opacity: 1;
+}
+
+/* A very faint star-field for depth */
+.starfield {
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.25) 50%, transparent 100%),
+    radial-gradient(1px 1px at 80% 10%, rgba(209, 183, 255, 0.3) 50%, transparent 100%),
+    radial-gradient(1px 1px at 40% 80%, rgba(110, 229, 215, 0.25) 50%, transparent 100%),
+    radial-gradient(1px 1px at 70% 65%, rgba(255, 179, 227, 0.2) 50%, transparent 100%),
+    radial-gradient(2px 2px at 10% 70%, rgba(255, 255, 255, 0.18) 50%, transparent 100%);
+  background-size: 900px 900px;
+  background-repeat: repeat;
+}
+
+/* Scrollbar tweak to match the night palette */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1a2350; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #253066; }

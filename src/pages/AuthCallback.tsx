@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { exchangeCode } from "../api/client";
 import { takeVerifier } from "../lib/pkce";
+import { AtokirinaField } from "../components/Atokirina";
 
 export function AuthCallback() {
   const nav = useNavigate();
@@ -30,17 +31,26 @@ export function AuthCallback() {
   }, [nav, params]);
 
   return (
-    <div className="flex h-screen items-center justify-center">
+    <div className="flex h-screen items-center justify-center relative overflow-hidden">
+      <div className="absolute inset-0 starfield opacity-40" />
+      <AtokirinaField count={10} />
       {err ? (
-        <div className="max-w-md rounded-md border border-rose-200 bg-rose-50 p-5 text-rose-800">
-          <div className="font-semibold">Sign-in failed</div>
-          <div className="mt-2 text-sm">{err}</div>
-          <a href="/" className="mt-4 inline-block text-sm text-rose-700 underline">
-            Try again
+        <div className="relative z-10 max-w-md rounded-2xl border border-atokirina-400/40 bg-night-800/80 backdrop-blur p-6 text-atokirina-300">
+          <div className="font-display tracking-widest text-xs uppercase mb-2 text-atokirina-400">
+            Connection lost
+          </div>
+          <div className="text-bark-300/85 text-sm">{err}</div>
+          <a href="/" className="mt-4 inline-block text-sm text-soul-300 hover:text-soul-400 transition-colors">
+            ← return to the Tree
           </a>
         </div>
       ) : (
-        <div className="text-slate-500">Completing sign-in…</div>
+        <div className="relative z-10 text-center">
+          <div className="font-display tracking-[0.35em] text-xs uppercase text-soul-300/80">
+            Connecting
+          </div>
+          <div className="mt-3 w-10 h-10 mx-auto rounded-full border-2 border-soul-400/25 border-t-soul-400 animate-spin" />
+        </div>
       )}
     </div>
   );

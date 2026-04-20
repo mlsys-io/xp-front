@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { Brain, Database, Grid3x3, FlaskConical, LogOut } from "lucide-react";
 import { whoami, logout } from "../api/client";
 
 export function DashboardLayout() {
@@ -12,56 +11,99 @@ export function DashboardLayout() {
   }, [nav]);
 
   if (!me) {
-    return <div className="p-10 text-slate-500">loading…</div>;
+    return (
+      <div className="flex h-screen items-center justify-center text-soul-400/60 font-soft">
+        listening to the Tree…
+      </div>
+    );
   }
 
-  const link = ({ to, icon: Icon, label }: any) => (
+  const link = (to: string, label: string, glyph: string) => (
     <NavLink
       to={to}
       end
       className={({ isActive }) =>
-        `flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+        `group relative flex items-center gap-3 pl-6 pr-4 py-3 text-sm tracking-wide transition-colors ${
           isActive
-            ? "bg-indigo-50 text-indigo-700"
-            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            ? "text-soul-300"
+            : "text-bark-300/60 hover:text-bark-300"
         }`
       }
     >
-      <Icon className="w-4 h-4" />
-      {label}
+      {({ isActive }) => (
+        <>
+          {/* glowing vertical rune that lights up on active */}
+          <span
+            className={`absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full transition-all ${
+              isActive
+                ? "bg-soul-400 shadow-[0_0_10px_rgba(62,212,193,0.9)]"
+                : "bg-soul-400/20 group-hover:bg-soul-400/40"
+            }`}
+          />
+          <span className="font-display text-xs uppercase tracking-[0.25em]">
+            {glyph}
+          </span>
+          <span>{label}</span>
+        </>
+      )}
     </NavLink>
   );
 
-  return (
-    <div className="min-h-screen flex">
-      <aside className="w-60 border-r border-slate-200 bg-white flex flex-col">
-        <div className="px-5 py-5 border-b border-slate-100 flex items-center gap-2">
-          <Brain className="w-5 h-5 text-indigo-600" />
-          <span className="font-semibold tracking-tight">xp.io</span>
-        </div>
-        <nav className="flex-1 p-3 space-y-1">
-          {link({ to: "/dashboard", icon: Grid3x3, label: "Overview" })}
-          {link({ to: "/dashboard/knowledge", icon: Brain, label: "Knowledge" })}
-          {link({ to: "/dashboard/apps", icon: Database, label: "Applications" })}
-          {link({ to: "/dashboard/research", icon: FlaskConical, label: "Auto-research" })}
-        </nav>
-        <div className="p-3 border-t border-slate-100 text-xs text-slate-500 truncate">
-          <div className="font-medium text-slate-700 truncate">{me.email || me.sub.slice(0, 8)}</div>
-          <button
-            onClick={async () => {
-              await logout();
-              nav("/");
-            }}
-            className="mt-2 flex items-center gap-1 text-slate-500 hover:text-slate-900"
-          >
-            <LogOut className="w-3.5 h-3.5" /> Sign out
-          </button>
-        </div>
-      </aside>
+  const initials = (me.email || me.sub).slice(0, 2).toUpperCase();
 
-      <main className="flex-1 p-8 max-w-6xl">
-        <Outlet />
-      </main>
+  return (
+    <div className="min-h-screen relative overflow-hidden">
+      {/* faint starfield + a few drifting seeds */}
+      <div className="fixed inset-0 starfield opacity-30 pointer-events-none" />
+
+      <div className="relative flex min-h-screen">
+        <aside className="w-64 shrink-0 border-r border-soul-400/10 bg-night-800/50 backdrop-blur flex flex-col">
+          <div className="px-6 py-6 border-b border-soul-400/10">
+            <div className="flex items-center gap-2 font-display text-sm tracking-[0.35em] text-soul-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul" />
+              xp.io
+            </div>
+            <div className="mt-1 text-[10px] uppercase tracking-[0.3em] text-bark-300/40">
+              the Mother Tree
+            </div>
+          </div>
+
+          <nav className="flex-1 py-4 space-y-0.5">
+            {link("/dashboard", "Overview", "◉")}
+            {link("/dashboard/knowledge", "Knowledge", "❋")}
+            {link("/dashboard/apps", "Applications", "⁂")}
+            {link("/dashboard/research", "Auto-research", "⋯")}
+          </nav>
+
+          <div className="p-4 border-t border-soul-400/10">
+            <div className="flex items-center gap-3 px-2">
+              <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-spirit-400 to-soul-400 flex items-center justify-center text-[11px] font-semibold text-night-900">
+                {initials}
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs text-bark-300/90 truncate">
+                  {me.email || me.sub.slice(0, 12)}
+                </div>
+                <button
+                  onClick={async () => {
+                    await logout();
+                    nav("/");
+                  }}
+                  className="text-[11px] uppercase tracking-widest text-bark-300/50 hover:text-atokirina-400 transition-colors"
+                >
+                  disconnect
+                </button>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <main className="flex-1 overflow-x-hidden">
+          <div className="mx-auto max-w-6xl px-10 py-10">
+            <Outlet />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

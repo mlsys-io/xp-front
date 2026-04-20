@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { listLoops } from "../api/client";
-import { FlaskConical } from "lucide-react";
 
-const STATUS_STYLE: Record<string, string> = {
-  HEALTHY: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  STALE: "bg-amber-50 text-amber-800 border-amber-200",
-  DECLINING: "bg-orange-50 text-orange-800 border-orange-200",
-  DEAD: "bg-rose-50 text-rose-700 border-rose-200",
+const STATUS_STYLE: Record<string, { dot: string; label: string; text: string }> = {
+  HEALTHY:    { dot: "bg-soul-400",      label: "bg-soul-400/15 border-soul-400/30 text-soul-300",        text: "healthy" },
+  STALE:      { dot: "bg-bark-400",      label: "bg-bark-400/10 border-bark-400/30 text-bark-300",        text: "stale" },
+  DECLINING:  { dot: "bg-atokirina-400", label: "bg-atokirina-400/15 border-atokirina-400/30 text-atokirina-400", text: "declining" },
+  DEAD:       { dot: "bg-night-600",     label: "bg-night-600/40 border-night-500/40 text-bark-300/50",   text: "dead" },
 };
 
 export function Research() {
@@ -24,56 +23,79 @@ export function Research() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-        <FlaskConical className="w-5 h-5 text-indigo-600" /> Auto-research
-      </h1>
-      <p className="mt-1 text-sm text-slate-500">
-        Your observe → hypothesize → act → analyze → learn loops.{" "}
-        {syncedAt
-          ? `Last synced ${new Date(syncedAt * 1000).toLocaleString()}.`
-          : "Sync state from the local scheduler."}
-      </p>
+      <div className="pb-6 border-b border-soul-400/10">
+        <div className="text-[10px] uppercase tracking-[0.4em] text-soul-300/70">
+          — the loops that keep learning —
+        </div>
+        <h1 className="mt-2 font-display text-4xl tracking-wide text-bark-300">
+          Auto-research
+        </h1>
+        <p className="mt-2 text-sm text-bark-300/50">
+          {syncedAt
+            ? `last heard from the scheduler ${new Date(syncedAt * 1000).toLocaleString()}`
+            : "waiting for the scheduler to push state"}
+        </p>
+      </div>
 
       {loops.length === 0 ? (
-        <div className="mt-6 rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
-          <div className="font-medium text-slate-700">No loops synced yet</div>
-          <div className="mt-2 text-sm">
+        <div className="mt-8 rounded-2xl border border-dashed border-soul-400/25 bg-night-800/40 backdrop-blur p-10 text-center">
+          <div className="font-display text-3xl text-soul-300/50">⋯</div>
+          <div className="mt-3 font-display tracking-widest uppercase text-xs text-bark-300/70">
+            no loops reporting in yet
+          </div>
+          <div className="mt-3 text-bark-300/60 text-sm max-w-md mx-auto leading-relaxed">
             Start one:{" "}
-            <code className="px-1 bg-slate-100 rounded">/lumid research run AutoResearch-v1 --cycles 1</code>.
-            The scheduler pushes state here on each cycle.
+            <code className="rounded bg-night-900/80 px-1.5 py-0.5 text-soul-300 text-[13px]">
+              /lumid research run AutoResearch-v1 --cycles 1
+            </code>
           </div>
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-5">
           {loops.map((l: any) => {
-            const tone = STATUS_STYLE[l.status] ?? "bg-slate-50 text-slate-700 border-slate-200";
+            const status = STATUS_STYLE[l.status] ?? STATUS_STYLE.STALE;
             return (
-              <div key={l.name} className="rounded-lg border border-slate-200 bg-white p-5">
-                <div className="flex items-center justify-between">
-                  <div className="font-semibold text-slate-900 truncate">{l.name}</div>
-                  <span className={`text-[10px] font-semibold border rounded-full px-2 py-0.5 ${tone}`}>
-                    {l.status ?? "?"}
+              <div
+                key={l.name}
+                className="relative rounded-2xl border border-soul-400/15 bg-night-800/50 backdrop-blur p-6 overflow-hidden"
+              >
+                <div className="absolute -top-20 -left-20 w-48 h-48 rounded-full bg-soul-400/10 blur-3xl pointer-events-none" />
+                <div className="relative flex items-center justify-between">
+                  <div className="font-display text-lg tracking-wide text-bark-300 truncate">
+                    {l.name}
+                  </div>
+                  <span className={`text-[10px] font-medium uppercase tracking-widest rounded-full border px-2.5 py-0.5 inline-flex items-center gap-1.5 ${status.label}`}>
+                    <span className={`w-1 h-1 rounded-full ${status.dot} animate-pulse-soul`} />
+                    {status.text}
                   </span>
                 </div>
-                <div className="mt-1 text-xs text-slate-500">{l.domain || "—"}</div>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                <div className="relative mt-1 text-xs uppercase tracking-widest text-bark-300/50">
+                  {l.domain || "—"}
+                </div>
+
+                <div className="relative mt-5 grid grid-cols-2 gap-3">
                   <div>
-                    <div className="text-xs text-slate-500">Cycles</div>
-                    <div className="font-semibold text-slate-900">
+                    <div className="text-[10px] uppercase tracking-widest text-bark-300/50">
+                      cycles
+                    </div>
+                    <div className="mt-1 font-display text-2xl text-bark-300">
                       {l.cycles ?? 0}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-slate-500">Last run</div>
-                    <div className="text-slate-900 text-xs">
+                    <div className="text-[10px] uppercase tracking-widest text-bark-300/50">
+                      last pulse
+                    </div>
+                    <div className="mt-1 text-[13px] text-bark-300/90">
                       {l.last_run_at
                         ? new Date(l.last_run_at * 1000).toLocaleString()
                         : "never"}
                     </div>
                   </div>
                 </div>
+
                 {l.last_outcome && (
-                  <div className="mt-3 text-xs text-slate-600 line-clamp-3 bg-slate-50 rounded p-2">
+                  <div className="relative mt-4 text-xs text-bark-300/70 leading-relaxed bg-night-900/60 rounded-lg p-3 border border-soul-400/10 line-clamp-3">
                     {l.last_outcome}
                   </div>
                 )}
