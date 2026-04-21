@@ -63,9 +63,6 @@ export function DashboardLayout() {
               <span className="w-1.5 h-1.5 rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul" />
               xp.io
             </div>
-            <div className="mt-1 text-[10px] uppercase tracking-[0.3em] text-bark-300/40">
-              the Mother Tree
-            </div>
           </div>
 
           <nav className="flex-1 py-4 space-y-0.5">
@@ -73,6 +70,14 @@ export function DashboardLayout() {
             {link("/dashboard/knowledge", "Knowledge", "❋")}
             {link("/dashboard/apps", "Applications", "⁂")}
             {link("/dashboard/research", "Auto-research", "⋯")}
+            <NavLink
+              to="/marketplace"
+              className="group relative flex items-center gap-3 pl-6 pr-4 py-3 text-sm tracking-wide text-bark-300/60 hover:text-bark-300 transition-colors"
+            >
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full bg-soul-400/20 group-hover:bg-soul-400/40" />
+              <span className="font-display text-xs uppercase tracking-[0.25em]">⟁</span>
+              <span>Marketplace</span>
+            </NavLink>
           </nav>
 
           <div className="p-4 border-t border-soul-400/10">
