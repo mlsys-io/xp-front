@@ -1,39 +1,32 @@
 import { useEffect, useState } from "react";
-import { listAgents, listApps, listLoops } from "../api/client";
+import { Link } from "react-router-dom";
+import { listRepos, whoami, type Repo } from "../api/client";
 
 export function Overview() {
-  const [agents, setAgents] = useState<{ private: any[]; shared: any[] } | null>(null);
-  const [apps, setApps] = useState<any[]>([]);
-  const [loops, setLoops] = useState<any[]>([]);
+  const [repos, setRepos] = useState<Repo[] | null>(null);
 
   useEffect(() => {
-    listAgents().then(setAgents).catch(() => setAgents({ private: [], shared: [] }));
-    listApps().then((r) => setApps(r.apps)).catch(() => {});
-    listLoops().then((r) => setLoops(r.loops)).catch(() => {});
+    (async () => {
+      const me = await whoami().catch(() => null);
+      if (!me) {
+        setRepos([]);
+        return;
+      }
+      const mine = await listRepos({ owner: me.sub, limit: 200 }).catch(() => []);
+      setRepos(mine);
+    })();
   }, []);
 
+  const counts = {
+    app: repos?.filter((r) => r.kind === "app").length ?? 0,
+    autoresearch: repos?.filter((r) => r.kind === "autoresearch").length ?? 0,
+    agent: repos?.filter((r) => r.kind === "agent").length ?? 0,
+  };
+
   const stats = [
-    {
-      value: (agents?.private.length ?? 0) + (agents?.shared.length ?? 0),
-      label: "agents",
-      glyph: "❋",
-      dot: "bg-soul-400",
-      glow: "from-soul-400/25",
-    },
-    {
-      value: apps.length,
-      label: "apps",
-      glyph: "⁂",
-      dot: "bg-spirit-400",
-      glow: "from-spirit-400/25",
-    },
-    {
-      value: loops.length,
-      label: "loops",
-      glyph: "⋯",
-      dot: "bg-atokirina-400",
-      glow: "from-atokirina-400/25",
-    },
+    { value: counts.app, label: "apps", glyph: "⁂", dot: "bg-spirit-400", glow: "from-spirit-400/25", to: "/dashboard/repos" },
+    { value: counts.autoresearch, label: "autoresearch", glyph: "⋯", dot: "bg-soul-400", glow: "from-soul-400/25", to: "/dashboard/repos" },
+    { value: counts.agent, label: "agents", glyph: "❋", dot: "bg-atokirina-400", glow: "from-atokirina-400/25", to: "/dashboard/repos" },
   ];
 
   return (
@@ -42,9 +35,10 @@ export function Overview() {
 
       <div className="mt-8 grid grid-cols-3 gap-5">
         {stats.map((s) => (
-          <div
+          <Link
             key={s.label}
-            className="relative rounded-2xl border border-soul-400/10 bg-night-800/50 backdrop-blur p-6 overflow-hidden"
+            to={s.to}
+            className="relative rounded-2xl border border-soul-400/10 bg-night-800/50 backdrop-blur p-6 overflow-hidden hover:border-soul-400/30 transition-colors"
           >
             <div className={`absolute -top-1/2 -right-1/2 w-[180%] h-[180%] bg-gradient-radial ${s.glow} to-transparent opacity-50 blur-3xl pointer-events-none`} />
             <div className="relative flex items-start justify-between">
@@ -55,8 +49,23 @@ export function Overview() {
               <span className={`w-1 h-1 rounded-full ${s.dot} animate-pulse-soul`} />
               {s.label}
             </div>
-          </div>
+          </Link>
         ))}
+      </div>
+
+      <div className="mt-10 flex items-center gap-3">
+        <Link
+          to="/new"
+          className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70"
+        >
+          + new repo
+        </Link>
+        <Link
+          to="/"
+          className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-soul-400/20 text-bark-300/70 hover:border-soul-400/50 hover:text-bark-300"
+        >
+          browse the marketspace
+        </Link>
       </div>
     </div>
   );
