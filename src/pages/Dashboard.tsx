@@ -67,16 +67,22 @@ export function DashboardLayout() {
 
           <nav className="flex-1 py-4 space-y-0.5">
             {link("/dashboard", "Overview", "◉")}
-            {link("/dashboard/knowledge", "Knowledge", "❋")}
-            {link("/dashboard/apps", "Applications", "⁂")}
-            {link("/dashboard/research", "Auto-research", "⋯")}
+            {link("/dashboard/repos", "My repos", "◇")}
             <NavLink
-              to="/marketplace"
+              to="/"
               className="group relative flex items-center gap-3 pl-6 pr-4 py-3 text-sm tracking-wide text-bark-300/60 hover:text-bark-300 transition-colors"
             >
               <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full bg-soul-400/20 group-hover:bg-soul-400/40" />
               <span className="font-display text-xs uppercase tracking-[0.25em]">⟁</span>
-              <span>Marketplace</span>
+              <span>Marketspace</span>
+            </NavLink>
+            <NavLink
+              to="/new"
+              className="group relative flex items-center gap-3 pl-6 pr-4 py-3 text-sm tracking-wide text-bark-300/60 hover:text-bark-300 transition-colors"
+            >
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full bg-soul-400/20 group-hover:bg-soul-400/40" />
+              <span className="font-display text-xs uppercase tracking-[0.25em]">✦</span>
+              <span>New repo</span>
             </NavLink>
           </nav>
 
