@@ -62,6 +62,7 @@ export type Branch = {
   name: string;
   sha: string;
   is_default?: boolean;
+  from_upstream?: boolean;        // true for fork branches that match upstream
   ahead?: number;
   behind?: number;
   last_commit?: {

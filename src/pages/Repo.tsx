@@ -368,14 +368,16 @@ function BranchPicker({
   }, [open]);
 
   const list = branches.length ? branches : [{ name: branch, sha: "" } as Branch];
-  const other = list.filter((b) => b.name !== branch);
-  const count = branches.length || 1;
   // The Code tab isn't the place to enumerate every branch — the Branches
-  // tab is. Show a short shortlist for quick-switch (default + up to 4
-  // others), link out for the full list.
-  const SHORTLIST = 5;
+  // tab is. Filter out fork-inherited branches (same tip as upstream),
+  // exclude the current one, and cap the shortlist for quick-switch.
+  const other = list.filter(
+    (b) => b.name !== branch && !b.from_upstream,
+  );
+  const count = branches.length || 1;
+  const SHORTLIST = 6;
   const shortlist = other.slice(0, SHORTLIST - 1);
-  const hidden = Math.max(0, other.length - shortlist.length);
+  const hidden = Math.max(0, count - 1 - shortlist.length);
 
   return (
     <div ref={ref} className="relative inline-block">
