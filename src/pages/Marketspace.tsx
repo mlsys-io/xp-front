@@ -64,18 +64,27 @@ export function Marketspace() {
           <span className="w-1.5 h-1.5 inline-block align-middle rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul mr-3" />
           xp.io
         </Link>
-        <div className="flex items-center gap-6 text-[11px] uppercase tracking-widest">
+        <div className="flex items-center gap-4 text-[11px] uppercase tracking-widest">
           {me ? (
             <>
               <Link to="/new" className="text-soul-300 hover:text-soul-400 transition-colors">
                 + new
+              </Link>
+              <Link
+                to={`/${encodeURIComponent(me.sub)}`}
+                className="text-bark-300/70 hover:text-soul-300 transition-colors"
+              >
+                profile
               </Link>
               <Link to="/dashboard" className="text-bark-300/70 hover:text-soul-300 transition-colors">
                 dashboard
               </Link>
             </>
           ) : (
-            <SignInLink />
+            <>
+              <SignInLink variant="nav" />
+              <SignInLink variant="primary" />
+            </>
           )}
         </div>
       </nav>
@@ -86,9 +95,17 @@ export function Marketspace() {
             The Marketspace
           </h1>
           <p className="mt-3 text-sm text-bark-300/60 max-w-xl mx-auto">
-            Applications, AutoResearch loops, and knowledge agents — versioned in git,
+            Applications, AutoResearch loops, skills, and Agentic KGs — versioned in git,
             forkable, pullable, mergeable.
           </p>
+          {!me && (
+            <div className="mt-6 flex items-center justify-center gap-4 flex-wrap">
+              <SignInLink variant="hero" />
+              <span className="text-[11px] uppercase tracking-widest text-bark-300/40">
+                or keep browsing anon
+              </span>
+            </div>
+          )}
         </header>
 
         {/* Search bar */}
@@ -162,14 +179,36 @@ export function Marketspace() {
   );
 }
 
-function SignInLink() {
+function SignInLink({ variant = "nav" }: { variant?: "nav" | "primary" | "hero" }) {
+  const onClick = async () => {
+    const { beginLogin } = await import("../lib/pkce");
+    await beginLogin();
+  };
+  if (variant === "primary") {
+    return (
+      <button
+        onClick={onClick}
+        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-soul-400/15 border border-soul-400/40 text-soul-300 hover:bg-soul-400/25 hover:border-soul-400/70 transition-colors uppercase tracking-widest text-[11px]"
+      >
+        sign up · sign in
+      </button>
+    );
+  }
+  if (variant === "hero") {
+    return (
+      <button
+        onClick={onClick}
+        className="soul-ring inline-flex items-center gap-3 px-6 py-3 rounded-full bg-soul-400/20 border border-soul-400/50 text-soul-200 hover:text-bark-300 hover:bg-soul-400/30 transition-colors uppercase tracking-[0.25em] text-xs shadow-soul"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-soul-400 animate-pulse-soul" />
+        sign in with lum.id
+      </button>
+    );
+  }
   return (
     <button
-      onClick={async () => {
-        const { beginLogin } = await import("../lib/pkce");
-        await beginLogin();
-      }}
-      className="text-soul-300 hover:text-soul-400 transition-colors uppercase tracking-widest text-[11px]"
+      onClick={onClick}
+      className="text-bark-300/60 hover:text-soul-300 transition-colors uppercase tracking-widest text-[11px]"
     >
       sign in
     </button>
