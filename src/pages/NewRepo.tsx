@@ -9,6 +9,8 @@ const KINDS: { id: RepoKind; label: string; glyph: string; blurb: string }[] = [
     blurb: "A loop that runs on a schedule and accumulates knowledge." },
   { id: "agent", glyph: "❋", label: "Agentic KG",
     blurb: "An accumulating knowledge graph — memories you can share, fork, and compound." },
+  { id: "skill", glyph: "⌘", label: "Skill",
+    blurb: "A SKILL.md with instructions + context files. Loaded into an AI at the right moment." },
 ];
 
 export function NewRepo() {

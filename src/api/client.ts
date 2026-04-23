@@ -38,7 +38,7 @@ export async function logout() {
 
 // ── Repos ────────────────────────────────────────────────────────
 
-export type RepoKind = "app" | "autoresearch" | "agent";
+export type RepoKind = "app" | "autoresearch" | "agent" | "skill";
 export type Visibility = "public" | "private";
 
 export type Repo = {

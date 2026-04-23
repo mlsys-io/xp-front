@@ -11,6 +11,7 @@ const TABS: { id: KindTab; label: string }[] = [
   { id: "app", label: "⁂ Applications" },
   { id: "autoresearch", label: "⋯ AutoResearch" },
   { id: "agent", label: "❋ Agentic KG" },
+  { id: "skill", label: "⌘ Skills" },
 ];
 
 const SORTS: { id: string; label: string }[] = [

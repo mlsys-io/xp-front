@@ -5,12 +5,14 @@ const KIND_GLYPH: Record<string, string> = {
   app: "⁂",
   autoresearch: "⋯",
   agent: "❋",
+  skill: "⌘",
 };
 
 const KIND_LABEL: Record<string, string> = {
   app: "Application",
   autoresearch: "AutoResearch",
   agent: "Agentic KG",
+  skill: "Skill",
 };
 
 export function RepoCard({ repo }: { repo: Repo }) {

@@ -31,9 +31,9 @@ import {
 
 type Tab = "code" | "branches" | "pulls" | "settings";
 
-const KIND_GLYPH: Record<string, string> = { app: "⁂", autoresearch: "⋯", agent: "❋" };
+const KIND_GLYPH: Record<string, string> = { app: "⁂", autoresearch: "⋯", agent: "❋", skill: "⌘" };
 const KIND_LABEL: Record<string, string> = {
-  app: "Application", autoresearch: "AutoResearch", agent: "Agentic KG",
+  app: "Application", autoresearch: "AutoResearch", agent: "Agentic KG", skill: "Skill",
 };
 
 /**

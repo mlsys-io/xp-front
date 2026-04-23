@@ -38,6 +38,7 @@ export function Profile() {
     app: repos?.filter((r) => r.kind === "app").length ?? 0,
     autoresearch: repos?.filter((r) => r.kind === "autoresearch").length ?? 0,
     agent: repos?.filter((r) => r.kind === "agent").length ?? 0,
+    skill: repos?.filter((r) => r.kind === "skill").length ?? 0,
   };
   const totalStars = repos?.reduce((a, r) => a + (r.stars || 0), 0) ?? 0;
 
@@ -112,6 +113,9 @@ export function Profile() {
             </span>
             <span className="border border-soul-400/15 rounded-full px-3 py-1">
               <span className="text-soul-300 mr-1">❋</span> {byKind.agent} agentic kg
+            </span>
+            <span className="border border-soul-400/15 rounded-full px-3 py-1">
+              <span className="text-soul-300 mr-1">⌘</span> {byKind.skill} skill{byKind.skill === 1 ? "" : "s"}
             </span>
           </div>
         )}
