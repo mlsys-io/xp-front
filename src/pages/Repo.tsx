@@ -193,7 +193,12 @@ function RepoHeader({
   return (
     <div>
       <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-bark-300/40">
-        <span>{repo.owner_sub.slice(0, 10)}</span>
+        <Link
+          to={`/${enc(repo.owner_sub)}`}
+          className="hover:text-soul-300 transition-colors"
+        >
+          {repo.owner_sub.slice(0, 10)}
+        </Link>
         <span>/</span>
         <span className="text-bark-300/80">{repo.name}</span>
         {repo.visibility === "private" && (

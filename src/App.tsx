@@ -5,6 +5,7 @@ import { DashboardRepos } from "./pages/DashboardRepos";
 import { Marketspace } from "./pages/Marketspace";
 import { NewRepo } from "./pages/NewRepo";
 import { Overview } from "./pages/Overview";
+import { Profile } from "./pages/Profile";
 import { Repo } from "./pages/Repo";
 
 export default function App() {
@@ -30,6 +31,11 @@ export default function App() {
         {/* Legacy /marketplace → new landing (keep deep links working for a grace period). */}
         <Route path="/marketplace" element={<Navigate to="/" replace />} />
         <Route path="/marketplace/*" element={<Navigate to="/" replace />} />
+
+        {/* Profile page for an owner. Registered AFTER the static routes
+            (/new, /dashboard, /explore, /marketplace, /auth) so they win
+            the match — React Router prefers exact over dynamic. */}
+        <Route path="/:owner" element={<Profile />} />
 
         {/* Repo detail + sub-views. Catch-all paths live at /tree/:branch/* and /blob/:branch/*. */}
         <Route path="/:owner/:name" element={<Repo />} />
