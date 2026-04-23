@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   listRepos,
+  logout,
   whoami,
   type Me,
   type Repo as RepoT,
@@ -54,7 +55,18 @@ export function Profile() {
         </Link>
         <div className="flex items-center gap-6 text-[11px] uppercase tracking-widest">
           {me ? (
-            <Link to="/dashboard" className="text-bark-300/70 hover:text-soul-300">dashboard</Link>
+            <>
+              <Link to="/dashboard" className="text-bark-300/70 hover:text-soul-300">dashboard</Link>
+              <button
+                onClick={async () => {
+                  try { await logout(); } catch { /* cookie cleared server-side */ }
+                  window.location.href = "/";
+                }}
+                className="text-bark-300/60 hover:text-atokirina-400 transition-colors uppercase tracking-widest text-[11px]"
+              >
+                sign out
+              </button>
+            </>
           ) : null}
         </div>
       </nav>

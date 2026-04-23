@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { listRepos, whoami, type Repo, type RepoKind, type Me } from "../api/client";
+import { listRepos, logout, whoami, type Repo, type RepoKind, type Me } from "../api/client";
 import { AtokirinaField } from "../components/Atokirina";
 import { RepoCard } from "../components/RepoCard";
 
@@ -79,6 +79,7 @@ export function Marketspace() {
               <Link to="/dashboard" className="text-bark-300/70 hover:text-soul-300 transition-colors">
                 dashboard
               </Link>
+              <SignOutLink />
             </>
           ) : (
             <>
@@ -176,6 +177,21 @@ export function Marketspace() {
         )}
       </main>
     </div>
+  );
+}
+
+function SignOutLink() {
+  return (
+    <button
+      onClick={async () => {
+        try { await logout(); } catch { /* ignore; cookie is cleared server-side */ }
+        // Land back on the public marketspace, signed out.
+        window.location.href = "/";
+      }}
+      className="text-bark-300/60 hover:text-atokirina-400 transition-colors uppercase tracking-widest text-[11px]"
+    >
+      sign out
+    </button>
   );
 }
 
