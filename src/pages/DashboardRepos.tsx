@@ -48,7 +48,7 @@ export function DashboardRepos() {
           { id: "" as KindTab, label: "◎ All" },
           { id: "app" as KindTab, label: "⁂ Apps" },
           { id: "autoresearch" as KindTab, label: "⋯ AutoResearch" },
-          { id: "agent" as KindTab, label: "❋ Agents" },
+          { id: "agent" as KindTab, label: "❋ Agentic KG" },
         ]).map((t) => (
           <button
             key={t.id || "all"}

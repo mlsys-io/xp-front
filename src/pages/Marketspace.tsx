@@ -10,7 +10,7 @@ const TABS: { id: KindTab; label: string }[] = [
   { id: "", label: "◎ All" },
   { id: "app", label: "⁂ Applications" },
   { id: "autoresearch", label: "⋯ AutoResearch" },
-  { id: "agent", label: "❋ Agents" },
+  { id: "agent", label: "❋ Agentic KG" },
 ];
 
 const SORTS: { id: string; label: string }[] = [

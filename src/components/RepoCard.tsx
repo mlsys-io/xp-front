@@ -10,7 +10,7 @@ const KIND_GLYPH: Record<string, string> = {
 const KIND_LABEL: Record<string, string> = {
   app: "Application",
   autoresearch: "AutoResearch",
-  agent: "Agent",
+  agent: "Agentic KG",
 };
 
 export function RepoCard({ repo }: { repo: Repo }) {

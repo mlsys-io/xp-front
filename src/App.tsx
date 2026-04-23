@@ -33,6 +33,7 @@ export default function App() {
 
         {/* Repo detail + sub-views. Catch-all paths live at /tree/:branch/* and /blob/:branch/*. */}
         <Route path="/:owner/:name" element={<Repo />} />
+        <Route path="/:owner/:name/branches" element={<Repo />} />
         <Route path="/:owner/:name/settings" element={<Repo />} />
         <Route path="/:owner/:name/pulls" element={<Repo />} />
         <Route path="/:owner/:name/pulls/:number" element={<Repo />} />

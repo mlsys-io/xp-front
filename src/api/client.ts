@@ -58,7 +58,21 @@ export type Repo = {
   updated_at: number;
 };
 
-export type Branch = { name: string; sha: string };
+export type Branch = {
+  name: string;
+  sha: string;
+  is_default?: boolean;
+  ahead?: number;
+  behind?: number;
+  last_commit?: {
+    sha: string;
+    short_sha: string;
+    author: string;
+    email: string;
+    date: string;                // ISO-8601 with timezone
+    message_summary: string;
+  };
+};
 
 export type TreeEntry = {
   name: string;
@@ -112,7 +126,7 @@ export async function createRepo(input: {
 
 export async function patchRepo(
   owner: string, name: string,
-  patch: Partial<Pick<Repo, "visibility" | "display_name" | "summary" | "tags">>,
+  patch: Partial<Pick<Repo, "name" | "visibility" | "display_name" | "summary" | "tags">>,
 ): Promise<Repo> {
   const r = await api.patch(`/api/v1/repos/${enc(owner)}/${enc(name)}`, patch);
   return r.data.repo as Repo;

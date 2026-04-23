@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { exchangeCode } from "../api/client";
-import { takeVerifier } from "../lib/pkce";
+import { takeReturnTo, takeVerifier } from "../lib/pkce";
 import { AtokirinaField } from "../components/Atokirina";
 
 export function AuthCallback() {
@@ -26,7 +26,13 @@ export function AuthCallback() {
       return;
     }
     exchangeCode(code, verifier)
-      .then(() => nav("/dashboard"))
+      .then(() => {
+        // Return the user to wherever they were before the OAuth hop (fork
+        // button, star, New-PR form). Fall back to /dashboard when we have
+        // no memory of the original intent (e.g. cold /auth/callback visit).
+        const returnTo = takeReturnTo();
+        nav(returnTo && !returnTo.startsWith("/auth/") ? returnTo : "/dashboard");
+      })
       .catch((e) => setErr(String(e?.response?.data?.detail ?? e)));
   }, [nav, params]);
 
