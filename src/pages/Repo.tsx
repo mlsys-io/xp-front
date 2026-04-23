@@ -370,6 +370,12 @@ function BranchPicker({
   const list = branches.length ? branches : [{ name: branch, sha: "" } as Branch];
   const other = list.filter((b) => b.name !== branch);
   const count = branches.length || 1;
+  // The Code tab isn't the place to enumerate every branch — the Branches
+  // tab is. Show a short shortlist for quick-switch (default + up to 4
+  // others), link out for the full list.
+  const SHORTLIST = 5;
+  const shortlist = other.slice(0, SHORTLIST - 1);
+  const hidden = Math.max(0, other.length - shortlist.length);
 
   return (
     <div ref={ref} className="relative inline-block">
@@ -386,8 +392,8 @@ function BranchPicker({
           <div className="px-3 py-2 text-[10px] uppercase tracking-widest text-bark-300/50 border-b border-soul-400/10">
             Switch branch ({count})
           </div>
-          <ul className="max-h-72 overflow-y-auto">
-            {other.map((b) => (
+          <ul>
+            {shortlist.map((b) => (
               <li key={b.name}>
                 <button
                   onClick={() => {
@@ -409,7 +415,7 @@ function BranchPicker({
             onClick={() => setOpen(false)}
             className="block px-3 py-2 text-[11px] uppercase tracking-widest text-soul-300 hover:text-soul-400 border-t border-soul-400/10"
           >
-            View all branches →
+            {hidden > 0 ? `View all ${count} branches →` : "View all branches →"}
           </Link>
         </div>
       )}
