@@ -42,7 +42,11 @@ export function Marketspace() {
 
   useEffect(() => {
     setLoading(true);
-    listRepos({ q, kind: tab, sort: sort as any, limit: 60 })
+    // Public marketspace hides forks — they duplicate upstream with no
+    // differentiating content. Forks are still discoverable via the
+    // upstream's header link and the user's own dashboard.
+    listRepos({ q, kind: tab, sort: sort as any, limit: 60,
+                include_forks: false })
       .then(setRepos)
       .catch(() => setRepos([]))
       .finally(() => setLoading(false));

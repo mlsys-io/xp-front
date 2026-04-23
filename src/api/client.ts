@@ -93,6 +93,7 @@ export type ListReposParams = {
   owner?: string;
   sort?: "updated" | "created" | "stars" | "forks" | "name";
   limit?: number;
+  include_forks?: boolean;
 };
 
 /** Anonymous — returns only public repos unless the user is signed in. */
