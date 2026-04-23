@@ -82,10 +82,7 @@ export function Marketspace() {
               <SignOutLink />
             </>
           ) : (
-            <>
-              <SignInLink variant="nav" />
-              <SignInLink variant="primary" />
-            </>
+            <SignInLink variant="primary" />
           )}
         </div>
       </nav>
