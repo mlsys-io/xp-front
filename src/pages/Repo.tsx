@@ -311,14 +311,20 @@ function RepoHeader({
                 : "border-gray-300 text-bark-300 hover:border-gray-400 hover:bg-gray-50"
             }`}
           >
-            {watch.watching ? "Watching" : "Watch"} · {watch.watchers}
+            {watch.watching ? "Watching" : "Watch"}{" "}
+            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-700 tabular-nums">
+              {watch.watchers}
+            </span>
           </button>
           <button
             onClick={onStar}
             className="px-2.5 py-1 text-xs rounded-md border border-gray-300 text-bark-300 hover:border-gray-400 hover:bg-gray-50 transition-colors"
           >
             <span className="text-atokirina-400 mr-1">★</span>
-            {repo.stars}
+            Star{" "}
+            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-700 tabular-nums">
+              {repo.stars}
+            </span>
           </button>
           {!isOwner && (
             <button
@@ -326,7 +332,12 @@ function RepoHeader({
               onClick={onFork}
               className="px-2.5 py-1 text-xs rounded-md border border-gray-300 text-bark-300 hover:border-gray-400 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
-              {busy ? "Forking…" : `Fork · ${repo.forks}`}
+              {busy ? "Forking…" : "Fork"}{" "}
+              {!busy && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-700 tabular-nums">
+                  {repo.forks}
+                </span>
+              )}
             </button>
           )}
         </div>
@@ -385,7 +396,16 @@ function KindCard({ repo }: { repo: RepoT }) {
       pills.push(["skills", manifest.skills_required.join(" · ")]);
     }
     if (Array.isArray(manifest.tools)) {
-      pills.push(["tools", String(manifest.tools.length)]);
+      // Prefer showing names (flat strings or {name} objects) over a
+      // bare count — "tools: file_bug · file_feature" is much more
+      // informative than "tools: 2".
+      const names = (manifest.tools as any[])
+        .map((t) => (typeof t === "string" ? t : t?.name))
+        .filter(Boolean);
+      pills.push([
+        "tools",
+        names.length ? names.join(" · ") : String(manifest.tools.length),
+      ]);
     }
     if (manifest.thresholds && typeof manifest.thresholds === "object") {
       pills.push(["thresholds",

@@ -110,7 +110,7 @@ export function Explore() {
               <select
                 value={window}
                 onChange={(e) => setWindow(e.target.value as any)}
-                className="bg-gray-50 border border-gray-200 rounded-md px-2 py-1 text-xs text-gray-900 focus:outline-none"
+                className="appearance-none bg-white border border-gray-300 rounded-md pl-2 pr-7 py-1 text-xs text-gray-900 focus:outline-none focus:border-gray-500 bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20fill%3D%22%23374151%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20d%3D%22M5.5%208l4.5%204.5L14.5%208z%22/%3E%3C/svg%3E')] bg-no-repeat bg-right-0.5 bg-[length:1.1rem]"
               >
                 {WINDOWS.map((w) => (
                   <option key={w.id} value={w.id}>{w.label}</option>

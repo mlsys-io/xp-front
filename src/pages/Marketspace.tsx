@@ -132,7 +132,7 @@ export function Marketspace() {
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="bg-gray-50 border border-gray-200 rounded-md px-3 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-gray-300"
+            className="appearance-none bg-white border border-gray-300 rounded-md pl-3 pr-8 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-gray-500 bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20fill%3D%22%23374151%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20d%3D%22M5.5%208l4.5%204.5L14.5%208z%22/%3E%3C/svg%3E')] bg-no-repeat bg-right-0.5 bg-[length:1.25rem]"
           >
             {SORTS.map((s) => (
               <option key={s.id} value={s.id}>{s.label}</option>
@@ -162,7 +162,7 @@ export function Marketspace() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {repos.map((r) => (
               <RepoCard key={`${r.owner_sub}/${r.name}`} repo={r} />
             ))}
