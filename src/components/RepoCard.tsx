@@ -38,17 +38,17 @@ export function RepoCard({ repo }: { repo: Repo }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap text-xs text-bark-300/55">
+          <div className="flex items-center gap-2 flex-wrap text-xs text-gray-700">
             <span>{KIND_GLYPH[kind] || "◇"}</span>
             <span className="font-mono lowercase">{kind}</span>
             {fork_of && (
               <span className="text-spirit-300/70">· fork</span>
             )}
           </div>
-          <div className="mt-0.5 text-base font-semibold text-bark-200 truncate">
+          <div className="mt-0.5 text-base font-semibold text-gray-900 truncate">
             {display_name || name}
           </div>
-          <div className="text-[12px] text-bark-300/45 truncate font-mono">
+          <div className="text-[12px] text-gray-600 truncate font-mono">
             <Link
               to={`/${encodeURIComponent(owner_sub)}`}
               onClick={(e) => e.stopPropagation()}
@@ -59,7 +59,7 @@ export function RepoCard({ repo }: { repo: Repo }) {
             /{name}
           </div>
         </div>
-        <div className="shrink-0 flex items-center gap-3 text-xs text-bark-300/60">
+        <div className="shrink-0 flex items-center gap-3 text-xs text-gray-700">
           <span title="stars" className="flex items-center gap-1">
             <span className="text-atokirina-400">★</span>
             {stars}
@@ -72,7 +72,7 @@ export function RepoCard({ repo }: { repo: Repo }) {
       </div>
 
       {summary && (
-        <div className="mt-2 text-sm text-bark-300/70 line-clamp-2">
+        <div className="mt-2 text-sm text-gray-700 line-clamp-2">
           {summary}
         </div>
       )}
@@ -82,7 +82,7 @@ export function RepoCard({ repo }: { repo: Repo }) {
           {tags.slice(0, 5).map((t) => (
             <span
               key={t}
-              className="text-[11px] text-bark-300/60 border border-gray-200 bg-gray-50 rounded px-1.5 py-0.5"
+              className="text-[11px] text-gray-700 border border-gray-200 bg-gray-50 rounded px-1.5 py-0.5"
             >
               {t}
             </span>

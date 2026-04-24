@@ -59,7 +59,7 @@ export function Marketspace() {
       <AtokirinaField count={10} />
 
       {/* Top nav */}
-      <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-soul-400/10">
+      <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-gray-200">
         <Link to="/" className="text-soul-300 font-display tracking-[0.35em] text-sm">
           <span className="w-1.5 h-1.5 inline-block align-middle rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul mr-3" />
           xp.io
@@ -72,11 +72,11 @@ export function Marketspace() {
               </Link>
               <Link
                 to={`/${encodeURIComponent(me.sub)}`}
-                className="text-bark-300/70 hover:text-soul-300 transition-colors"
+                className="text-gray-700 hover:text-soul-300 transition-colors"
               >
                 profile
               </Link>
-              <Link to="/dashboard" className="text-bark-300/70 hover:text-soul-300 transition-colors">
+              <Link to="/dashboard" className="text-gray-700 hover:text-soul-300 transition-colors">
                 dashboard
               </Link>
               <SignOutLink />
@@ -89,17 +89,17 @@ export function Marketspace() {
 
       <main className="relative z-10 mx-auto max-w-6xl px-8 py-12">
         <header className="text-center mb-10">
-          <h1 className="text-3xl font-semibold text-bark-200">
+          <h1 className="text-3xl font-semibold text-gray-900">
             The Marketspace
           </h1>
-          <p className="mt-3 text-sm text-bark-300/60 max-w-xl mx-auto">
+          <p className="mt-3 text-sm text-gray-700 max-w-xl mx-auto">
             Applications, AutoResearch loops, skills, and Agentic KGs — versioned in git,
             forkable, pullable, mergeable.
           </p>
           {!me && (
             <div className="mt-6 flex items-center justify-center gap-4 flex-wrap">
               <SignInLink variant="hero" />
-              <span className="text-xs text-bark-300/40">
+              <span className="text-xs text-gray-500">
                 or keep browsing anon
               </span>
             </div>
@@ -112,7 +112,7 @@ export function Marketspace() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="search repos, tags, descriptions…"
-            className="w-full bg-night-800/60 border border-soul-400/15 rounded-full px-5 py-2.5 text-sm text-bark-300 placeholder:text-bark-300/30 focus:outline-none focus:border-soul-400/40 transition-colors"
+            className="w-full bg-gray-50 border border-gray-200 rounded-full px-5 py-2.5 text-sm text-bark-300 placeholder:text-gray-500 focus:outline-none focus:border-gray-300 transition-colors"
           />
         </div>
 
@@ -125,8 +125,8 @@ export function Marketspace() {
                 onClick={() => setTab(t.id)}
                 className={`text-sm transition-colors pb-1 border-b-2 ${
                   tab === t.id
-                    ? "text-bark-200 border-soul-400 font-medium"
-                    : "text-bark-300/55 border-transparent hover:text-bark-300/85"
+                    ? "text-gray-900 border-soul-400 font-medium"
+                    : "text-gray-700 border-transparent hover:text-gray-900"
                 }`}
               >
                 {t.label}
@@ -136,7 +136,7 @@ export function Marketspace() {
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-1.5 text-xs text-bark-300/80 focus:outline-none focus:border-soul-400/40"
+            className="bg-gray-50 border border-gray-200 rounded-md px-3 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-gray-300"
           >
             {SORTS.map((s) => (
               <option key={s.id} value={s.id}>{s.label}</option>
@@ -146,12 +146,12 @@ export function Marketspace() {
 
         {/* Grid */}
         {loading ? (
-          <div className="text-center text-sm text-bark-300/40 py-16">
+          <div className="text-center text-sm text-gray-500 py-16">
             listening to the Tree…
           </div>
         ) : repos.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-soul-400/15 py-16 text-center">
-            <div className="text-bark-300/50 text-sm">Nothing here yet.</div>
+          <div className="rounded-2xl border border-dashed border-gray-200 py-16 text-center">
+            <div className="text-gray-600 text-sm">Nothing here yet.</div>
             {me ? (
               <Link
                 to="/new"
@@ -160,7 +160,7 @@ export function Marketspace() {
                 ✦ plant the first seed
               </Link>
             ) : (
-              <div className="mt-4 text-[11px] text-bark-300/40 uppercase tracking-widest">
+              <div className="mt-4 text-[11px] text-gray-500 uppercase tracking-widest">
                 sign in to publish
               </div>
             )}
@@ -185,7 +185,7 @@ function SignOutLink() {
         // Land back on the public marketspace, signed out.
         window.location.href = "/";
       }}
-      className="text-bark-300/60 hover:text-atokirina-400 transition-colors uppercase tracking-widest text-[11px]"
+      className="text-gray-700 hover:text-atokirina-400 transition-colors uppercase tracking-widest text-[11px]"
     >
       sign out
     </button>
@@ -201,7 +201,7 @@ function SignInLink({ variant = "nav" }: { variant?: "nav" | "primary" | "hero" 
     return (
       <button
         onClick={onClick}
-        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-soul-400/15 border border-soul-400/40 text-soul-300 hover:bg-soul-400/25 hover:border-soul-400/70 transition-colors uppercase tracking-widest text-[11px]"
+        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-soul-400/15 border border-gray-300 text-soul-300 hover:bg-soul-400/25 hover:border-soul-400 transition-colors uppercase tracking-widest text-[11px]"
       >
         sign up · sign in
       </button>
@@ -211,7 +211,7 @@ function SignInLink({ variant = "nav" }: { variant?: "nav" | "primary" | "hero" 
     return (
       <button
         onClick={onClick}
-        className="soul-ring inline-flex items-center gap-3 px-6 py-3 rounded-full bg-soul-400/20 border border-soul-400/50 text-soul-200 hover:text-bark-300 hover:bg-soul-400/30 transition-colors uppercase tracking-[0.25em] text-xs shadow-soul"
+        className="soul-ring inline-flex items-center gap-3 px-6 py-3 rounded-full bg-soul-400/20 border border-soul-400 text-soul-200 hover:text-bark-300 hover:bg-soul-400/30 transition-colors uppercase tracking-[0.25em] text-xs shadow-soul"
       >
         <span className="w-1.5 h-1.5 rounded-full bg-soul-400 animate-pulse-soul" />
         sign in with lum.id
@@ -221,7 +221,7 @@ function SignInLink({ variant = "nav" }: { variant?: "nav" | "primary" | "hero" 
   return (
     <button
       onClick={onClick}
-      className="text-bark-300/60 hover:text-soul-300 transition-colors uppercase tracking-widest text-[11px]"
+      className="text-gray-700 hover:text-soul-300 transition-colors uppercase tracking-widest text-[11px]"
     >
       sign in
     </button>

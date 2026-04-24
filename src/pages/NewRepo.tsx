@@ -49,18 +49,18 @@ export function NewRepo() {
   return (
     <div className="min-h-screen relative">
       <div className="absolute inset-0 starfield opacity-25 pointer-events-none" aria-hidden="true" />
-      <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-soul-400/10">
+      <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-gray-200">
         <Link to="/" className="text-soul-300 font-display tracking-[0.35em] text-sm">xp.io</Link>
       </nav>
       <main className="relative z-10 mx-auto max-w-2xl px-8 py-12">
         <h1 className="font-display text-3xl text-bark-300 mb-2">Plant a new seed</h1>
-        <p className="text-sm text-bark-300/60 mb-10">
+        <p className="text-sm text-gray-700 mb-10">
           Every repo on xp.io is a git repo — versioned, forkable, mergeable.
         </p>
 
         <form onSubmit={submit} className="space-y-6">
           <div>
-            <div className="text-[11px] uppercase tracking-widest text-bark-300/50 mb-2">Kind</div>
+            <div className="text-[11px] uppercase tracking-widest text-gray-600 mb-2">Kind</div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {KINDS.map((k) => (
                 <button
@@ -69,15 +69,15 @@ export function NewRepo() {
                   onClick={() => setKind(k.id)}
                   className={`text-left p-4 rounded-xl border transition-colors ${
                     kind === k.id
-                      ? "border-soul-400/60 bg-night-800/60"
-                      : "border-soul-400/10 bg-night-800/30 hover:border-soul-400/30"
+                      ? "border-soul-400 bg-gray-50"
+                      : "border-gray-200 bg-white hover:border-gray-300"
                   }`}
                 >
                   <div className="font-display text-sm text-bark-300">
                     <span className="text-soul-400/70 mr-1">{k.glyph}</span>
                     {k.label}
                   </div>
-                  <div className="mt-1 text-xs text-bark-300/55">{k.blurb}</div>
+                  <div className="mt-1 text-xs text-gray-700">{k.blurb}</div>
                 </button>
               ))}
             </div>
@@ -89,7 +89,7 @@ export function NewRepo() {
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="my-cool-thing"
-              className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+              className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
             />
           </Field>
 
@@ -98,7 +98,7 @@ export function NewRepo() {
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="My Cool Thing"
-              className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+              className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
             />
           </Field>
 
@@ -108,7 +108,7 @@ export function NewRepo() {
               onChange={(e) => setSummary(e.target.value)}
               rows={2}
               placeholder="one-line description"
-              className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+              className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
             />
           </Field>
 
@@ -117,7 +117,7 @@ export function NewRepo() {
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               placeholder="trading, nlp"
-              className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+              className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
             />
           </Field>
 
@@ -125,7 +125,7 @@ export function NewRepo() {
             <select
               value={visibility}
               onChange={(e) => setVisibility(e.target.value as Visibility)}
-              className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+              className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
             >
               <option value="public">public — shows on the marketspace</option>
               <option value="private">private — only you</option>
@@ -138,11 +138,11 @@ export function NewRepo() {
             <button
               type="submit"
               disabled={busy || !name.trim()}
-              className="px-5 py-2 text-xs uppercase tracking-widest rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70 disabled:opacity-50"
+              className="px-5 py-2 text-xs uppercase tracking-widest rounded-full border border-gray-300 text-soul-300 hover:text-soul-400 hover:border-soul-400 disabled:opacity-50"
             >
               {busy ? "planting…" : "✦ create"}
             </button>
-            <Link to="/" className="text-xs uppercase tracking-widest text-bark-300/40 hover:text-bark-300/70">
+            <Link to="/" className="text-xs uppercase tracking-widest text-gray-500 hover:text-gray-700">
               cancel
             </Link>
           </div>
@@ -155,7 +155,7 @@ export function NewRepo() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-widest text-bark-300/50 mb-1">{label}</div>
+      <div className="text-[11px] uppercase tracking-widest text-gray-600 mb-1">{label}</div>
       {children}
     </div>
   );

@@ -41,11 +41,11 @@ export function AuthCallback() {
       <div className="absolute inset-0 starfield opacity-40" />
       <AtokirinaField count={10} />
       {err ? (
-        <div className="relative z-10 max-w-md rounded-2xl border border-atokirina-400/40 bg-night-800/80 backdrop-blur p-6 text-atokirina-300">
+        <div className="relative z-10 max-w-md rounded-2xl border border-atokirina-400/40 bg-white backdrop-blur p-6 text-atokirina-300">
           <div className="font-display tracking-widest text-xs uppercase mb-2 text-atokirina-400">
             Connection lost
           </div>
-          <div className="text-bark-300/85 text-sm">{err}</div>
+          <div className="text-gray-900 text-sm">{err}</div>
           <a href="/" className="mt-4 inline-block text-sm text-soul-300 hover:text-soul-400 transition-colors">
             ← return to the Tree
           </a>
@@ -55,7 +55,7 @@ export function AuthCallback() {
           <div className="font-display tracking-[0.35em] text-xs uppercase text-soul-300/80">
             Connecting
           </div>
-          <div className="mt-3 w-10 h-10 mx-auto rounded-full border-2 border-soul-400/25 border-t-soul-400 animate-spin" />
+          <div className="mt-3 w-10 h-10 mx-auto rounded-full border-2 border-gray-300 border-t-soul-400 animate-spin" />
         </div>
       )}
     </div>

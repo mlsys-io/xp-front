@@ -70,21 +70,21 @@ export function Explore() {
   return (
     <div className="min-h-screen relative overflow-hidden">
       <div className="absolute inset-0 starfield opacity-40" aria-hidden="true" />
-      <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-soul-400/10">
+      <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-gray-200">
         <Link to="/" className="text-soul-300 font-display tracking-[0.35em] text-sm">
           <span className="w-1.5 h-1.5 inline-block align-middle rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul mr-3" />
           xp.io
         </Link>
         <div className="flex items-center gap-4 text-xs">
-          <Link to="/" className="text-bark-300/70 hover:text-soul-300">marketspace</Link>
+          <Link to="/" className="text-gray-700 hover:text-soul-300">marketspace</Link>
           <Link to="/explore" className="text-soul-300">explore</Link>
         </div>
       </nav>
 
       <main className="relative z-10 max-w-5xl mx-auto px-6 py-10">
         <header className="mb-8">
-          <h1 className="text-2xl font-semibold text-bark-200">Explore</h1>
-          <p className="mt-2 text-sm text-bark-300/60">
+          <h1 className="text-2xl font-semibold text-gray-900">Explore</h1>
+          <p className="mt-2 text-sm text-gray-700">
             Trending repos and a live feed of what the xp.io community is doing.
           </p>
         </header>
@@ -92,7 +92,7 @@ export function Explore() {
         {/* Trending */}
         <section className="mb-10">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <h2 className="text-sm font-medium text-bark-300/80">
+            <h2 className="text-sm font-medium text-gray-900">
               ✦ Trending
             </h2>
             <div className="flex items-center gap-4 text-xs">
@@ -101,7 +101,7 @@ export function Explore() {
                   <button
                     key={t.id || "all"}
                     onClick={() => setKind(t.id)}
-                    className={kind === t.id ? "text-soul-300" : "text-bark-300/50 hover:text-bark-300/80"}
+                    className={kind === t.id ? "text-soul-300" : "text-gray-600 hover:text-gray-900"}
                   >
                     {t.label}
                   </button>
@@ -110,7 +110,7 @@ export function Explore() {
               <select
                 value={window}
                 onChange={(e) => setWindow(e.target.value as any)}
-                className="bg-night-800/60 border border-soul-400/15 rounded-md px-2 py-1 text-xs text-bark-300/80 focus:outline-none"
+                className="bg-gray-50 border border-gray-200 rounded-md px-2 py-1 text-xs text-gray-900 focus:outline-none"
               >
                 {WINDOWS.map((w) => (
                   <option key={w.id} value={w.id}>{w.label}</option>
@@ -119,9 +119,9 @@ export function Explore() {
             </div>
           </div>
           {trending === null ? (
-            <div className="text-sm text-bark-300/40 py-6">listening…</div>
+            <div className="text-sm text-gray-500 py-6">listening…</div>
           ) : trending.length === 0 ? (
-            <div className="text-sm text-bark-300/40 py-6">
+            <div className="text-sm text-gray-500 py-6">
               Nothing's trending in this window yet.
             </div>
           ) : (
@@ -130,18 +130,18 @@ export function Explore() {
                 <Link
                   key={`${r.owner_sub}/${r.name}`}
                   to={`/${encodeURIComponent(r.owner_sub)}/${encodeURIComponent(r.name)}`}
-                  className="rounded-xl border border-soul-400/10 bg-night-800/40 p-4 hover:border-soul-400/30 transition-colors"
+                  className="rounded-xl border border-gray-200 bg-white p-4 hover:border-gray-300 transition-colors"
                 >
-                  <div className="text-[11px] text-bark-300/55 mb-1">
+                  <div className="text-[11px] text-gray-700 mb-1">
                     {KIND_EMOJI[r.kind] || "◎"} {r.kind}
                   </div>
                   <div className="font-mono text-sm text-bark-300 truncate">
                     {r.owner_sub.slice(0, 10)} / <span className="text-soul-300">{r.name}</span>
                   </div>
                   {r.summary && (
-                    <div className="text-xs text-bark-300/60 mt-2 line-clamp-2">{r.summary}</div>
+                    <div className="text-xs text-gray-700 mt-2 line-clamp-2">{r.summary}</div>
                   )}
-                  <div className="text-[11px] text-bark-300/40 mt-3">
+                  <div className="text-[11px] text-gray-500 mt-3">
                     ★ {r.stars} · ⑂ {r.forks}
                   </div>
                 </Link>
@@ -152,15 +152,15 @@ export function Explore() {
 
         {/* Activity feed */}
         <section>
-          <h2 className="text-sm font-medium text-bark-300/80 mb-4">
+          <h2 className="text-sm font-medium text-gray-900 mb-4">
             ⌘ Activity
           </h2>
           {activity === null ? (
-            <div className="text-sm text-bark-300/40 py-6">listening…</div>
+            <div className="text-sm text-gray-500 py-6">listening…</div>
           ) : activity.length === 0 ? (
-            <div className="text-sm text-bark-300/40 py-6">No activity recorded yet.</div>
+            <div className="text-sm text-gray-500 py-6">No activity recorded yet.</div>
           ) : (
-            <div className="rounded-xl border border-soul-400/10 bg-night-800/40 divide-y divide-soul-400/10">
+            <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-200">
               {activity.map((e, i) => {
                 const verb = ACTION_TEMPLATE[e.kind] || e.kind;
                 return (
@@ -168,11 +168,11 @@ export function Explore() {
                     <div className="min-w-0 text-sm">
                       <Link
                         to={`/${encodeURIComponent(e.actor_sub)}`}
-                        className="font-mono text-bark-300/80 hover:text-soul-300"
+                        className="font-mono text-gray-900 hover:text-soul-300"
                       >
                         {e.actor_sub.slice(0, 10)}
                       </Link>{" "}
-                      <span className="text-bark-300/60">{verb}</span>{" "}
+                      <span className="text-gray-700">{verb}</span>{" "}
                       <Link
                         to={`/${e.target}`}
                         className="font-mono text-soul-300 hover:underline"
@@ -180,7 +180,7 @@ export function Explore() {
                         {e.target}
                       </Link>
                     </div>
-                    <div className="text-[11px] text-bark-300/40 shrink-0">{relTime(e.ts)}</div>
+                    <div className="text-[11px] text-gray-500 shrink-0">{relTime(e.ts)}</div>
                   </div>
                 );
               })}

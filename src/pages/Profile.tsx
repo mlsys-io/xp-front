@@ -48,7 +48,7 @@ export function Profile() {
       <div className="absolute inset-0 starfield opacity-30" aria-hidden="true" />
       <AtokirinaField count={6} />
 
-      <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-soul-400/10">
+      <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-gray-200">
         <Link to="/" className="text-soul-300 font-display tracking-[0.35em] text-sm">
           <span className="w-1.5 h-1.5 inline-block align-middle rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul mr-3" />
           xp.io
@@ -56,13 +56,13 @@ export function Profile() {
         <div className="flex items-center gap-6 text-[11px] uppercase tracking-widest">
           {me ? (
             <>
-              <Link to="/dashboard" className="text-bark-300/70 hover:text-soul-300">dashboard</Link>
+              <Link to="/dashboard" className="text-gray-700 hover:text-soul-300">dashboard</Link>
               <button
                 onClick={async () => {
                   try { await logout(); } catch { /* cookie cleared server-side */ }
                   window.location.href = "/";
                 }}
-                className="text-bark-300/60 hover:text-atokirina-400 transition-colors uppercase tracking-widest text-[11px]"
+                className="text-gray-700 hover:text-atokirina-400 transition-colors uppercase tracking-widest text-[11px]"
               >
                 sign out
               </button>
@@ -86,12 +86,12 @@ export function Profile() {
                 </span>
               )}
             </h1>
-            <div className="mt-1 text-xs text-bark-300/40 font-mono break-all">
+            <div className="mt-1 text-xs text-gray-500 font-mono break-all">
               {owner}
             </div>
-            <div className="mt-3 flex items-center gap-4 text-xs text-bark-300/70">
+            <div className="mt-3 flex items-center gap-4 text-xs text-gray-700">
               <span>
-                <span className="text-bark-300/90 font-display text-base mr-1">
+                <span className="text-gray-900 font-display text-base mr-1">
                   {repos?.length ?? "—"}
                 </span>
                 repo{repos?.length === 1 ? "" : "s"}
@@ -106,7 +106,7 @@ export function Profile() {
             <div className="ml-auto">
               <Link
                 to="/dashboard/repos"
-                className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70"
+                className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-gray-300 text-soul-300 hover:text-soul-400 hover:border-soul-400"
               >
                 go to dashboard
               </Link>
@@ -116,17 +116,17 @@ export function Profile() {
 
         {/* Stat strip */}
         {repos && repos.length > 0 && (
-          <div className="mb-8 flex flex-wrap gap-2 text-[11px] uppercase tracking-widest text-bark-300/50">
-            <span className="border border-soul-400/15 rounded-full px-3 py-1">
+          <div className="mb-8 flex flex-wrap gap-2 text-[11px] uppercase tracking-widest text-gray-600">
+            <span className="border border-gray-200 rounded-full px-3 py-1">
               <span className="text-soul-300 mr-1">⁂</span> {byKind.app} app{byKind.app === 1 ? "" : "s"}
             </span>
-            <span className="border border-soul-400/15 rounded-full px-3 py-1">
+            <span className="border border-gray-200 rounded-full px-3 py-1">
               <span className="text-soul-300 mr-1">⋯</span> {byKind.autoresearch} autoresearch
             </span>
-            <span className="border border-soul-400/15 rounded-full px-3 py-1">
+            <span className="border border-gray-200 rounded-full px-3 py-1">
               <span className="text-soul-300 mr-1">❋</span> {byKind.agent} agentic kg
             </span>
-            <span className="border border-soul-400/15 rounded-full px-3 py-1">
+            <span className="border border-gray-200 rounded-full px-3 py-1">
               <span className="text-soul-300 mr-1">⌘</span> {byKind.skill} skill{byKind.skill === 1 ? "" : "s"}
             </span>
           </div>
@@ -134,10 +134,10 @@ export function Profile() {
 
         {/* Repo grid */}
         {repos === null ? (
-          <div className="py-16 text-center text-sm text-bark-300/40">listening to the Tree…</div>
+          <div className="py-16 text-center text-sm text-gray-500">listening to the Tree…</div>
         ) : repos.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-soul-400/15 py-16 text-center">
-            <div className="text-bark-300/55 text-sm">
+          <div className="rounded-xl border border-dashed border-gray-200 py-16 text-center">
+            <div className="text-gray-700 text-sm">
               {isMe ? "You don't have any repos yet." : "No public repos here."}
             </div>
             {isMe && (

@@ -137,14 +137,14 @@ export function Repo() {
   }, [owner, name]);
 
   if (repo === null) {
-    return <Shell><div className="py-16 text-center text-bark-300/40 text-sm">listening to the Tree…</div></Shell>;
+    return <Shell><div className="py-16 text-center text-gray-500 text-sm">listening to the Tree…</div></Shell>;
   }
   if (repo === "missing") {
     return (
       <Shell>
         <div className="py-16 text-center">
-          <div className="text-xl font-semibold text-bark-300/80">not found</div>
-          <div className="mt-2 text-sm text-bark-300/50">No such repo here.</div>
+          <div className="text-xl font-semibold text-gray-900">not found</div>
+          <div className="mt-2 text-sm text-gray-600">No such repo here.</div>
           <Link to="/" className="mt-6 inline-block text-xs text-soul-300 hover:text-soul-400">
             ← back to the marketspace
           </Link>
@@ -159,7 +159,7 @@ export function Repo() {
     <Shell me={me}>
       <RepoHeader repo={repo} me={me} isOwner={isOwner} onChange={setRepo} />
 
-      <div className="mt-8 border-b border-soul-400/10 flex gap-6 overflow-x-auto">
+      <div className="mt-8 border-b border-gray-200 flex gap-6 overflow-x-auto">
         <TabLink to={`/${enc(owner)}/${enc(name)}`} active={tab === "code"}>Code</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/commits`} active={tab === "commits"}>Commits</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/branches`} active={tab === "branches"}>Branches</TabLink>
@@ -270,7 +270,7 @@ function RepoHeader({
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-xs text-bark-300/40">
+      <div className="flex items-center gap-2 text-xs text-gray-500">
         <Link
           to={`/${enc(repo.owner_sub)}`}
           className="hover:text-soul-300 transition-colors"
@@ -278,18 +278,18 @@ function RepoHeader({
           {repo.owner_sub.slice(0, 10)}
         </Link>
         <span>/</span>
-        <span className="text-bark-300/80">{repo.name}</span>
+        <span className="text-gray-900">{repo.name}</span>
         {repo.visibility === "private" && (
           <span className="ml-2 text-[10px] uppercase tracking-wider text-atokirina-400">private</span>
         )}
       </div>
       <div className="mt-1 flex items-end justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold text-bark-200 flex items-center gap-2">
+          <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
             <span className="text-soul-400/50 text-base">{KIND_GLYPH[repo.kind]}</span>
             {repo.display_name || repo.name}
           </h1>
-          <div className="mt-1 text-xs text-bark-300/55">
+          <div className="mt-1 text-xs text-gray-700">
             <span className="font-mono lowercase">{repo.kind}</span>
             {repo.fork_of && (
               <span className="ml-3">
@@ -299,7 +299,7 @@ function RepoHeader({
             )}
           </div>
           {repo.summary && (
-            <p className="mt-2 text-sm text-bark-300/70 max-w-2xl">{repo.summary}</p>
+            <p className="mt-2 text-sm text-gray-700 max-w-2xl">{repo.summary}</p>
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -334,7 +334,7 @@ function RepoHeader({
       {repo.tags.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {repo.tags.map((t) => (
-            <span key={t} className="text-[10px] text-bark-300/50 border border-soul-400/10 rounded-full px-2 py-0.5">
+            <span key={t} className="text-[10px] text-gray-600 border border-gray-200 rounded-full px-2 py-0.5">
               {t}
             </span>
           ))}
@@ -412,8 +412,8 @@ function KindCard({ repo }: { repo: RepoT }) {
   return (
     <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[12px]">
       {pills.map(([k, v]) => (
-        <span key={k} className="text-bark-300/80">
-          <span className="text-bark-300/50 mr-1.5">{k}:</span>
+        <span key={k} className="text-gray-900">
+          <span className="text-gray-600 mr-1.5">{k}:</span>
           <span className="font-mono">{v}</span>
         </span>
       ))}
@@ -457,7 +457,7 @@ function CodeTab({ repo, branch, path, isOwner }: {
             path={path}
           />
           {path && (
-            <div className="text-xs text-bark-300/60 font-mono">
+            <div className="text-xs text-gray-700 font-mono">
               <Link to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/tree/${enc(branch)}`} className="hover:text-soul-300">
                 {repo.name}
               </Link>
@@ -475,13 +475,13 @@ function CodeTab({ repo, branch, path, isOwner }: {
             </div>
           )}
         </div>
-        <div className="rounded-xl border border-soul-400/10 overflow-hidden">
+        <div className="rounded-xl border border-gray-200 overflow-hidden">
           {entries === null ? (
-            <div className="px-4 py-6 text-sm text-bark-300/40">loading…</div>
+            <div className="px-4 py-6 text-sm text-gray-500">loading…</div>
           ) : entries.length === 0 ? (
-            <div className="px-4 py-6 text-sm text-bark-300/40">{err || "empty"}</div>
+            <div className="px-4 py-6 text-sm text-gray-500">{err || "empty"}</div>
           ) : (
-            <ul className="divide-y divide-soul-400/5">
+            <ul className="divide-y divide-gray-200">
               {[...entries].sort(sortEntries).map((e) => (
                 <li key={e.name} className="px-4 py-2 text-sm flex items-center justify-between">
                   <Link
@@ -490,13 +490,13 @@ function CodeTab({ repo, branch, path, isOwner }: {
                         ? `/${enc(repo.owner_sub)}/${enc(repo.name)}/tree/${enc(branch)}/${joinPath(path, e.name)}`
                         : `/${enc(repo.owner_sub)}/${enc(repo.name)}/blob/${enc(branch)}/${joinPath(path, e.name)}`
                     }
-                    className="flex items-center gap-2 text-bark-300/80 hover:text-soul-300 truncate"
+                    className="flex items-center gap-2 text-gray-900 hover:text-soul-300 truncate"
                   >
                     <span className="text-soul-400/60">{e.type === "tree" ? "▸" : "◦"}</span>
                     <span className="truncate">{e.name}</span>
                   </Link>
                   {e.type === "blob" && (
-                    <span className="text-[11px] text-bark-300/30 tabular-nums">{e.size}B</span>
+                    <span className="text-[11px] text-gray-500 tabular-nums">{e.size}B</span>
                   )}
                 </li>
               ))}
@@ -508,7 +508,7 @@ function CodeTab({ repo, branch, path, isOwner }: {
         {readmeEntry ? (
           <ReadmePreview repo={repo} branch={branch} path={joinPath(path, readmeEntry.name)} />
         ) : (
-          <div className="rounded-xl border border-dashed border-soul-400/10 p-6 text-sm text-bark-300/40">
+          <div className="rounded-xl border border-dashed border-gray-200 p-6 text-sm text-gray-500">
             No README at this level.
           </div>
         )}
@@ -552,15 +552,15 @@ function BranchPicker({
     <div ref={ref} className="relative inline-block">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-2 bg-night-800/80 border border-soul-400/20 hover:border-soul-400/50 rounded-md px-3 py-1.5 text-xs text-bark-300/90 transition-colors"
+        className="inline-flex items-center gap-2 bg-white border border-gray-200 hover:border-soul-400 rounded-md px-3 py-1.5 text-xs text-gray-900 transition-colors"
       >
         <span className="text-soul-400/70">⎇</span>
         <span className="font-mono">{branch}</span>
-        <span className="text-bark-300/40">▾</span>
+        <span className="text-gray-500">▾</span>
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-30 w-72 rounded-lg border border-soul-400/20 bg-night-800/95 backdrop-blur-xl shadow-2xl overflow-hidden">
-          <div className="px-3 py-2 text-[10px] text-bark-300/50 border-b border-soul-400/10">
+        <div className="absolute left-0 top-full mt-1 z-30 w-72 rounded-lg border border-gray-200 bg-white/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+          <div className="px-3 py-2 text-[10px] text-gray-600 border-b border-gray-200">
             Switch branch ({count})
           </div>
           <ul>
@@ -571,7 +571,7 @@ function BranchPicker({
                     setOpen(false);
                     nav(`/${enc(repo.owner_sub)}/${enc(repo.name)}/tree/${enc(b.name)}${path ? "/" + path : ""}`);
                   }}
-                  className="w-full text-left px-3 py-2 text-xs text-bark-300/85 hover:bg-soul-400/10 flex items-center justify-between gap-3"
+                  className="w-full text-left px-3 py-2 text-xs text-gray-900 hover:bg-soul-400/10 flex items-center justify-between gap-3"
                 >
                   <span className="font-mono truncate">{b.name}</span>
                   {b.is_default && (
@@ -584,7 +584,7 @@ function BranchPicker({
           <Link
             to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/branches`}
             onClick={() => setOpen(false)}
-            className="block px-3 py-2 text-[11px] text-soul-300 hover:text-soul-400 border-t border-soul-400/10"
+            className="block px-3 py-2 text-[11px] text-soul-300 hover:text-soul-400 border-t border-gray-200"
           >
             {hidden > 0 ? `View all ${count} branches →` : "View all branches →"}
           </Link>
@@ -608,47 +608,47 @@ function BranchesTab({ repo, me }: { repo: RepoT; me: Me | null }) {
   }, [repo.owner_sub, repo.name]);
 
   if (branches === null) {
-    return <div className="py-10 text-center text-sm text-bark-300/40">{err || "loading…"}</div>;
+    return <div className="py-10 text-center text-sm text-gray-500">{err || "loading…"}</div>;
   }
 
   const canCreatePR = !!me;
 
   return (
     <div>
-      <div className="text-xs text-bark-300/50 mb-3">
+      <div className="text-xs text-gray-600 mb-3">
         {branches.length} branch{branches.length === 1 ? "" : "es"}
       </div>
-      <ul className="rounded-xl border border-soul-400/10 divide-y divide-soul-400/5 overflow-hidden">
+      <ul className="rounded-xl border border-gray-200 divide-y divide-gray-200 overflow-hidden">
         {branches.map((b) => (
           <li key={b.name} className="px-4 py-3 flex items-center justify-between gap-4">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <Link
                   to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/tree/${enc(b.name)}`}
-                  className="font-mono text-sm text-bark-300/90 hover:text-soul-300 truncate"
+                  className="font-mono text-sm text-gray-900 hover:text-soul-300 truncate"
                 >
                   {b.name}
                 </Link>
                 {b.is_default && (
-                  <span className="text-[10px] uppercase tracking-wider text-soul-400/70 border border-soul-400/30 rounded-full px-2 py-0.5">default</span>
+                  <span className="text-[10px] uppercase tracking-wider text-soul-400/70 border border-gray-300 rounded-full px-2 py-0.5">default</span>
                 )}
                 {!b.is_default && (b.ahead !== undefined || b.behind !== undefined) && (
-                  <span className="text-[11px] tabular-nums text-bark-300/60">
+                  <span className="text-[11px] tabular-nums text-gray-700">
                     <span className="text-soul-400">↑{b.ahead ?? 0}</span>
-                    <span className="mx-1.5 text-bark-300/30">·</span>
+                    <span className="mx-1.5 text-gray-500">·</span>
                     <span className="text-atokirina-400/80">↓{b.behind ?? 0}</span>
                   </span>
                 )}
               </div>
               {b.last_commit && (
-                <div className="mt-1 text-[11px] text-bark-300/50 truncate">
-                  <code className="font-mono text-bark-300/70 mr-2">{b.last_commit.short_sha}</code>
+                <div className="mt-1 text-[11px] text-gray-600 truncate">
+                  <code className="font-mono text-gray-700 mr-2">{b.last_commit.short_sha}</code>
                   {b.last_commit.message_summary}
-                  <span className="mx-2 text-bark-300/30">·</span>
+                  <span className="mx-2 text-gray-500">·</span>
                   <span title={b.last_commit.author}>
                     {b.last_commit.author.slice(0, 14)}
                   </span>
-                  <span className="mx-1.5 text-bark-300/30">·</span>
+                  <span className="mx-1.5 text-gray-500">·</span>
                   <span>{formatRelative(b.last_commit.date)}</span>
                 </div>
               )}
@@ -658,7 +658,7 @@ function BranchesTab({ repo, me }: { repo: RepoT; me: Me | null }) {
                 onClick={() =>
                   nav(`/${enc(repo.owner_sub)}/${enc(repo.name)}/pulls/new?head=${encodeURIComponent(b.name)}`)
                 }
-                className="shrink-0 px-3 py-1.5 text-[11px] rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70"
+                className="shrink-0 px-3 py-1.5 text-[11px] rounded-full border border-gray-300 text-soul-300 hover:text-soul-400 hover:border-soul-400"
               >
                 New PR
               </button>
@@ -692,8 +692,8 @@ function ReadmePreview({ repo, branch, path }: { repo: RepoT; branch: string; pa
       .catch(() => setText(""));
   }, [repo.owner_sub, repo.name, branch, path]);
   return (
-    <div className="rounded-xl border border-soul-400/10 bg-night-800/40 p-5 overflow-auto max-h-[70vh]">
-      <Markdown className="text-sm text-bark-200/90 leading-relaxed">{text}</Markdown>
+    <div className="rounded-xl border border-gray-200 bg-white p-5 overflow-auto max-h-[70vh]">
+      <Markdown className="text-sm text-gray-900/90 leading-relaxed">{text}</Markdown>
     </div>
   );
 }
@@ -715,7 +715,7 @@ function BlobView({ repo, branch, path, isOwner }: {
   return (
     <div>
       <div className="flex items-center justify-between gap-3 mb-3">
-        <div className="text-xs text-bark-300/60 font-mono">
+        <div className="text-xs text-gray-700 font-mono">
           <Link to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/tree/${enc(branch)}`} className="hover:text-soul-300">
             {repo.name}
           </Link>
@@ -723,7 +723,7 @@ function BlobView({ repo, branch, path, isOwner }: {
             <span key={i}>
               {" / "}
               {i === arr.length - 1 ? (
-                <span className="text-bark-300/85">{seg}</span>
+                <span className="text-gray-900">{seg}</span>
               ) : (
                 <Link
                   to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/tree/${enc(branch)}/${arr.slice(0, i + 1).join("/")}`}
@@ -744,13 +744,13 @@ function BlobView({ repo, branch, path, isOwner }: {
           </Link>
         )}
       </div>
-      <div className="rounded-xl border border-soul-400/10 bg-night-800/40 p-5 overflow-auto max-h-[80vh]">
+      <div className="rounded-xl border border-gray-200 bg-white p-5 overflow-auto max-h-[80vh]">
         {text === null ? (
-          <div className="text-sm text-bark-300/40">{err || "loading…"}</div>
+          <div className="text-sm text-gray-500">{err || "loading…"}</div>
         ) : path.toLowerCase().endsWith(".md") ? (
-          <Markdown className="text-sm text-bark-200/90 leading-relaxed">{text}</Markdown>
+          <Markdown className="text-sm text-gray-900/90 leading-relaxed">{text}</Markdown>
         ) : (
-          <pre className="text-xs text-bark-300/85 font-mono whitespace-pre-wrap break-words leading-relaxed">
+          <pre className="text-xs text-gray-900 font-mono whitespace-pre-wrap break-words leading-relaxed">
             {text}
           </pre>
         )}
@@ -815,24 +815,24 @@ function BlobEditor({ repo, branch, path }: { repo: RepoT; branch: string; path:
 
   return (
     <div>
-      <div className="text-xs text-bark-300/60 font-mono mb-3">
-        ✎ editing {path} on <span className="text-bark-300/85">{branch}</span>
+      <div className="text-xs text-gray-700 font-mono mb-3">
+        ✎ editing {path} on <span className="text-gray-900">{branch}</span>
       </div>
       {original === null ? (
-        <div className="text-sm text-bark-300/40 py-10 text-center">loading…</div>
+        <div className="text-sm text-gray-500 py-10 text-center">loading…</div>
       ) : (
         <>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className="w-full min-h-[50vh] bg-night-800/60 border border-soul-400/15 rounded-md p-3 font-mono text-xs text-bark-300/90 focus:outline-none focus:border-soul-400/40"
+            className="w-full min-h-[50vh] bg-gray-50 border border-gray-200 rounded-md p-3 font-mono text-xs text-gray-900 focus:outline-none focus:border-gray-300"
           />
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
             <Field label="Commit message">
               <input
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+                className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
               />
             </Field>
             <Field label={`Branch (blank = ${branch})`}>
@@ -840,7 +840,7 @@ function BlobEditor({ repo, branch, path }: { repo: RepoT; branch: string; path:
                 value={newBranch}
                 onChange={(e) => setNewBranch(e.target.value)}
                 placeholder={`new-branch (else commits to ${branch})`}
-                className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+                className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
               />
             </Field>
           </div>
@@ -849,13 +849,13 @@ function BlobEditor({ repo, branch, path }: { repo: RepoT; branch: string; path:
             <button
               onClick={submit}
               disabled={busy || !message.trim()}
-              className="px-4 py-2 text-xs rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70 disabled:opacity-50"
+              className="px-4 py-2 text-xs rounded-full border border-gray-300 text-soul-300 hover:text-soul-400 hover:border-soul-400 disabled:opacity-50"
             >
               {busy ? "committing…" : "✦ commit"}
             </button>
             <Link
               to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/blob/${enc(branch)}/${pathEnc(path)}`}
-              className="text-xs text-bark-300/40 hover:text-bark-300/70"
+              className="text-xs text-gray-500 hover:text-gray-700"
             >
               cancel
             </Link>
@@ -887,7 +887,7 @@ function PullsTab({ repo, me }: { repo: RepoT; me: Me | null }) {
               key={s}
               onClick={() => setState(s)}
               className={`pb-1 transition-colors ${
-                state === s ? "text-soul-300 border-b border-soul-400" : "text-bark-300/40 hover:text-bark-300/70"
+                state === s ? "text-soul-300 border-b border-soul-400" : "text-gray-500 hover:text-gray-700"
               }`}
             >
               {s}
@@ -897,20 +897,20 @@ function PullsTab({ repo, me }: { repo: RepoT; me: Me | null }) {
         {me && (
           <Link
             to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/pulls/new`}
-            className="px-3 py-1.5 text-xs rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70"
+            className="px-3 py-1.5 text-xs rounded-full border border-gray-300 text-soul-300 hover:text-soul-400 hover:border-soul-400"
           >
             + new pr
           </Link>
         )}
       </div>
       {pulls === null ? (
-        <div className="text-sm text-bark-300/40 py-10 text-center">loading…</div>
+        <div className="text-sm text-gray-500 py-10 text-center">loading…</div>
       ) : pulls.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-soul-400/10 py-10 text-center text-sm text-bark-300/40">
+        <div className="rounded-xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-500">
           No {state === "all" ? "" : state} pull requests.
         </div>
       ) : (
-        <ul className="divide-y divide-soul-400/10 rounded-xl border border-soul-400/10">
+        <ul className="divide-y divide-gray-200 rounded-xl border border-gray-200">
           {pulls.map((p) => (
             <li key={p.number} className="px-5 py-3">
               <Link
@@ -919,11 +919,11 @@ function PullsTab({ repo, me }: { repo: RepoT; me: Me | null }) {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <div className="text-sm text-bark-300/85 truncate hover:text-soul-300">
-                      <span className="text-bark-300/40 mr-2">#{p.number}</span>
+                    <div className="text-sm text-gray-900 truncate hover:text-soul-300">
+                      <span className="text-gray-500 mr-2">#{p.number}</span>
                       {p.title}
                     </div>
-                    <div className="mt-0.5 text-[11px] text-bark-300/40">
+                    <div className="mt-0.5 text-[11px] text-gray-500">
                       {p.head_owner.slice(0, 10)}:{p.head_branch} → {p.base_branch}
                     </div>
                   </div>
@@ -1001,7 +1001,7 @@ function NewPullForm({ repo, me }: { repo: RepoT; me: Me | null }) {
 
   if (!me) {
     return (
-      <div className="rounded-xl border border-dashed border-soul-400/10 p-6 text-sm text-bark-300/60">
+      <div className="rounded-xl border border-dashed border-gray-200 p-6 text-sm text-gray-700">
         Sign in to open a pull request.
       </div>
     );
@@ -1031,13 +1031,13 @@ function NewPullForm({ repo, me }: { repo: RepoT; me: Me | null }) {
 
   return (
     <form onSubmit={submit} className="max-w-2xl space-y-4">
-      <div className="text-sm text-bark-300/70 mb-2">
+      <div className="text-sm text-gray-700 mb-2">
         Propose merging{" "}
-        <span className="font-mono text-bark-300/90">
+        <span className="font-mono text-gray-900">
           {(headOwner || "…").slice(0, 10)}/{headName || "…"}:{headBranch || "…"}
         </span>
         {" "}into{" "}
-        <span className="font-mono text-bark-300/90">
+        <span className="font-mono text-gray-900">
           {repo.owner_sub.slice(0, 10)}/{repo.name}:{baseBranch}
         </span>
       </div>
@@ -1047,7 +1047,7 @@ function NewPullForm({ repo, me }: { repo: RepoT; me: Me | null }) {
           <select
             value={baseBranch}
             onChange={(e) => setBaseBranch(e.target.value)}
-            className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+            className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
           >
             {(baseBranches.length ? baseBranches : [{ name: "main", sha: "" }]).map((b) => (
               <option key={b.name} value={b.name}>{b.name}</option>
@@ -1058,7 +1058,7 @@ function NewPullForm({ repo, me }: { repo: RepoT; me: Me | null }) {
           <select
             value={headSlug}
             onChange={(e) => { setHeadSlug(e.target.value); setHeadBranch(""); }}
-            className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full font-mono text-xs"
+            className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full font-mono text-xs"
           >
             {candidates.map((r) => {
               const slug = `${r.owner_sub}/${r.name}`;
@@ -1075,7 +1075,7 @@ function NewPullForm({ repo, me }: { repo: RepoT; me: Me | null }) {
             value={headBranch}
             onChange={(e) => setHeadBranch(e.target.value)}
             required
-            className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+            className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
           >
             <option value="">— pick a branch —</option>
             {headBranches.map((b) => (
@@ -1090,7 +1090,7 @@ function NewPullForm({ repo, me }: { repo: RepoT; me: Me | null }) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
-          className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+          className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
         />
       </Field>
 
@@ -1099,7 +1099,7 @@ function NewPullForm({ repo, me }: { repo: RepoT; me: Me | null }) {
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={5}
-          className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+          className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
         />
       </Field>
 
@@ -1108,13 +1108,13 @@ function NewPullForm({ repo, me }: { repo: RepoT; me: Me | null }) {
         <button
           type="submit"
           disabled={busy || !title.trim() || !headBranch.trim() || !headOwner}
-          className="px-4 py-2 text-xs rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70 disabled:opacity-50"
+          className="px-4 py-2 text-xs rounded-full border border-gray-300 text-soul-300 hover:text-soul-400 hover:border-soul-400 disabled:opacity-50"
         >
           {busy ? "opening…" : "✦ open pr"}
         </button>
         <Link
           to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/pulls`}
-          className="text-xs text-bark-300/40 hover:text-bark-300/70"
+          className="text-xs text-gray-500 hover:text-gray-700"
         >
           cancel
         </Link>
@@ -1151,8 +1151,8 @@ function PullDetail({
   };
   useEffect(() => { reload(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [repo.owner_sub, repo.name, number]);
 
-  if (pr === null) return <div className="text-sm text-bark-300/40 py-10 text-center">loading…</div>;
-  if (pr === "missing") return <div className="text-sm text-bark-300/40 py-10 text-center">PR not found</div>;
+  if (pr === null) return <div className="text-sm text-gray-500 py-10 text-center">loading…</div>;
+  if (pr === "missing") return <div className="text-sm text-gray-500 py-10 text-center">PR not found</div>;
 
   const canMerge = isOwner && pr.state === "open";
   const canClose = pr.state === "open" && !!me && (me.sub === pr.author_sub || me.sub === pr.base_owner);
@@ -1186,23 +1186,23 @@ function PullDetail({
     <div>
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          <div className="text-xs text-bark-300/40">
+          <div className="text-xs text-gray-500">
             <Link to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/pulls`} className="hover:text-soul-300">
               ← pulls
             </Link>
           </div>
           <h2 className="mt-1 text-xl font-semibold text-bark-300">
-            <span className="text-bark-300/40 mr-2">#{pr.number}</span>
+            <span className="text-gray-500 mr-2">#{pr.number}</span>
             {pr.title}
           </h2>
-          <div className="mt-1 text-xs text-bark-300/50 flex items-center gap-3 flex-wrap">
+          <div className="mt-1 text-xs text-gray-600 flex items-center gap-3 flex-wrap">
             <StateBadge state={pr.state} />
             <span>
-              <span className="text-bark-300/85 font-mono">{pr.author_sub.slice(0, 10)}</span> wants to merge
+              <span className="text-gray-900 font-mono">{pr.author_sub.slice(0, 10)}</span> wants to merge
             </span>
-            <span className="font-mono text-bark-300/80">{pr.head_owner.slice(0, 10)}:{pr.head_branch}</span>
+            <span className="font-mono text-gray-900">{pr.head_owner.slice(0, 10)}:{pr.head_branch}</span>
             <span>→</span>
-            <span className="font-mono text-bark-300/80">{pr.base_branch}</span>
+            <span className="font-mono text-gray-900">{pr.base_branch}</span>
           </div>
         </div>
         <div className="shrink-0 flex items-center gap-2">
@@ -1211,7 +1211,7 @@ function PullDetail({
               <button
                 onClick={() => doMerge("merge")}
                 disabled={busy}
-                className="px-3 py-1.5 text-xs rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70 disabled:opacity-50"
+                className="px-3 py-1.5 text-xs rounded-full border border-gray-300 text-soul-300 hover:text-soul-400 hover:border-soul-400 disabled:opacity-50"
               >
                 {busy ? "merging…" : "✦ merge"}
               </button>
@@ -1239,27 +1239,27 @@ function PullDetail({
       {err && <div className="mt-2 text-xs text-atokirina-400">{err}</div>}
 
       {pr.body && (
-        <div className="mt-4 rounded-xl border border-soul-400/10 bg-night-800/40 p-4">
-          <Markdown className="text-sm text-bark-200/90">{pr.body}</Markdown>
+        <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
+          <Markdown className="text-sm text-gray-900/90">{pr.body}</Markdown>
         </div>
       )}
 
       <PRCommentsBlock repo={repo} number={number} me={me} />
 
       <div className="mt-8">
-        <div className="text-xs text-bark-300/50 mb-2">
+        <div className="text-xs text-gray-600 mb-2">
           Files changed {diff?.files.length ? `(${diff.files.length})` : ""}
         </div>
         {!diff ? (
-          <div className="text-sm text-bark-300/40">loading diff…</div>
+          <div className="text-sm text-gray-500">loading diff…</div>
         ) : diff.files.length === 0 ? (
-          <div className="text-sm text-bark-300/40">no changes</div>
+          <div className="text-sm text-gray-500">no changes</div>
         ) : (
           <div className="space-y-4">
-            <ul className="rounded-xl border border-soul-400/10 divide-y divide-soul-400/5">
+            <ul className="rounded-xl border border-gray-200 divide-y divide-gray-200">
               {diff.files.map((f) => (
                 <li key={f.path} className="px-4 py-2 text-xs flex items-center justify-between">
-                  <span className="font-mono text-bark-300/85 truncate">{f.path}</span>
+                  <span className="font-mono text-gray-900 truncate">{f.path}</span>
                   <span className="shrink-0 ml-4 space-x-2 tabular-nums">
                     <span className="text-soul-300">+{f.added}</span>
                     <span className="text-atokirina-400">−{f.deleted}</span>
@@ -1267,19 +1267,19 @@ function PullDetail({
                 </li>
               ))}
             </ul>
-            <div className="rounded-xl border border-soul-400/10 bg-night-800/40 p-4 overflow-auto max-h-[70vh]">
+            <div className="rounded-xl border border-gray-200 bg-white p-4 overflow-auto max-h-[70vh]">
               <pre className="text-[11px] font-mono leading-relaxed">
                 {diff.unified_diff.split("\n").map((line, i) => (
                   <div
                     key={i}
                     className={
                       line.startsWith("+++") || line.startsWith("---") || line.startsWith("diff ") || line.startsWith("@@ ")
-                        ? "text-bark-300/50"
+                        ? "text-gray-600"
                         : line.startsWith("+")
                           ? "text-soul-300"
                           : line.startsWith("-")
                             ? "text-atokirina-400"
-                            : "text-bark-300/70"
+                            : "text-gray-700"
                     }
                   >
                     {line || " "}
@@ -1296,9 +1296,9 @@ function PullDetail({
 
 function StateBadge({ state }: { state: PR["state"] }) {
   const color =
-    state === "open" ? "text-soul-300 border-soul-400/40"
+    state === "open" ? "text-soul-300 border-gray-300"
       : state === "merged" ? "text-spirit-300 border-spirit-400/40"
-        : "text-bark-300/40 border-bark-300/20";
+        : "text-gray-500 border-bark-300/20";
   return <span className={`border rounded-full px-2 py-0.5 ${color}`}>{state}</span>;
 }
 
@@ -1335,43 +1335,43 @@ function PRCommentsBlock({
 
   return (
     <div className="mt-6">
-      <div className="text-xs text-bark-300/50 mb-3">
+      <div className="text-xs text-gray-600 mb-3">
         Conversation {comments?.length ? `(${comments.length})` : ""}
       </div>
       {!comments ? (
-        <div className="text-sm text-bark-300/40">loading…</div>
+        <div className="text-sm text-gray-500">loading…</div>
       ) : comments.length === 0 ? (
-        <div className="text-sm text-bark-300/40 italic">Quiet here. First comment sets the tone.</div>
+        <div className="text-sm text-gray-500 italic">Quiet here. First comment sets the tone.</div>
       ) : (
         <div className="space-y-3">
           {comments.map((c) => (
-            <div key={c.id} className="rounded-xl border border-soul-400/10 bg-night-800/40 p-4">
-              <div className="text-[11px] text-bark-300/50 mb-2 flex items-center gap-2">
-                <span className="font-mono text-bark-300/80">{c.author_sub.slice(0, 10)}</span>
+            <div key={c.id} className="rounded-xl border border-gray-200 bg-white p-4">
+              <div className="text-[11px] text-gray-600 mb-2 flex items-center gap-2">
+                <span className="font-mono text-gray-900">{c.author_sub.slice(0, 10)}</span>
                 {c.file && (
-                  <code className="text-bark-300/50">
+                  <code className="text-gray-600">
                     on {c.file}
                     {c.line != null ? `:${c.line}` : ""}
                   </code>
                 )}
                 <span>{relTime(c.created_at)}</span>
               </div>
-              <Markdown className="text-sm text-bark-200/90">{c.body}</Markdown>
+              <Markdown className="text-sm text-gray-900/90">{c.body}</Markdown>
             </div>
           ))}
         </div>
       )}
-      <form onSubmit={onSubmit} className="mt-3 rounded-xl border border-soul-400/10 bg-night-800/40 p-3">
+      <form onSubmit={onSubmit} className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={3}
           placeholder="leave a review comment (markdown)"
-          className="w-full bg-night-800/60 border border-soul-400/20 rounded px-3 py-2 text-sm text-bark-300 placeholder:text-bark-300/30 mb-2 font-mono"
+          className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm text-bark-300 placeholder:text-gray-500 mb-2 font-mono"
         />
         <button
           disabled={busy || !body.trim()}
-          className="px-3 py-1.5 text-[11px] border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
+          className="px-3 py-1.5 text-[11px] border border-gray-300 rounded text-soul-300 hover:border-soul-400 disabled:opacity-40"
         >
           {busy ? "posting…" : "comment"}
         </button>
@@ -1434,10 +1434,10 @@ function SettingsTab({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="lowercase, alnum + . _ -"
-            className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full font-mono"
+            className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full font-mono"
           />
           {name.trim() && name.trim() !== repo.name && (
-            <div className="mt-1 text-[11px] text-bark-300/50">
+            <div className="mt-1 text-[11px] text-gray-600">
               Renaming updates every PR and fork pointer. New URL:
               {" "}
               <span className="font-mono text-soul-300/80">
@@ -1450,7 +1450,7 @@ function SettingsTab({
           <select
             value={visibility}
             onChange={(e) => setVisibility(e.target.value as Visibility)}
-            className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+            className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
           >
             <option value="public">public — anyone can browse</option>
             <option value="private">private — only you</option>
@@ -1461,25 +1461,25 @@ function SettingsTab({
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
             rows={2}
-            className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+            className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
           />
         </Field>
         <Field label="Tags (comma-separated)">
           <input
             value={tags}
             onChange={(e) => setTags(e.target.value)}
-            className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+            className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
           />
         </Field>
         <div className="flex items-center gap-3">
           <button
             onClick={save}
             disabled={busy}
-            className="px-4 py-2 text-xs rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70 disabled:opacity-50"
+            className="px-4 py-2 text-xs rounded-full border border-gray-300 text-soul-300 hover:text-soul-400 hover:border-soul-400 disabled:opacity-50"
           >
             {busy ? "saving…" : "save"}
           </button>
-          {msg && <span className="text-xs text-bark-300/60">{msg}</span>}
+          {msg && <span className="text-xs text-gray-700">{msg}</span>}
         </div>
       </div>
 
@@ -1541,19 +1541,19 @@ function CollaboratorsSection({ repo }: { repo: RepoT }) {
   };
 
   return (
-    <div className="max-w-xl border-t border-soul-400/10 pt-6 mt-10">
+    <div className="max-w-xl border-t border-gray-200 pt-6 mt-10">
       <div className="text-xs text-soul-300 mb-3">Collaborators</div>
       {collabs === null ? (
-        <div className="text-xs text-bark-300/40">loading…</div>
+        <div className="text-xs text-gray-500">loading…</div>
       ) : collabs.length === 0 ? (
-        <div className="text-xs text-bark-300/40 mb-3">No collaborators yet.</div>
+        <div className="text-xs text-gray-500 mb-3">No collaborators yet.</div>
       ) : (
-        <div className="mb-3 divide-y divide-soul-400/10 rounded border border-soul-400/10">
+        <div className="mb-3 divide-y divide-gray-200 rounded border border-gray-200">
           {collabs.map((c) => (
             <div key={c.user_sub} className="flex items-center justify-between p-2">
-              <div className="font-mono text-xs text-bark-300/80">{c.user_sub.slice(0, 18)}…</div>
+              <div className="font-mono text-xs text-gray-900">{c.user_sub.slice(0, 18)}…</div>
               <div className="flex items-center gap-3">
-                <span className="text-[11px] text-bark-300/50">{c.role}</span>
+                <span className="text-[11px] text-gray-600">{c.role}</span>
                 <button
                   onClick={() => onRemove(c.user_sub)}
                   className="text-[11px] text-atokirina-400 hover:text-atokirina-300"
@@ -1570,12 +1570,12 @@ function CollaboratorsSection({ repo }: { repo: RepoT }) {
           value={newSub}
           onChange={(e) => setNewSub(e.target.value)}
           placeholder="user sub (lum.id uuid)"
-          className="flex-1 min-w-[12rem] bg-night-800/60 border border-soul-400/15 rounded px-3 py-1.5 text-xs text-bark-300/90 font-mono"
+          className="flex-1 min-w-[12rem] bg-gray-50 border border-gray-200 rounded px-3 py-1.5 text-xs text-gray-900 font-mono"
         />
         <select
           value={newRole}
           onChange={(e) => setNewRole(e.target.value as CollaboratorRole)}
-          className="bg-night-800/60 border border-soul-400/15 rounded px-3 py-1.5 text-xs text-bark-300/80"
+          className="bg-gray-50 border border-gray-200 rounded px-3 py-1.5 text-xs text-gray-900"
         >
           <option value="read">read</option>
           <option value="triage">triage</option>
@@ -1584,7 +1584,7 @@ function CollaboratorsSection({ repo }: { repo: RepoT }) {
         </select>
         <button
           disabled={busy || !newSub.trim()}
-          className="px-3 py-1.5 text-[11px] border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
+          className="px-3 py-1.5 text-[11px] border border-gray-300 rounded text-soul-300 hover:border-soul-400 disabled:opacity-40"
         >
           add
         </button>
@@ -1624,10 +1624,10 @@ function TransferSection({ repo }: { repo: RepoT }) {
   };
 
   return (
-    <div className="max-w-xl border-t border-soul-400/10 pt-6 mt-10">
+    <div className="max-w-xl border-t border-gray-200 pt-6 mt-10">
       <div className="text-xs text-soul-300 mb-3">Transfer ownership</div>
       {pending ? (
-        <div className="rounded border border-atokirina-400/30 bg-atokirina-400/5 p-3 text-xs text-bark-300/80">
+        <div className="rounded border border-atokirina-400/30 bg-atokirina-400/5 p-3 text-xs text-gray-900">
           Transfer pending → <span className="font-mono">{pending.new_owner_sub.slice(0, 12)}…</span>
           <br />
           They need to accept before the move completes.
@@ -1638,7 +1638,7 @@ function TransferSection({ repo }: { repo: RepoT }) {
             value={newOwner}
             onChange={(e) => setNewOwner(e.target.value)}
             placeholder="new owner sub (lum.id uuid)"
-            className="flex-1 min-w-[14rem] bg-night-800/60 border border-soul-400/15 rounded px-3 py-1.5 text-xs text-bark-300/90 font-mono"
+            className="flex-1 min-w-[14rem] bg-gray-50 border border-gray-200 rounded px-3 py-1.5 text-xs text-gray-900 font-mono"
           />
           <button
             disabled={busy || !newOwner.trim()}
@@ -1648,7 +1648,7 @@ function TransferSection({ repo }: { repo: RepoT }) {
           </button>
         </form>
       )}
-      {msg && <div className="mt-2 text-xs text-bark-300/60">{msg}</div>}
+      {msg && <div className="mt-2 text-xs text-gray-700">{msg}</div>}
     </div>
   );
 }
@@ -1695,16 +1695,16 @@ function DeleteModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative z-[110] w-full max-w-md rounded-2xl border border-atokirina-400/30 bg-night-800/95 backdrop-blur-xl shadow-2xl p-6"
+        className="relative z-[110] w-full max-w-md rounded-2xl border border-atokirina-400/30 bg-white/95 backdrop-blur-xl shadow-2xl p-6"
       >
         <div className="text-xs uppercase tracking-[0.3em] text-atokirina-400 mb-2">
           ⚠ Delete repo
         </div>
-        <div className="text-sm text-bark-300/85">
+        <div className="text-sm text-gray-900">
           This deletes <span className="font-mono text-bark-300">{repo.owner_sub.slice(0, 10)}/{repo.name}</span>
           {" "}and all of its branches, PRs, and stars. It cannot be undone.
         </div>
-        <div className="mt-4 text-xs text-bark-300/55">
+        <div className="mt-4 text-xs text-gray-700">
           Type <span className="font-mono text-atokirina-400">{repo.name}</span> to confirm:
         </div>
         <input
@@ -1712,14 +1712,14 @@ function DeleteModal({
           onChange={(e) => setTyped(e.target.value)}
           placeholder={repo.name}
           autoFocus
-          className="mt-2 bg-night-900/60 border border-atokirina-400/30 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full font-mono"
+          className="mt-2 bg-night-900/60 border border-atokirina-400/30 rounded-md px-3 py-2 text-sm text-gray-900 w-full font-mono"
         />
         {err && <div className="mt-2 text-xs text-atokirina-400">{err}</div>}
         <div className="mt-5 flex items-center gap-3 justify-end">
           <button
             onClick={onClose}
             disabled={busy}
-            className="text-xs text-bark-300/50 hover:text-bark-300/80 px-2 py-2"
+            className="text-xs text-gray-600 hover:text-gray-900 px-2 py-2"
           >
             cancel
           </button>
@@ -1739,7 +1739,7 @@ function DeleteModal({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[11px] text-bark-300/50 mb-1">{label}</div>
+      <div className="text-[11px] text-gray-600 mb-1">{label}</div>
       {children}
     </div>
   );
@@ -1751,7 +1751,7 @@ function Shell({ children, me }: { children: React.ReactNode; me?: Me | null }) 
   return (
     <div className="min-h-screen relative">
       <div className="absolute inset-0 starfield opacity-20 pointer-events-none" aria-hidden="true" />
-      <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-soul-400/10">
+      <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-gray-200">
         <Link to="/" className="text-soul-300 font-display tracking-[0.35em] text-sm">
           <span className="w-1.5 h-1.5 inline-block align-middle rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul mr-3" />
           xp.io
@@ -1759,13 +1759,13 @@ function Shell({ children, me }: { children: React.ReactNode; me?: Me | null }) 
         <div className="flex items-center gap-6 text-[11px]">
           {me ? (
             <>
-              <Link to="/dashboard" className="text-bark-300/70 hover:text-soul-300">dashboard</Link>
+              <Link to="/dashboard" className="text-gray-700 hover:text-soul-300">dashboard</Link>
               <button
                 onClick={async () => {
                   try { const { logout } = await import("../api/client"); await logout(); } catch { /* cookie cleared server-side */ }
                   window.location.href = "/";
                 }}
-                className="text-bark-300/60 hover:text-atokirina-400 text-[12px]"
+                className="text-gray-700 hover:text-atokirina-400 text-[12px]"
               >
                 sign out
               </button>
@@ -1785,8 +1785,8 @@ function TabLink({ to, active, children }: { to: string; active: boolean; childr
       to={to}
       className={`pb-3 text-sm transition-colors ${
         active
-          ? "text-bark-200 border-b-2 border-soul-400 font-medium"
-          : "text-bark-300/55 hover:text-bark-300/85 border-b-2 border-transparent"
+          ? "text-gray-900 border-b-2 border-soul-400 font-medium"
+          : "text-gray-700 hover:text-gray-900 border-b-2 border-transparent"
       }`}
     >
       {children}
@@ -1842,13 +1842,13 @@ function CommitsTab({ repo, branch }: { repo: RepoT; branch: string }) {
   }, [repo.owner_sub, repo.name, branch]);
 
   if (commits === null) {
-    return <div className="py-10 text-center text-bark-300/40 text-sm">{err || "loading…"}</div>;
+    return <div className="py-10 text-center text-gray-500 text-sm">{err || "loading…"}</div>;
   }
   if (commits.length === 0) {
-    return <div className="py-10 text-center text-bark-300/40 text-sm">No commits on this branch yet.</div>;
+    return <div className="py-10 text-center text-gray-500 text-sm">No commits on this branch yet.</div>;
   }
   return (
-    <div className="rounded-xl border border-soul-400/10 bg-night-800/40 divide-y divide-soul-400/10">
+    <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-200">
       {commits.map((c) => (
         <div key={c.sha} className="flex items-center gap-3 p-3">
           <div className="w-8 h-8 rounded-full bg-soul-400/20 text-soul-300 font-display flex items-center justify-center shrink-0">
@@ -1856,13 +1856,13 @@ function CommitsTab({ repo, branch }: { repo: RepoT; branch: string }) {
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-sm text-bark-300 truncate">{c.subject}</div>
-            <div className="text-[11px] text-bark-300/50 mt-0.5">
-              <span className="text-bark-300/70">{c.author}</span>
+            <div className="text-[11px] text-gray-600 mt-0.5">
+              <span className="text-gray-700">{c.author}</span>
               {" · "}
               <span>{relTime(c.timestamp)}</span>
             </div>
           </div>
-          <code className="text-[11px] font-mono text-bark-300/50 shrink-0">{c.short_sha}</code>
+          <code className="text-[11px] font-mono text-gray-600 shrink-0">{c.short_sha}</code>
         </div>
       ))}
     </div>
@@ -1876,10 +1876,10 @@ function ForksTab({ repo }: { repo: RepoT }) {
   useEffect(() => {
     listForks(repo.owner_sub, repo.name).then(setForks).catch(() => setForks([]));
   }, [repo.owner_sub, repo.name]);
-  if (forks === null) return <div className="py-10 text-center text-bark-300/40 text-sm">loading…</div>;
+  if (forks === null) return <div className="py-10 text-center text-gray-500 text-sm">loading…</div>;
   if (forks.length === 0) {
     return (
-      <div className="py-10 text-center text-bark-300/40 text-sm">
+      <div className="py-10 text-center text-gray-500 text-sm">
         No one has forked this yet. Your copy could be the first.
       </div>
     );
@@ -1890,13 +1890,13 @@ function ForksTab({ repo }: { repo: RepoT }) {
         <Link
           key={`${f.owner_sub}/${f.name}`}
           to={`/${enc(f.owner_sub)}/${enc(f.name)}`}
-          className="block rounded-xl border border-soul-400/10 bg-night-800/40 p-4 hover:border-soul-400/30"
+          className="block rounded-xl border border-gray-200 bg-white p-4 hover:border-gray-300"
         >
           <div className="font-mono text-sm text-bark-300">
             {f.owner_sub.slice(0, 10)} / <span className="text-soul-300">{f.name}</span>
           </div>
-          {f.summary && <div className="text-xs text-bark-300/60 mt-1">{f.summary}</div>}
-          <div className="text-[11px] text-bark-300/40 mt-2">
+          {f.summary && <div className="text-xs text-gray-700 mt-1">{f.summary}</div>}
+          <div className="text-[11px] text-gray-500 mt-2">
             ★ {f.stars} · ⑂ {f.forks} · updated {relTime(f.updated_at)}
           </div>
         </Link>
@@ -1941,25 +1941,25 @@ function CommunityTab({ repo, me }: { repo: RepoT; me: Me | null }) {
     <div className="grid lg:grid-cols-[1fr_320px] gap-6">
       <div>
         {discussions === null ? (
-          <div className="py-10 text-center text-bark-300/40 text-sm">loading…</div>
+          <div className="py-10 text-center text-gray-500 text-sm">loading…</div>
         ) : discussions.length === 0 ? (
-          <div className="py-10 text-center text-bark-300/40 text-sm">
+          <div className="py-10 text-center text-gray-500 text-sm">
             No discussions yet. Open the first thread on the right.
           </div>
         ) : (
-          <div className="rounded-xl border border-soul-400/10 bg-night-800/40 divide-y divide-soul-400/10">
+          <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-200">
             {discussions.map((d) => (
               <Link
                 key={d.id}
                 to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/discussions/${enc(d.id)}`}
-                className="flex items-center justify-between p-4 hover:bg-night-800/80"
+                className="flex items-center justify-between p-4 hover:bg-white"
               >
                 <div className="min-w-0">
                   <div className="text-sm text-bark-300">
-                    {d.state === "closed" && <span className="text-bark-300/40 mr-2">[closed]</span>}
+                    {d.state === "closed" && <span className="text-gray-500 mr-2">[closed]</span>}
                     {d.title}
                   </div>
-                  <div className="text-[11px] text-bark-300/50 mt-0.5">
+                  <div className="text-[11px] text-gray-600 mt-0.5">
                     {d.author_sub.slice(0, 10)} · {relTime(d.created_at)} · {d.comment_count} comment{d.comment_count === 1 ? "" : "s"}
                   </div>
                 </div>
@@ -1968,25 +1968,25 @@ function CommunityTab({ repo, me }: { repo: RepoT; me: Me | null }) {
           </div>
         )}
       </div>
-      <form onSubmit={onCreate} className="rounded-xl border border-soul-400/10 bg-night-800/40 p-4 h-fit">
+      <form onSubmit={onCreate} className="rounded-xl border border-gray-200 bg-white p-4 h-fit">
         <div className="text-xs text-soul-300 mb-3">Start a thread</div>
         <input
           type="text"
           placeholder="title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full bg-night-800/60 border border-soul-400/20 rounded px-3 py-2 text-sm text-bark-300 placeholder:text-bark-300/30 mb-2"
+          className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm text-bark-300 placeholder:text-gray-500 mb-2"
         />
         <textarea
           placeholder="body (optional — markdown)"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={5}
-          className="w-full bg-night-800/60 border border-soul-400/20 rounded px-3 py-2 text-sm text-bark-300 placeholder:text-bark-300/30 mb-2 font-mono"
+          className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm text-bark-300 placeholder:text-gray-500 mb-2 font-mono"
         />
         <button
           disabled={busy || !title.trim()}
-          className="w-full py-2 text-xs border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
+          className="w-full py-2 text-xs border border-gray-300 rounded text-soul-300 hover:border-soul-400 disabled:opacity-40"
         >
           {busy ? "opening…" : "open discussion"}
         </button>
@@ -2008,7 +2008,7 @@ function DiscussionDetail({ repo, me, isOwner }: { repo: RepoT; me: Me | null; i
   };
   useEffect(reload, [repo.owner_sub, repo.name, disc_id]);
 
-  if (!disc) return <div className="py-10 text-center text-bark-300/40 text-sm">loading…</div>;
+  if (!disc) return <div className="py-10 text-center text-gray-500 text-sm">loading…</div>;
 
   const canClose = me && (me.sub === disc.author_sub || isOwner);
 
@@ -2040,33 +2040,33 @@ function DiscussionDetail({ repo, me, isOwner }: { repo: RepoT; me: Me | null; i
       <div className="flex items-center justify-between gap-4 mb-4">
         <h2 className="text-xl font-semibold text-bark-300">{disc.title}</h2>
         {canClose && disc.state === "open" && (
-          <button onClick={onClose} className="text-xs text-bark-300/60 hover:text-atokirina-400">
+          <button onClick={onClose} className="text-xs text-gray-700 hover:text-atokirina-400">
             close thread
           </button>
         )}
       </div>
       <div className="space-y-3">
         {disc.comments.map((c) => (
-          <div key={c.id} className="rounded-xl border border-soul-400/10 bg-night-800/40 p-4">
-            <div className="text-[11px] text-bark-300/50 mb-2">
-              <span className="text-bark-300/70">{c.author_sub.slice(0, 10)}</span> · {relTime(c.created_at)}
+          <div key={c.id} className="rounded-xl border border-gray-200 bg-white p-4">
+            <div className="text-[11px] text-gray-600 mb-2">
+              <span className="text-gray-700">{c.author_sub.slice(0, 10)}</span> · {relTime(c.created_at)}
             </div>
-            <Markdown className="text-sm text-bark-200/90">{c.body}</Markdown>
+            <Markdown className="text-sm text-gray-900/90">{c.body}</Markdown>
           </div>
         ))}
       </div>
       {disc.state === "open" && (
-        <form onSubmit={onReply} className="mt-4 rounded-xl border border-soul-400/10 bg-night-800/40 p-4">
+        <form onSubmit={onReply} className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
           <textarea
             placeholder="reply (markdown)"
             value={reply}
             onChange={(e) => setReply(e.target.value)}
             rows={4}
-            className="w-full bg-night-800/60 border border-soul-400/20 rounded px-3 py-2 text-sm text-bark-300 placeholder:text-bark-300/30 mb-2 font-mono"
+            className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm text-bark-300 placeholder:text-gray-500 mb-2 font-mono"
           />
           <button
             disabled={busy || !reply.trim()}
-            className="px-4 py-2 text-xs border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
+            className="px-4 py-2 text-xs border border-gray-300 rounded text-soul-300 hover:border-soul-400 disabled:opacity-40"
           >
             {busy ? "posting…" : "reply"}
           </button>

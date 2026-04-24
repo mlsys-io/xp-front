@@ -26,7 +26,7 @@ export function DashboardLayout() {
         `group relative flex items-center gap-3 pl-6 pr-4 py-3 text-sm tracking-wide transition-colors ${
           isActive
             ? "text-soul-300"
-            : "text-bark-300/60 hover:text-bark-300"
+            : "text-gray-700 hover:text-bark-300"
         }`
       }
     >
@@ -57,8 +57,8 @@ export function DashboardLayout() {
       <div className="fixed inset-0 starfield opacity-30 pointer-events-none" />
 
       <div className="relative flex min-h-screen">
-        <aside className="w-64 shrink-0 border-r border-soul-400/10 bg-night-800/50 backdrop-blur flex flex-col">
-          <div className="px-6 py-6 border-b border-soul-400/10">
+        <aside className="w-64 shrink-0 border-r border-gray-200 bg-gray-50 backdrop-blur flex flex-col">
+          <div className="px-6 py-6 border-b border-gray-200">
             <div className="flex items-center gap-2 font-display text-sm tracking-[0.35em] text-soul-300">
               <span className="w-1.5 h-1.5 rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul" />
               xp.io
@@ -70,7 +70,7 @@ export function DashboardLayout() {
             {link("/dashboard/repos", "My repos", "◇")}
             <NavLink
               to="/"
-              className="group relative flex items-center gap-3 pl-6 pr-4 py-3 text-sm tracking-wide text-bark-300/60 hover:text-bark-300 transition-colors"
+              className="group relative flex items-center gap-3 pl-6 pr-4 py-3 text-sm tracking-wide text-gray-700 hover:text-bark-300 transition-colors"
             >
               <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full bg-soul-400/20 group-hover:bg-soul-400/40" />
               <span className="font-display text-xs uppercase tracking-[0.25em]">⟁</span>
@@ -78,7 +78,7 @@ export function DashboardLayout() {
             </NavLink>
             <NavLink
               to="/new"
-              className="group relative flex items-center gap-3 pl-6 pr-4 py-3 text-sm tracking-wide text-bark-300/60 hover:text-bark-300 transition-colors"
+              className="group relative flex items-center gap-3 pl-6 pr-4 py-3 text-sm tracking-wide text-gray-700 hover:text-bark-300 transition-colors"
             >
               <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full bg-soul-400/20 group-hover:bg-soul-400/40" />
               <span className="font-display text-xs uppercase tracking-[0.25em]">✦</span>
@@ -86,13 +86,13 @@ export function DashboardLayout() {
             </NavLink>
           </nav>
 
-          <div className="p-4 border-t border-soul-400/10">
+          <div className="p-4 border-t border-gray-200">
             <div className="flex items-center gap-3 px-2">
               <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-spirit-400 to-soul-400 flex items-center justify-center text-[11px] font-semibold text-night-900">
                 {initials}
               </div>
               <div className="min-w-0">
-                <div className="text-xs text-bark-300/90 truncate">
+                <div className="text-xs text-gray-900 truncate">
                   {me.email || me.sub.slice(0, 12)}
                 </div>
                 <button
@@ -100,7 +100,7 @@ export function DashboardLayout() {
                     await logout();
                     nav("/");
                   }}
-                  className="text-[11px] uppercase tracking-widest text-bark-300/50 hover:text-atokirina-400 transition-colors"
+                  className="text-[11px] uppercase tracking-widest text-gray-600 hover:text-atokirina-400 transition-colors"
                 >
                   disconnect
                 </button>
