@@ -4,38 +4,50 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Pandoran night — deep navy base, bioluminescent accents.
+        // 2026-04-24 light-theme pass: class NAMES unchanged so components
+        // keep working, but the palette flips. "night" is now the page
+        // surface (warm off-white → white), "bark" is the dark text we
+        // render on top of it. Accent colors (soul/spirit/atokirina)
+        // stay but are retuned for contrast on a light background.
+
+        // Page surface — was deep navy, now off-white (HuggingFace-ish).
         night: {
-          900: "#050816",
-          800: "#0a1028",
-          700: "#10183f",
-          600: "#1a2350",
-          500: "#253066",
+          900: "#ffffff",    // pure white
+          800: "#fafafa",    // card / subtle fill
+          700: "#f4f4f5",    // hovered / secondary fill
+          600: "#e4e4e7",    // divider
+          500: "#d4d4d8",    // stronger divider
         },
-        // Tree-of-souls teal — the willow bark glow.
+        // Tree-of-souls teal — HF's yellow-ish role, still our accent.
+        // Darkened for WCAG AA on white.
         soul: {
-          300: "#9ff2e8",
-          400: "#6ee5d7",
-          500: "#3ed4c1",
-          600: "#26b7a3",
+          300: "#14b8a6",    // used for links + active-tab underline
+          400: "#0d9488",    // button borders
+          500: "#0f766e",    // pressed / hover
+          600: "#115e59",
         },
-        // Spirit-violet — Eywa's neural flow.
+        // Spirit-violet — fork glyph + alt accents.
         spirit: {
-          300: "#d0b7ff",
-          400: "#b194ff",
-          500: "#9177ff",
-          600: "#735cff",
+          300: "#8b5cf6",
+          400: "#7c3aed",
+          500: "#6d28d9",
+          600: "#5b21b6",
         },
-        // Atokirina pink — the sacred seeds that landed on Jake.
+        // Atokirina — star glyph + warnings. Moved amber to match HF's
+        // warm accent + be readable on white.
         atokirina: {
-          300: "#ffd1f0",
-          400: "#ffb3e3",
-          500: "#ff90d1",
+          300: "#fbbf24",
+          400: "#f59e0b",
+          500: "#d97706",
         },
-        // Bark — warm luminous highlights at close range.
+        // Text — was cream on dark, now near-black on light. Gradations
+        // map to opacity modifiers used throughout the codebase:
+        //   text-bark-300       = main copy (dark gray-near-black)
+        //   text-bark-300/70    = secondary copy
+        //   text-bark-300/50    = tertiary copy
         bark: {
-          300: "#fbead2",
-          400: "#f0d5a5",
+          300: "#1f2937",    // gray-800
+          400: "#374151",    // gray-700
         },
       },
       fontFamily: {

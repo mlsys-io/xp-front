@@ -34,7 +34,7 @@ export function RepoCard({ repo }: { repo: Repo }) {
       }}
       role="link"
       tabIndex={0}
-      className="group block rounded-lg border border-white/5 bg-white/[0.025] px-4 py-3.5 hover:border-white/20 transition-colors cursor-pointer focus:outline-none focus:border-soul-400/50"
+      className="group block rounded-lg border border-gray-200 bg-white px-4 py-3.5 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer focus:outline-none focus:border-soul-400"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -82,7 +82,7 @@ export function RepoCard({ repo }: { repo: Repo }) {
           {tags.slice(0, 5).map((t) => (
             <span
               key={t}
-              className="text-[11px] text-bark-300/60 border border-white/8 rounded px-1.5 py-0.5"
+              className="text-[11px] text-bark-300/60 border border-gray-200 bg-gray-50 rounded px-1.5 py-0.5"
             >
               {t}
             </span>

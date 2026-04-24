@@ -308,14 +308,14 @@ function RepoHeader({
             className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
               watch.watching
                 ? "border-spirit-400/40 text-spirit-300 bg-spirit-400/5"
-                : "border-white/10 text-bark-300/80 hover:border-white/25 hover:text-bark-200"
+                : "border-gray-300 text-bark-300 hover:border-gray-400 hover:bg-gray-50"
             }`}
           >
             {watch.watching ? "Watching" : "Watch"} · {watch.watchers}
           </button>
           <button
             onClick={onStar}
-            className="px-2.5 py-1 text-xs rounded-md border border-white/10 text-bark-300/80 hover:border-white/25 hover:text-bark-200 transition-colors"
+            className="px-2.5 py-1 text-xs rounded-md border border-gray-300 text-bark-300 hover:border-gray-400 hover:bg-gray-50 transition-colors"
           >
             <span className="text-atokirina-400 mr-1">★</span>
             {repo.stars}
@@ -324,7 +324,7 @@ function RepoHeader({
             <button
               disabled={busy}
               onClick={onFork}
-              className="px-2.5 py-1 text-xs rounded-md border border-white/10 text-bark-300/80 hover:border-white/25 hover:text-bark-200 transition-colors disabled:opacity-50"
+              className="px-2.5 py-1 text-xs rounded-md border border-gray-300 text-bark-300 hover:border-gray-400 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               {busy ? "Forking…" : `Fork · ${repo.forks}`}
             </button>
@@ -410,7 +410,7 @@ function KindCard({ repo }: { repo: RepoT }) {
   if (pills.length === 0) return null;
 
   return (
-    <div className="mt-4 rounded-lg border border-white/5 bg-white/[0.02] p-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[12px]">
+    <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[12px]">
       {pills.map(([k, v]) => (
         <span key={k} className="text-bark-300/80">
           <span className="text-bark-300/50 mr-1.5">{k}:</span>

@@ -4,16 +4,17 @@
 
 html, body, #root {
   height: 100%;
-  background: #050816;
+  background: #ffffff;
 }
 body {
   @apply text-bark-300 antialiased;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: radial-gradient(ellipse at 50% 120%, #10183f 0%, #050816 60%, #030510 100%);
-  background-attachment: fixed;
+  background: #ffffff;
+  color: #1f2937;
 }
 
-/* Shared glow-ring used on seed cards + signin button */
+/* Legacy .soul-ring glow — dimmed for light bg but kept so old landing
+   sections that reference it don't lose their shape. */
 .soul-ring {
   position: relative;
   isolation: isolate;
@@ -23,33 +24,28 @@ body {
   position: absolute;
   inset: -1px;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(62, 212, 193, 0.55), rgba(145, 119, 255, 0.55));
-  filter: blur(6px);
-  opacity: 0.6;
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.2), rgba(124, 58, 237, 0.18));
+  filter: blur(5px);
+  opacity: 0.5;
   z-index: -1;
   transition: opacity 300ms ease;
 }
 .soul-ring:hover::before {
-  opacity: 1;
+  opacity: 0.8;
 }
 
-/* A very faint star-field for depth */
+/* Starfield is a dark-theme decoration. On light bg it'd render as
+   floating dark dots — visually noisy. Neutered to a no-op; pages that
+   applied it degrade gracefully to plain white. */
 .starfield {
-  background-image:
-    radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.25) 50%, transparent 100%),
-    radial-gradient(1px 1px at 80% 10%, rgba(209, 183, 255, 0.3) 50%, transparent 100%),
-    radial-gradient(1px 1px at 40% 80%, rgba(110, 229, 215, 0.25) 50%, transparent 100%),
-    radial-gradient(1px 1px at 70% 65%, rgba(255, 179, 227, 0.2) 50%, transparent 100%),
-    radial-gradient(2px 2px at 10% 70%, rgba(255, 255, 255, 0.18) 50%, transparent 100%);
-  background-size: 900px 900px;
-  background-repeat: repeat;
+  background-image: none;
 }
 
-/* Scrollbar tweak to match the night palette */
+/* Light-theme scrollbar. */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #1a2350; border-radius: 8px; }
-::-webkit-scrollbar-thumb:hover { background: #253066; }
+::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
 
 /* ── HF-style tokens (quiet, compact, no serif headings) ─────────
    Hugging Face's look is clean sans-serif + muted grays + a single
@@ -57,14 +53,14 @@ body {
    decorative Cinzel / uppercase-tracking-widest habits in favour of
    regular sentence case + standard weights. */
 .card-hf {
-  @apply rounded-lg border border-white/5 bg-white/[0.02];
+  @apply rounded-lg border border-gray-200 bg-white;
 }
 .card-hf-row {
-  @apply divide-y divide-white/5;
+  @apply divide-y divide-gray-200;
 }
 .pill-hf {
-  @apply inline-block rounded-md border border-white/10 px-1.5 py-0.5
-         text-[11px] text-bark-300/70;
+  @apply inline-block rounded-md border border-gray-200 px-1.5 py-0.5
+         text-[11px] text-gray-600;
 }
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -77,7 +73,7 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.6;
   word-break: break-word;
-  color: rgba(228, 219, 200, 0.88);
+  color: #1f2937;
 }
 .markdown-body h1,
 .markdown-body h2,
@@ -85,33 +81,46 @@ body {
 .markdown-body h4 {
   font-family: inherit;
   font-weight: 600;
-  color: #e4dbc8;
+  color: #111827;
   margin-top: 1.4em;
   margin-bottom: 0.5em;
   letter-spacing: normal;
 }
-.markdown-body h1 { font-size: 1.35em; padding-bottom: 0.3em; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
-.markdown-body h2 { font-size: 1.15em; padding-bottom: 0.2em; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+.markdown-body h1 { font-size: 1.35em; padding-bottom: 0.3em; border-bottom: 1px solid #e5e7eb; }
+.markdown-body h2 { font-size: 1.15em; padding-bottom: 0.2em; border-bottom: 1px solid #f3f4f6; }
 .markdown-body h3 { font-size: 1em; }
-.markdown-body h4 { font-size: 0.95em; color: rgba(228, 219, 200, 0.75); }
+.markdown-body h4 { font-size: 0.95em; color: #374151; }
 .markdown-body p { margin: 0.6em 0; }
 .markdown-body ul,
 .markdown-body ol { padding-left: 1.4em; margin: 0.6em 0; }
 .markdown-body li { margin: 0.15em 0; }
+.markdown-body a { color: #0d9488; text-decoration: none; }
+.markdown-body a:hover { text-decoration: underline; }
 .markdown-body blockquote {
-  border-left: 2px solid rgba(255, 255, 255, 0.18);
+  border-left: 3px solid #e5e7eb;
   padding-left: 0.85em;
-  color: rgba(228, 219, 200, 0.6);
+  color: #6b7280;
   margin: 0.8em 0;
 }
+.markdown-body code {
+  background: #f3f4f6;
+  color: #111827;
+  padding: 0.15em 0.35em;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+}
 .markdown-body pre {
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #f6f8fa;
+  border: 1px solid #e5e7eb;
   border-radius: 0.375rem;
   padding: 0.75em 0.9em;
   overflow-x: auto;
   font-size: 0.85em;
   line-height: 1.5;
+}
+.markdown-body pre code {
+  background: transparent;
+  padding: 0;
 }
 .markdown-body table {
   border-collapse: collapse;
@@ -121,22 +130,23 @@ body {
 }
 .markdown-body th,
 .markdown-body td {
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid #e5e7eb;
   padding: 0.4em 0.65em;
   text-align: left;
 }
-.markdown-body th { background: rgba(255, 255, 255, 0.03); font-weight: 600; }
-.markdown-body hr { border: 0; border-top: 1px solid rgba(255, 255, 255, 0.06); margin: 1.5em 0; }
+.markdown-body th { background: #f9fafb; font-weight: 600; }
+.markdown-body hr { border: 0; border-top: 1px solid #e5e7eb; margin: 1.5em 0; }
 .markdown-body img { max-width: 100%; border-radius: 0.375rem; }
 .markdown-body input[type="checkbox"] { margin-right: 0.4em; }
-/* Syntax highlighting — rehype-highlight emits .hljs-* classes. */
+/* Syntax highlighting for fenced code — GitHub-ish light theme. */
 .markdown-body .hljs-comment,
-.markdown-body .hljs-quote { color: #6a7ca8; font-style: italic; }
+.markdown-body .hljs-quote { color: #6a737d; font-style: italic; }
 .markdown-body .hljs-keyword,
-.markdown-body .hljs-selector-tag { color: #a47cf3; }
+.markdown-body .hljs-selector-tag { color: #d73a49; }
 .markdown-body .hljs-string,
-.markdown-body .hljs-attr { color: #8be5d7; }
+.markdown-body .hljs-attr { color: #032f62; }
 .markdown-body .hljs-number,
-.markdown-body .hljs-literal { color: #d6a75b; }
-.markdown-body .hljs-title { color: #e2c7ff; }
-.markdown-body .hljs-built_in { color: #ffb3c9; }
+.markdown-body .hljs-literal { color: #005cc5; }
+.markdown-body .hljs-title,
+.markdown-body .hljs-name { color: #6f42c1; }
+.markdown-body .hljs-built_in { color: #e36209; }

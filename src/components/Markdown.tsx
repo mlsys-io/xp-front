@@ -26,7 +26,7 @@ export function Markdown({ children, className }: Props) {
               {...props}
               target={props.href?.startsWith("http") ? "_blank" : undefined}
               rel={props.href?.startsWith("http") ? "noopener noreferrer" : undefined}
-              className="text-[color:var(--accent,#d6a75b)] hover:underline"
+              className="text-teal-700 hover:underline"
             />
           ),
           code: ({ className, children, ...props }) => {
@@ -34,7 +34,7 @@ export function Markdown({ children, className }: Props) {
             return isBlock ? (
               <code className={className} {...props}>{children}</code>
             ) : (
-              <code className="rounded bg-white/5 px-1.5 py-0.5 text-[0.9em]" {...props}>
+              <code className="rounded bg-gray-100 px-1.5 py-0.5 text-[0.9em]" {...props}>
                 {children}
               </code>
             );
