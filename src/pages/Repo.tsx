@@ -342,6 +342,83 @@ function RepoHeader({
           ))}
         </div>
       )}
+      <KindCard repo={repo} />
+    </div>
+  );
+}
+
+// ── Kind-specific card (HuggingFace-style metadata strip) ───────
+
+function KindCard({ repo }: { repo: RepoT }) {
+  const [manifest, setManifest] = useState<Record<string, any> | null>(null);
+
+  useEffect(() => {
+    // Try manifest.json first, then manifest.yaml. Small lookup — if
+    // neither exists the card just stays collapsed.
+    (async () => {
+      const branch = repo.head_ref || "main";
+      const tryFiles = repo.kind === "autoresearch"
+        ? ["manifest.json", "manifest.yaml", "autoresearch.yaml"]
+        : repo.kind === "skill"
+          ? ["manifest.json", "manifest.yaml", "SKILL.md"]
+          : ["manifest.json", "manifest.yaml"];
+      for (const f of tryFiles) {
+        try {
+          const blob = await getBlob(repo.owner_sub, repo.name, branch, f);
+          try {
+            setManifest(JSON.parse(blob.content));
+            return;
+          } catch {
+            // Not JSON — show raw text under a `raw` key.
+            setManifest({ raw: blob.content, _source: f });
+            return;
+          }
+        } catch { /* next */ }
+      }
+      setManifest({});
+    })();
+  }, [repo.owner_sub, repo.name, repo.head_ref, repo.kind]);
+
+  if (manifest === null) return null;
+
+  const pills: Array<[string, string]> = [];
+  if (repo.kind === "app") {
+    if (Array.isArray(manifest.skills_required)) {
+      pills.push(["skills", manifest.skills_required.join(" · ")]);
+    }
+    if (Array.isArray(manifest.tools)) {
+      pills.push(["tools", String(manifest.tools.length)]);
+    }
+    if (manifest.thresholds && typeof manifest.thresholds === "object") {
+      pills.push(["thresholds",
+        Object.entries(manifest.thresholds).map(([k, v]) => `${k}=${v}`).join(" · ")]);
+    }
+  } else if (repo.kind === "autoresearch") {
+    if (manifest.schedule) pills.push(["schedule", String(manifest.schedule)]);
+    if (Array.isArray(manifest.skills)) {
+      pills.push(["skills", manifest.skills.join(" · ")]);
+    }
+    if (manifest.domain) pills.push(["domain", String(manifest.domain)]);
+  } else if (repo.kind === "agent") {
+    pills.push(["kind", "knowledge bundle"]);
+    if (manifest.agent_id) pills.push(["agent", String(manifest.agent_id)]);
+    if (manifest.domain) pills.push(["domain", String(manifest.domain)]);
+  } else if (repo.kind === "skill") {
+    if (manifest.inputs) pills.push(["inputs", Object.keys(manifest.inputs).join(", ")]);
+    if (manifest.outputs) pills.push(["outputs", Object.keys(manifest.outputs).join(", ")]);
+    if (manifest.language) pills.push(["lang", String(manifest.language)]);
+  }
+
+  if (pills.length === 0) return null;
+
+  return (
+    <div className="mt-4 rounded-xl border border-soul-400/10 bg-night-800/40 p-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[11px]">
+      {pills.map(([k, v]) => (
+        <span key={k} className="text-bark-300/70">
+          <span className="text-soul-400/70 uppercase tracking-widest mr-1.5">{k}</span>
+          <span className="font-mono">{v}</span>
+        </span>
+      ))}
     </div>
   );
 }
@@ -1165,9 +1242,11 @@ function PullDetail({
 
       {pr.body && (
         <div className="mt-4 rounded-xl border border-soul-400/10 bg-night-800/40 p-4">
-          <pre className="text-xs text-bark-300/80 font-sans whitespace-pre-wrap">{pr.body}</pre>
+          <Markdown className="text-sm text-bark-200/90">{pr.body}</Markdown>
         </div>
       )}
+
+      <PRCommentsBlock repo={repo} number={number} me={me} />
 
       <div className="mt-8">
         <div className="text-xs uppercase tracking-widest text-bark-300/50 mb-2">
@@ -1223,6 +1302,84 @@ function StateBadge({ state }: { state: PR["state"] }) {
       : state === "merged" ? "text-spirit-300 border-spirit-400/40"
         : "text-bark-300/40 border-bark-300/20";
   return <span className={`border rounded-full px-2 py-0.5 ${color}`}>{state}</span>;
+}
+
+function PRCommentsBlock({
+  repo, number, me,
+}: {
+  repo: RepoT; number: number; me: Me | null;
+}) {
+  const [comments, setComments] = useState<PRComment[] | null>(null);
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const reload = () => {
+    listPRComments(repo.owner_sub, repo.name, number).then(setComments).catch(() => setComments([]));
+  };
+  useEffect(reload, [repo.owner_sub, repo.name, number]);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!me) {
+      const { beginLogin } = await import("../lib/pkce");
+      return beginLogin();
+    }
+    if (!body.trim()) return;
+    setBusy(true);
+    try {
+      await addPRComment(repo.owner_sub, repo.name, number, { body });
+      setBody("");
+      reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-6">
+      <div className="text-xs uppercase tracking-widest text-bark-300/50 mb-3">
+        Conversation {comments?.length ? `(${comments.length})` : ""}
+      </div>
+      {!comments ? (
+        <div className="text-sm text-bark-300/40">loading…</div>
+      ) : comments.length === 0 ? (
+        <div className="text-sm text-bark-300/40 italic">Quiet here. First comment sets the tone.</div>
+      ) : (
+        <div className="space-y-3">
+          {comments.map((c) => (
+            <div key={c.id} className="rounded-xl border border-soul-400/10 bg-night-800/40 p-4">
+              <div className="text-[11px] text-bark-300/50 mb-2 flex items-center gap-2">
+                <span className="font-mono text-bark-300/80">{c.author_sub.slice(0, 10)}</span>
+                {c.file && (
+                  <code className="text-bark-300/50">
+                    on {c.file}
+                    {c.line != null ? `:${c.line}` : ""}
+                  </code>
+                )}
+                <span>{relTime(c.created_at)}</span>
+              </div>
+              <Markdown className="text-sm text-bark-200/90">{c.body}</Markdown>
+            </div>
+          ))}
+        </div>
+      )}
+      <form onSubmit={onSubmit} className="mt-3 rounded-xl border border-soul-400/10 bg-night-800/40 p-3">
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={3}
+          placeholder="leave a review comment (markdown)"
+          className="w-full bg-night-800/60 border border-soul-400/20 rounded px-3 py-2 text-sm text-bark-300 placeholder:text-bark-300/30 mb-2 font-mono"
+        />
+        <button
+          disabled={busy || !body.trim()}
+          className="px-3 py-1.5 text-[11px] uppercase tracking-widest border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
+        >
+          {busy ? "posting…" : "comment"}
+        </button>
+      </form>
+    </div>
+  );
 }
 
 // ── Settings tab ─────────────────────────────────────────────────
@@ -1326,16 +1483,20 @@ function SettingsTab({
           </button>
           {msg && <span className="text-xs text-bark-300/60">{msg}</span>}
         </div>
-        <div className="border-t border-atokirina-400/15 pt-6 mt-10">
-          <div className="text-xs uppercase tracking-widest text-atokirina-400 mb-2">Danger zone</div>
-          <button
-            onClick={() => setDeleteOpen(true)}
-            disabled={busy}
-            className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-atokirina-400/50 text-atokirina-400 hover:bg-atokirina-400/10 disabled:opacity-50"
-          >
-            Delete repo
-          </button>
-        </div>
+      </div>
+
+      <CollaboratorsSection repo={repo} />
+      <TransferSection repo={repo} />
+
+      <div className="max-w-xl border-t border-atokirina-400/15 pt-6 mt-10">
+        <div className="text-xs uppercase tracking-widest text-atokirina-400 mb-2">Danger zone</div>
+        <button
+          onClick={() => setDeleteOpen(true)}
+          disabled={busy}
+          className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-atokirina-400/50 text-atokirina-400 hover:bg-atokirina-400/10 disabled:opacity-50"
+        >
+          Delete repo
+        </button>
       </div>
       <DeleteModal
         open={deleteOpen}
@@ -1344,6 +1505,153 @@ function SettingsTab({
         onDeleted={onDeleted}
       />
     </>
+  );
+}
+
+function CollaboratorsSection({ repo }: { repo: RepoT }) {
+  const [collabs, setCollabs] = useState<Collaborator[] | null>(null);
+  const [newSub, setNewSub] = useState("");
+  const [newRole, setNewRole] = useState<CollaboratorRole>("write");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const reload = () => {
+    listCollaborators(repo.owner_sub, repo.name).then(setCollabs).catch(() => setCollabs([]));
+  };
+  useEffect(reload, [repo.owner_sub, repo.name]);
+
+  const onAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSub.trim()) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await setCollaborator(repo.owner_sub, repo.name, newSub.trim(), newRole);
+      setNewSub("");
+      reload();
+    } catch (err: any) {
+      setMsg(err?.response?.data?.detail || "failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onRemove = async (sub: string) => {
+    if (!confirm(`Remove ${sub.slice(0, 10)}?`)) return;
+    await removeCollaborator(repo.owner_sub, repo.name, sub);
+    reload();
+  };
+
+  return (
+    <div className="max-w-xl border-t border-soul-400/10 pt-6 mt-10">
+      <div className="text-xs uppercase tracking-widest text-soul-300 mb-3">Collaborators</div>
+      {collabs === null ? (
+        <div className="text-xs text-bark-300/40">loading…</div>
+      ) : collabs.length === 0 ? (
+        <div className="text-xs text-bark-300/40 mb-3">No collaborators yet.</div>
+      ) : (
+        <div className="mb-3 divide-y divide-soul-400/10 rounded border border-soul-400/10">
+          {collabs.map((c) => (
+            <div key={c.user_sub} className="flex items-center justify-between p-2">
+              <div className="font-mono text-xs text-bark-300/80">{c.user_sub.slice(0, 18)}…</div>
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] uppercase tracking-widest text-bark-300/50">{c.role}</span>
+                <button
+                  onClick={() => onRemove(c.user_sub)}
+                  className="text-[11px] uppercase tracking-widest text-atokirina-400 hover:text-atokirina-300"
+                >
+                  remove
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <form onSubmit={onAdd} className="flex flex-wrap items-center gap-2">
+        <input
+          value={newSub}
+          onChange={(e) => setNewSub(e.target.value)}
+          placeholder="user sub (lum.id uuid)"
+          className="flex-1 min-w-[12rem] bg-night-800/60 border border-soul-400/15 rounded px-3 py-1.5 text-xs text-bark-300/90 font-mono"
+        />
+        <select
+          value={newRole}
+          onChange={(e) => setNewRole(e.target.value as CollaboratorRole)}
+          className="bg-night-800/60 border border-soul-400/15 rounded px-3 py-1.5 text-xs text-bark-300/80"
+        >
+          <option value="read">read</option>
+          <option value="triage">triage</option>
+          <option value="write">write</option>
+          <option value="admin">admin</option>
+        </select>
+        <button
+          disabled={busy || !newSub.trim()}
+          className="px-3 py-1.5 text-[11px] uppercase tracking-widest border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
+        >
+          add
+        </button>
+      </form>
+      {msg && <div className="mt-2 text-xs text-atokirina-400">{msg}</div>}
+    </div>
+  );
+}
+
+function TransferSection({ repo }: { repo: RepoT }) {
+  const [pending, setPending] = useState<Transfer | null>(null);
+  const [newOwner, setNewOwner] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const reload = () => {
+    getPendingTransfer(repo.owner_sub, repo.name).then(setPending).catch(() => setPending(null));
+  };
+  useEffect(reload, [repo.owner_sub, repo.name]);
+
+  const onInitiate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newOwner.trim()) return;
+    if (!confirm(`Transfer this repo to ${newOwner.slice(0, 10)}? They must accept.`)) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await initiateTransfer(repo.owner_sub, repo.name, newOwner.trim());
+      setNewOwner("");
+      reload();
+      setMsg("pending — waiting for new owner to accept.");
+    } catch (err: any) {
+      setMsg(err?.response?.data?.detail || "failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="max-w-xl border-t border-soul-400/10 pt-6 mt-10">
+      <div className="text-xs uppercase tracking-widest text-soul-300 mb-3">Transfer ownership</div>
+      {pending ? (
+        <div className="rounded border border-atokirina-400/30 bg-atokirina-400/5 p-3 text-xs text-bark-300/80">
+          Transfer pending → <span className="font-mono">{pending.new_owner_sub.slice(0, 12)}…</span>
+          <br />
+          They need to accept before the move completes.
+        </div>
+      ) : (
+        <form onSubmit={onInitiate} className="flex flex-wrap items-center gap-2">
+          <input
+            value={newOwner}
+            onChange={(e) => setNewOwner(e.target.value)}
+            placeholder="new owner sub (lum.id uuid)"
+            className="flex-1 min-w-[14rem] bg-night-800/60 border border-soul-400/15 rounded px-3 py-1.5 text-xs text-bark-300/90 font-mono"
+          />
+          <button
+            disabled={busy || !newOwner.trim()}
+            className="px-3 py-1.5 text-[11px] uppercase tracking-widest border border-atokirina-400/40 rounded text-atokirina-400 hover:border-atokirina-400/70 disabled:opacity-40"
+          >
+            initiate transfer
+          </button>
+        </form>
+      )}
+      {msg && <div className="mt-2 text-xs text-bark-300/60">{msg}</div>}
+    </div>
   );
 }
 

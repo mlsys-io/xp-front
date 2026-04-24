@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthCallback } from "./pages/AuthCallback";
 import { DashboardLayout } from "./pages/Dashboard";
 import { DashboardRepos } from "./pages/DashboardRepos";
+import { Explore } from "./pages/Explore";
 import { Marketspace } from "./pages/Marketspace";
 import { NewRepo } from "./pages/NewRepo";
 import { Overview } from "./pages/Overview";
@@ -14,7 +15,7 @@ export default function App() {
       <Routes>
         {/* Landing = public marketspace (anon browse). Sign-in only on actions. */}
         <Route path="/" element={<Marketspace />} />
-        <Route path="/explore" element={<Marketspace />} />
+        <Route path="/explore" element={<Explore />} />
 
         {/* Auth + dashboard */}
         <Route path="/auth/callback" element={<AuthCallback />} />
@@ -43,6 +44,12 @@ export default function App() {
         <Route path="/:owner/:name/settings" element={<Repo />} />
         <Route path="/:owner/:name/pulls" element={<Repo />} />
         <Route path="/:owner/:name/pulls/:number" element={<Repo />} />
+        <Route path="/:owner/:name/commits" element={<Repo />} />
+        <Route path="/:owner/:name/commits/*" element={<Repo />} />
+        <Route path="/:owner/:name/forks" element={<Repo />} />
+        <Route path="/:owner/:name/community" element={<Repo />} />
+        <Route path="/:owner/:name/discussions" element={<Repo />} />
+        <Route path="/:owner/:name/discussions/*" element={<Repo />} />
         <Route path="/:owner/:name/tree/:branch" element={<Repo />} />
         <Route path="/:owner/:name/tree/:branch/*" element={<Repo />} />
         <Route path="/:owner/:name/blob/:branch/*" element={<Repo />} />
