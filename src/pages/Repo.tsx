@@ -3,33 +3,61 @@ import {
   Link, useLocation, useNavigate, useParams, useSearchParams,
 } from "react-router-dom";
 import {
+  acceptTransfer,
+  addDiscussionComment,
+  addPRComment,
+  closeDiscussion,
   closePull,
+  createDiscussion,
   deleteRepo,
   forkRepo,
   getBlob,
+  getDiscussion,
+  getPendingTransfer,
   getPull,
   getPullDiff,
   getRepo,
   getTree,
+  getWatchers,
+  initiateTransfer,
   isUnauthorized,
   listBranches,
+  listCollaborators,
+  listCommits,
+  listContributors,
+  listDiscussions,
+  listForks,
+  listPRComments,
   listPulls,
   mergePull,
   openPull,
   patchRepo,
   pushCommit,
+  removeCollaborator,
+  setCollaborator,
   starRepo,
+  toggleWatch,
   whoami,
   type Branch,
+  type Collaborator,
+  type CollaboratorRole,
+  type Commit,
+  type Contributor,
+  type Discussion,
+  type DiscussionSummary,
   type Me,
   type PR,
+  type PRComment,
   type PRDiff,
   type Repo as RepoT,
+  type Transfer,
   type TreeEntry,
   type Visibility,
 } from "../api/client";
+import { Markdown } from "../components/Markdown";
 
-type Tab = "code" | "branches" | "pulls" | "settings";
+type Tab = "code" | "commits" | "branches" | "pulls" | "community"
+         | "forks" | "settings";
 
 const KIND_GLYPH: Record<string, string> = { app: "⁂", autoresearch: "⋯", agent: "❋", skill: "⌘" };
 const KIND_LABEL: Record<string, string> = {
@@ -54,28 +82,45 @@ export function Repo() {
   // so we read the pathname. Order matters: /pulls/new before /pulls/:n.
   const pathname = location.pathname;
   const prefix = `/${owner}/${name}`;
-  const mode: "tree" | "blob" | "blob-edit" | "branches" | "pulls" | "pull-detail" | "pull-new" | "settings" =
+  const mode: "tree" | "blob" | "blob-edit" | "branches" | "pulls"
+            | "pull-detail" | "pull-new" | "settings" | "commits"
+            | "community" | "discussion-detail" | "forks" =
     pathname === `${prefix}/branches`
       ? "branches"
-      : pathname === `${prefix}/pulls/new`
-        ? "pull-new"
-        : numberParam
-          ? "pull-detail"
-          : pathname.startsWith(`${prefix}/pulls`)
-            ? "pulls"
-            : pathname.startsWith(`${prefix}/blob/`)
-              ? (searchParams.get("edit") === "1" ? "blob-edit" : "blob")
-              : pathname.startsWith(`${prefix}/settings`)
-                ? "settings"
-                : "tree";
+      : pathname === `${prefix}/commits` || pathname.startsWith(`${prefix}/commits/`)
+        ? "commits"
+        : pathname === `${prefix}/forks`
+          ? "forks"
+          : pathname === `${prefix}/pulls/new`
+            ? "pull-new"
+            : numberParam
+              ? "pull-detail"
+              : pathname.startsWith(`${prefix}/pulls`)
+                ? "pulls"
+                : pathname.startsWith(`${prefix}/blob/`)
+                  ? (searchParams.get("edit") === "1" ? "blob-edit" : "blob")
+                  : pathname.startsWith(`${prefix}/settings`)
+                    ? "settings"
+                    : pathname.startsWith(`${prefix}/discussions/`)
+                      ? "discussion-detail"
+                      : pathname === `${prefix}/discussions`
+                                || pathname === `${prefix}/community`
+                        ? "community"
+                        : "tree";
 
   const tab: Tab = mode === "branches"
     ? "branches"
-    : mode.startsWith("pull")
-      ? "pulls"
-      : mode === "settings"
-        ? "settings"
-        : "code";
+    : mode === "commits"
+      ? "commits"
+      : mode === "forks"
+        ? "forks"
+        : mode.startsWith("pull")
+          ? "pulls"
+          : mode === "settings"
+            ? "settings"
+            : mode === "community" || mode === "discussion-detail"
+              ? "community"
+              : "code";
   const branch = branchParam || "main";
 
   const [me, setMe] = useState<Me | null>(null);
@@ -114,10 +159,13 @@ export function Repo() {
     <Shell me={me}>
       <RepoHeader repo={repo} me={me} isOwner={isOwner} onChange={setRepo} />
 
-      <div className="mt-8 border-b border-soul-400/10 flex gap-6">
+      <div className="mt-8 border-b border-soul-400/10 flex gap-6 overflow-x-auto">
         <TabLink to={`/${enc(owner)}/${enc(name)}`} active={tab === "code"}>Code</TabLink>
+        <TabLink to={`/${enc(owner)}/${enc(name)}/commits`} active={tab === "commits"}>Commits</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/branches`} active={tab === "branches"}>Branches</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/pulls`} active={tab === "pulls"}>Pull Requests</TabLink>
+        <TabLink to={`/${enc(owner)}/${enc(name)}/community`} active={tab === "community"}>Community</TabLink>
+        <TabLink to={`/${enc(owner)}/${enc(name)}/forks`} active={tab === "forks"}>Forks</TabLink>
         {isOwner && (
           <TabLink to={`/${enc(owner)}/${enc(name)}/settings`} active={tab === "settings"}>
             Settings
@@ -130,6 +178,12 @@ export function Repo() {
         {mode === "blob" && <BlobView repo={repo} branch={branch} path={splat} isOwner={isOwner} />}
         {mode === "blob-edit" && <BlobEditor repo={repo} branch={branch} path={splat} />}
         {mode === "branches" && <BranchesTab repo={repo} me={me} />}
+        {mode === "commits" && <CommitsTab repo={repo} branch={branch} />}
+        {mode === "forks" && <ForksTab repo={repo} />}
+        {mode === "community" && <CommunityTab repo={repo} me={me} />}
+        {mode === "discussion-detail" && (
+          <DiscussionDetail repo={repo} me={me} isOwner={isOwner} />
+        )}
         {mode === "pulls" && <PullsTab repo={repo} me={me} />}
         {mode === "pull-new" && <NewPullForm repo={repo} me={me} />}
         {mode === "pull-detail" && numberParam && (
@@ -190,6 +244,30 @@ function RepoHeader({
     }
   };
 
+  const [watch, setWatch] = useState<{ watching: boolean; watchers: number }>({
+    watching: false, watchers: 0,
+  });
+  useEffect(() => {
+    getWatchers(repo.owner_sub, repo.name)
+      .then(setWatch)
+      .catch(() => setWatch({ watching: false, watchers: 0 }));
+  }, [repo.owner_sub, repo.name]);
+
+  const onWatch = async () => {
+    if (!me) {
+      const { beginLogin } = await import("../lib/pkce");
+      return beginLogin();
+    }
+    try {
+      setWatch(await toggleWatch(repo.owner_sub, repo.name));
+    } catch (e) {
+      if (isUnauthorized(e)) {
+        const { beginLogin } = await import("../lib/pkce");
+        beginLogin();
+      }
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-bark-300/40">
@@ -225,6 +303,17 @@ function RepoHeader({
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={onWatch}
+            className={`px-3 py-1.5 text-xs uppercase tracking-widest border rounded-full transition-colors ${
+              watch.watching
+                ? "border-spirit-400/60 text-spirit-300"
+                : "border-soul-400/20 text-bark-300/80 hover:border-spirit-400/60 hover:text-spirit-300"
+            }`}
+          >
+            <span className="mr-1">👁</span>
+            {watch.watching ? "Watching" : "Watch"} ({watch.watchers})
+          </button>
           <button
             onClick={onStar}
             className="px-3 py-1.5 text-xs uppercase tracking-widest border border-soul-400/20 rounded-full text-bark-300/80 hover:border-atokirina-400/60 hover:text-atokirina-400 transition-colors"
@@ -529,9 +618,7 @@ function ReadmePreview({ repo, branch, path }: { repo: RepoT; branch: string; pa
   }, [repo.owner_sub, repo.name, branch, path]);
   return (
     <div className="rounded-xl border border-soul-400/10 bg-night-800/40 p-5 overflow-auto max-h-[70vh]">
-      <pre className="text-xs text-bark-300/85 font-mono whitespace-pre-wrap break-words leading-relaxed">
-        {text}
-      </pre>
+      <Markdown className="text-sm text-bark-200/90 leading-relaxed">{text}</Markdown>
     </div>
   );
 }
@@ -585,6 +672,8 @@ function BlobView({ repo, branch, path, isOwner }: {
       <div className="rounded-xl border border-soul-400/10 bg-night-800/40 p-5 overflow-auto max-h-[80vh]">
         {text === null ? (
           <div className="text-sm text-bark-300/40">{err || "loading…"}</div>
+        ) : path.toLowerCase().endsWith(".md") ? (
+          <Markdown className="text-sm text-bark-200/90 leading-relaxed">{text}</Markdown>
         ) : (
           <pre className="text-xs text-bark-300/85 font-mono whitespace-pre-wrap break-words leading-relaxed">
             {text}
@@ -1415,4 +1504,265 @@ function enc(s: string): string {
 
 function pathEnc(p: string): string {
   return p.split("/").map(encodeURIComponent).join("/");
+}
+
+// ── Commits tab ─────────────────────────────────────────────────
+
+function relTime(unixSec: number): string {
+  const s = Math.floor(Date.now() / 1000 - unixSec);
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
+  return new Date(unixSec * 1000).toISOString().slice(0, 10);
+}
+
+function initial(name: string): string {
+  return (name || "?").trim().charAt(0).toUpperCase();
+}
+
+function CommitsTab({ repo, branch }: { repo: RepoT; branch: string }) {
+  const [commits, setCommits] = useState<Commit[] | null>(null);
+  const [err, setErr] = useState<string>("");
+
+  useEffect(() => {
+    setCommits(null);
+    listCommits(repo.owner_sub, repo.name, { ref: branch, limit: 50 })
+      .then(setCommits)
+      .catch((e) => setErr(e?.response?.data?.detail || "failed"));
+  }, [repo.owner_sub, repo.name, branch]);
+
+  if (commits === null) {
+    return <div className="py-10 text-center text-bark-300/40 text-sm">{err || "loading…"}</div>;
+  }
+  if (commits.length === 0) {
+    return <div className="py-10 text-center text-bark-300/40 text-sm">No commits on this branch yet.</div>;
+  }
+  return (
+    <div className="rounded-xl border border-soul-400/10 bg-night-800/40 divide-y divide-soul-400/10">
+      {commits.map((c) => (
+        <div key={c.sha} className="flex items-center gap-3 p-3">
+          <div className="w-8 h-8 rounded-full bg-soul-400/20 text-soul-300 font-display flex items-center justify-center shrink-0">
+            {initial(c.author)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm text-bark-300 truncate">{c.subject}</div>
+            <div className="text-[11px] text-bark-300/50 mt-0.5">
+              <span className="text-bark-300/70">{c.author}</span>
+              {" · "}
+              <span>{relTime(c.timestamp)}</span>
+            </div>
+          </div>
+          <code className="text-[11px] font-mono text-bark-300/50 shrink-0">{c.short_sha}</code>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Forks tab ──────────────────────────────────────────────────
+
+function ForksTab({ repo }: { repo: RepoT }) {
+  const [forks, setForks] = useState<RepoT[] | null>(null);
+  useEffect(() => {
+    listForks(repo.owner_sub, repo.name).then(setForks).catch(() => setForks([]));
+  }, [repo.owner_sub, repo.name]);
+  if (forks === null) return <div className="py-10 text-center text-bark-300/40 text-sm">loading…</div>;
+  if (forks.length === 0) {
+    return (
+      <div className="py-10 text-center text-bark-300/40 text-sm">
+        No one has forked this yet. Your copy could be the first.
+      </div>
+    );
+  }
+  return (
+    <div className="grid gap-3">
+      {forks.map((f) => (
+        <Link
+          key={`${f.owner_sub}/${f.name}`}
+          to={`/${enc(f.owner_sub)}/${enc(f.name)}`}
+          className="block rounded-xl border border-soul-400/10 bg-night-800/40 p-4 hover:border-soul-400/30"
+        >
+          <div className="font-mono text-sm text-bark-300">
+            {f.owner_sub.slice(0, 10)} / <span className="text-soul-300">{f.name}</span>
+          </div>
+          {f.summary && <div className="text-xs text-bark-300/60 mt-1">{f.summary}</div>}
+          <div className="text-[11px] text-bark-300/40 mt-2">
+            ★ {f.stars} · ⑂ {f.forks} · updated {relTime(f.updated_at)}
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+// ── Community tab (discussions list + new thread) ──────────────
+
+function CommunityTab({ repo, me }: { repo: RepoT; me: Me | null }) {
+  const [discussions, setDiscussions] = useState<DiscussionSummary[] | null>(null);
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const reload = () => {
+    listDiscussions(repo.owner_sub, repo.name).then(setDiscussions).catch(() => setDiscussions([]));
+  };
+  useEffect(reload, [repo.owner_sub, repo.name]);
+
+  const onCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!me) {
+      const { beginLogin } = await import("../lib/pkce");
+      return beginLogin();
+    }
+    if (!title.trim()) return;
+    setBusy(true);
+    try {
+      await createDiscussion(repo.owner_sub, repo.name, { title, body });
+      setTitle(""); setBody("");
+      reload();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+      <div>
+        {discussions === null ? (
+          <div className="py-10 text-center text-bark-300/40 text-sm">loading…</div>
+        ) : discussions.length === 0 ? (
+          <div className="py-10 text-center text-bark-300/40 text-sm">
+            No discussions yet. Open the first thread on the right.
+          </div>
+        ) : (
+          <div className="rounded-xl border border-soul-400/10 bg-night-800/40 divide-y divide-soul-400/10">
+            {discussions.map((d) => (
+              <Link
+                key={d.id}
+                to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/discussions/${enc(d.id)}`}
+                className="flex items-center justify-between p-4 hover:bg-night-800/80"
+              >
+                <div className="min-w-0">
+                  <div className="text-sm text-bark-300">
+                    {d.state === "closed" && <span className="text-bark-300/40 mr-2">[closed]</span>}
+                    {d.title}
+                  </div>
+                  <div className="text-[11px] text-bark-300/50 mt-0.5">
+                    {d.author_sub.slice(0, 10)} · {relTime(d.created_at)} · {d.comment_count} comment{d.comment_count === 1 ? "" : "s"}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+      <form onSubmit={onCreate} className="rounded-xl border border-soul-400/10 bg-night-800/40 p-4 h-fit">
+        <div className="text-xs uppercase tracking-widest text-soul-300 mb-3">Start a thread</div>
+        <input
+          type="text"
+          placeholder="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full bg-night-800/60 border border-soul-400/20 rounded px-3 py-2 text-sm text-bark-300 placeholder:text-bark-300/30 mb-2"
+        />
+        <textarea
+          placeholder="body (optional — markdown)"
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={5}
+          className="w-full bg-night-800/60 border border-soul-400/20 rounded px-3 py-2 text-sm text-bark-300 placeholder:text-bark-300/30 mb-2 font-mono"
+        />
+        <button
+          disabled={busy || !title.trim()}
+          className="w-full py-2 text-xs uppercase tracking-widest border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
+        >
+          {busy ? "opening…" : "open discussion"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function DiscussionDetail({ repo, me, isOwner }: { repo: RepoT; me: Me | null; isOwner: boolean }) {
+  const { "*": splat = "" } = useParams();
+  const disc_id = splat.split("/")[0];
+  const [disc, setDisc] = useState<Discussion | null>(null);
+  const [reply, setReply] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const reload = () => {
+    if (!disc_id) return;
+    getDiscussion(repo.owner_sub, repo.name, disc_id).then(setDisc).catch(() => setDisc(null));
+  };
+  useEffect(reload, [repo.owner_sub, repo.name, disc_id]);
+
+  if (!disc) return <div className="py-10 text-center text-bark-300/40 text-sm">loading…</div>;
+
+  const canClose = me && (me.sub === disc.author_sub || isOwner);
+
+  const onReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!me) {
+      const { beginLogin } = await import("../lib/pkce");
+      return beginLogin();
+    }
+    if (!reply.trim()) return;
+    setBusy(true);
+    try {
+      await addDiscussionComment(repo.owner_sub, repo.name, disc.id, reply);
+      setReply("");
+      reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onClose = async () => {
+    if (!confirm("Close this discussion?")) return;
+    await closeDiscussion(repo.owner_sub, repo.name, disc.id);
+    reload();
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <h2 className="font-display text-2xl text-bark-300">{disc.title}</h2>
+        {canClose && disc.state === "open" && (
+          <button onClick={onClose} className="text-xs uppercase tracking-widest text-bark-300/60 hover:text-atokirina-400">
+            close thread
+          </button>
+        )}
+      </div>
+      <div className="space-y-3">
+        {disc.comments.map((c) => (
+          <div key={c.id} className="rounded-xl border border-soul-400/10 bg-night-800/40 p-4">
+            <div className="text-[11px] text-bark-300/50 mb-2">
+              <span className="text-bark-300/70">{c.author_sub.slice(0, 10)}</span> · {relTime(c.created_at)}
+            </div>
+            <Markdown className="text-sm text-bark-200/90">{c.body}</Markdown>
+          </div>
+        ))}
+      </div>
+      {disc.state === "open" && (
+        <form onSubmit={onReply} className="mt-4 rounded-xl border border-soul-400/10 bg-night-800/40 p-4">
+          <textarea
+            placeholder="reply (markdown)"
+            value={reply}
+            onChange={(e) => setReply(e.target.value)}
+            rows={4}
+            className="w-full bg-night-800/60 border border-soul-400/20 rounded px-3 py-2 text-sm text-bark-300 placeholder:text-bark-300/30 mb-2 font-mono"
+          />
+          <button
+            disabled={busy || !reply.trim()}
+            className="px-4 py-2 text-xs uppercase tracking-widest border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
+          >
+            {busy ? "posting…" : "reply"}
+          </button>
+        </form>
+      )}
+    </div>
+  );
 }

@@ -272,6 +272,350 @@ export async function closePull(
   return r.data as PR;
 }
 
+// ── Commits / contributors / forks / watchers ─────────────────────
+
+export type Commit = {
+  sha: string;
+  short_sha: string;
+  author: string;
+  email: string;
+  timestamp: number;              // unix seconds
+  subject: string;
+  body: string;
+};
+
+export type CommitDetail = Commit & { stat: string };
+
+export async function listCommits(
+  owner: string, name: string,
+  opts: { ref?: string; path?: string; limit?: number; offset?: number } = {},
+): Promise<Commit[]> {
+  const r = await anonApi.get(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/commits`,
+    { params: opts },
+  );
+  return (r.data?.commits || []) as Commit[];
+}
+
+export async function getCommit(
+  owner: string, name: string, sha: string,
+): Promise<CommitDetail> {
+  const r = await anonApi.get(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/commits/${enc(sha)}`,
+  );
+  return r.data as CommitDetail;
+}
+
+export type Contributor = { author: string; email: string; commits: number };
+
+export async function listContributors(
+  owner: string, name: string,
+): Promise<Contributor[]> {
+  const r = await anonApi.get(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/contributors`,
+  );
+  return (r.data?.contributors || []) as Contributor[];
+}
+
+export async function listForks(owner: string, name: string): Promise<Repo[]> {
+  const r = await anonApi.get(`/api/v1/repos/${enc(owner)}/${enc(name)}/forks`);
+  return (r.data?.forks || []) as Repo[];
+}
+
+export type WatchState = { watching: boolean; watchers: number };
+
+export async function getWatchers(
+  owner: string, name: string,
+): Promise<WatchState> {
+  try {
+    const r = await api.get(`/api/v1/repos/${enc(owner)}/${enc(name)}/watchers`);
+    return r.data as WatchState;
+  } catch {
+    return { watching: false, watchers: 0 };
+  }
+}
+
+export async function toggleWatch(
+  owner: string, name: string,
+): Promise<WatchState> {
+  const r = await api.post(`/api/v1/repos/${enc(owner)}/${enc(name)}/watch`);
+  return r.data as WatchState;
+}
+
+// ── Activity feed ─────────────────────────────────────────────────
+
+export type Activity = {
+  ts: number;
+  kind: string;
+  actor_sub: string;
+  target: string;
+  detail?: Record<string, unknown>;
+};
+
+export async function listActivity(
+  opts: { kind?: string; actor?: string; limit?: number; offset?: number } = {},
+): Promise<Activity[]> {
+  const r = await anonApi.get("/api/v1/activity", { params: opts });
+  return (r.data?.events || []) as Activity[];
+}
+
+// ── PR comments ───────────────────────────────────────────────────
+
+export type PRComment = {
+  id: string;
+  author_sub: string;
+  author_email: string | null;
+  body: string;
+  file: string | null;
+  line: number | null;
+  side: "left" | "right";
+  created_at: number;
+};
+
+export async function listPRComments(
+  owner: string, name: string, number: number,
+): Promise<PRComment[]> {
+  const r = await anonApi.get(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/pulls/${number}/comments`,
+  );
+  return (r.data?.comments || []) as PRComment[];
+}
+
+export async function addPRComment(
+  owner: string, name: string, number: number,
+  body: { body: string; file?: string | null; line?: number | null;
+          side?: "left" | "right" },
+): Promise<PRComment> {
+  const r = await api.post(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/pulls/${number}/comments`,
+    body,
+  );
+  return r.data as PRComment;
+}
+
+// ── Collaborators ─────────────────────────────────────────────────
+
+export type CollaboratorRole = "read" | "triage" | "write" | "admin";
+export type Collaborator = { user_sub: string; role: CollaboratorRole };
+
+export async function listCollaborators(
+  owner: string, name: string,
+): Promise<Collaborator[]> {
+  const r = await api.get(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/collaborators`,
+  );
+  return (r.data?.collaborators || []) as Collaborator[];
+}
+
+export async function setCollaborator(
+  owner: string, name: string, user_sub: string, role: CollaboratorRole,
+): Promise<{ ok: boolean; user_sub: string; role: string }> {
+  const r = await api.put(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/collaborators`,
+    { user_sub, role },
+  );
+  return r.data;
+}
+
+export async function removeCollaborator(
+  owner: string, name: string, collab_sub: string,
+): Promise<{ ok: boolean; removed: boolean }> {
+  const r = await api.delete(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/collaborators/${enc(collab_sub)}`,
+  );
+  return r.data;
+}
+
+// ── Discussions (Community) ───────────────────────────────────────
+
+export type DiscussionSummary = {
+  id: string;
+  title: string;
+  author_sub: string;
+  created_at: number;
+  state: "open" | "closed";
+  comment_count: number;
+};
+
+export type DiscussionComment = {
+  id: string;
+  author_sub: string;
+  body: string;
+  created_at: number;
+};
+
+export type Discussion = DiscussionSummary & {
+  author_email: string | null;
+  comments: DiscussionComment[];
+};
+
+export async function listDiscussions(
+  owner: string, name: string, state: "all" | "open" | "closed" = "all",
+): Promise<DiscussionSummary[]> {
+  const r = await anonApi.get(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/discussions`, { params: { state } },
+  );
+  return (r.data?.discussions || []) as DiscussionSummary[];
+}
+
+export async function createDiscussion(
+  owner: string, name: string, body: { title: string; body?: string },
+): Promise<Discussion> {
+  const r = await api.post(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/discussions`, body,
+  );
+  return r.data as Discussion;
+}
+
+export async function getDiscussion(
+  owner: string, name: string, disc_id: string,
+): Promise<Discussion> {
+  const r = await anonApi.get(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/discussions/${enc(disc_id)}`,
+  );
+  return r.data as Discussion;
+}
+
+export async function addDiscussionComment(
+  owner: string, name: string, disc_id: string, body: string,
+): Promise<DiscussionComment> {
+  const r = await api.post(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/discussions/${enc(disc_id)}/comments`,
+    { body },
+  );
+  return r.data as DiscussionComment;
+}
+
+export async function closeDiscussion(
+  owner: string, name: string, disc_id: string,
+): Promise<Discussion> {
+  const r = await api.post(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/discussions/${enc(disc_id)}/close`,
+  );
+  return r.data as Discussion;
+}
+
+// ── Trending ──────────────────────────────────────────────────────
+
+export async function listTrending(
+  opts: { kind?: RepoKind | ""; window?: "day" | "week" | "month";
+          limit?: number } = {},
+): Promise<Repo[]> {
+  const r = await anonApi.get("/api/v1/trending", { params: opts });
+  return (r.data?.repos || []) as Repo[];
+}
+
+// ── Collections ───────────────────────────────────────────────────
+
+export type Collection = {
+  id: string;
+  name: string;
+  description: string;
+  repo_slugs: string[];
+  created_at: number;
+};
+
+export async function listCollections(owner_sub: string): Promise<Collection[]> {
+  const r = await anonApi.get(`/api/v1/users/${enc(owner_sub)}/collections`);
+  return (r.data?.collections || []) as Collection[];
+}
+
+export async function createCollection(
+  name: string, description = "",
+): Promise<Collection> {
+  const r = await api.post("/api/v1/user/collections", { name, description });
+  return r.data as Collection;
+}
+
+export async function deleteCollection(id: string): Promise<{ ok: boolean }> {
+  const r = await api.delete(`/api/v1/user/collections/${enc(id)}`);
+  return r.data;
+}
+
+export async function addToCollection(
+  id: string, repo_slug: string,
+): Promise<Collection> {
+  const r = await api.post(
+    `/api/v1/user/collections/${enc(id)}/items`, { repo_slug },
+  );
+  return r.data as Collection;
+}
+
+export async function removeFromCollection(
+  id: string, owner: string, name: string,
+): Promise<Collection> {
+  const r = await api.delete(
+    `/api/v1/user/collections/${enc(id)}/items/${enc(owner)}/${enc(name)}`,
+  );
+  return r.data as Collection;
+}
+
+// ── Repo transfer ─────────────────────────────────────────────────
+
+export type Transfer = {
+  old_owner_sub: string;
+  name: string;
+  new_owner_sub: string;
+  initiated_by: string;
+  initiated_at: number;
+};
+
+export async function initiateTransfer(
+  owner: string, name: string, new_owner_sub: string,
+): Promise<{ ok: boolean; transfer: Transfer }> {
+  const r = await api.post(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/transfer`,
+    { new_owner_sub },
+  );
+  return r.data;
+}
+
+export async function acceptTransfer(
+  owner: string, name: string,
+): Promise<{ ok: boolean; old_slug: string; new_slug: string; repo: Repo }> {
+  const r = await api.post(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/transfer/accept`,
+  );
+  return r.data;
+}
+
+export async function getPendingTransfer(
+  owner: string, name: string,
+): Promise<Transfer | null> {
+  try {
+    const r = await api.get(
+      `/api/v1/repos/${enc(owner)}/${enc(name)}/transfer/pending`,
+    );
+    return r.data as Transfer;
+  } catch (e) {
+    if (is404(e)) return null;
+    throw e;
+  }
+}
+
+export async function listIncomingTransfers(): Promise<Transfer[]> {
+  const r = await api.get("/api/v1/user/transfers/incoming");
+  return (r.data?.transfers || []) as Transfer[];
+}
+
+// ── Audit / export ────────────────────────────────────────────────
+
+export async function readUserAudit(
+  opts: { since?: number; limit?: number } = {},
+): Promise<Array<{
+  ts: number; actor_sub: string | null; actor_ip: string | null;
+  action: string; target: string; detail: Record<string, unknown>;
+  status: string;
+}>> {
+  const r = await api.get("/api/v1/user/audit", { params: opts });
+  return r.data?.events || [];
+}
+
+export async function exportUserData(): Promise<unknown> {
+  const r = await api.get("/api/v1/user/export");
+  return r.data;
+}
+
 // ── helpers ──────────────────────────────────────────────────────
 
 function enc(s: string): string {
