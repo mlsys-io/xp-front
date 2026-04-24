@@ -4,13 +4,13 @@
 
 html, body, #root {
   height: 100%;
-  background: #ffffff;
+  background: #fafafa;
 }
 body {
-  @apply text-bark-300 antialiased;
+  @apply antialiased;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #ffffff;
-  color: #1f2937;
+  background: #fafafa;      /* off-white, softer than pure #fff */
+  color: #111827;            /* gray-900 — body copy */
 }
 
 /* Legacy .soul-ring glow — dimmed for light bg but kept so old landing
@@ -71,9 +71,9 @@ body {
    chrome. */
 .markdown-body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  line-height: 1.6;
+  line-height: 1.65;
   word-break: break-word;
-  color: #1f2937;
+  color: #111827;
 }
 .markdown-body h1,
 .markdown-body h2,
@@ -81,7 +81,7 @@ body {
 .markdown-body h4 {
   font-family: inherit;
   font-weight: 600;
-  color: #111827;
+  color: #030712;          /* slightly blacker than body for emphasis */
   margin-top: 1.4em;
   margin-bottom: 0.5em;
   letter-spacing: normal;

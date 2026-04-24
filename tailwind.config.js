@@ -18,36 +18,37 @@ export default {
           600: "#e4e4e7",    // divider
           500: "#d4d4d8",    // stronger divider
         },
-        // Tree-of-souls teal — HF's yellow-ish role, still our accent.
-        // Darkened for WCAG AA on white.
+        // Tree-of-souls teal — accent for links + active-tab stripes.
+        // Deeper than the first light-pass stab; teal-500 (#14b8a6) was
+        // borderline on white for small text, so bumping to teal-700.
         soul: {
-          300: "#14b8a6",    // used for links + active-tab underline
-          400: "#0d9488",    // button borders
-          500: "#0f766e",    // pressed / hover
+          300: "#0f766e",    // links + active-tab underline + subtle emphasis
+          400: "#115e59",    // button borders / hover
+          500: "#134e4a",    // pressed
           600: "#115e59",
         },
-        // Spirit-violet — fork glyph + alt accents.
+        // Spirit-violet — fork glyph + alt accents. Deepened for contrast.
         spirit: {
-          300: "#8b5cf6",
-          400: "#7c3aed",
-          500: "#6d28d9",
-          600: "#5b21b6",
+          300: "#7c3aed",
+          400: "#6d28d9",
+          500: "#5b21b6",
+          600: "#4c1d95",
         },
-        // Atokirina — star glyph + warnings. Moved amber to match HF's
-        // warm accent + be readable on white.
+        // Atokirina — star glyph + warnings. Amber keeps HF's warm feel
+        // on a light background.
         atokirina: {
-          300: "#fbbf24",
-          400: "#f59e0b",
-          500: "#d97706",
+          300: "#f59e0b",
+          400: "#d97706",
+          500: "#b45309",
         },
-        // Text — was cream on dark, now near-black on light. Gradations
-        // map to opacity modifiers used throughout the codebase:
-        //   text-bark-300       = main copy (dark gray-near-black)
-        //   text-bark-300/70    = secondary copy
-        //   text-bark-300/50    = tertiary copy
+        // Text — components use `text-bark-300/{70,60,50,40}` opacity
+        // modifiers for the secondary-text hierarchy. On a white bg
+        // those render as `rgba(base, 0.X)`, so the base needs to be
+        // near-pure-black for `/40` to still be ~gray-600 (readable).
+        // gray-800 at 40% would be rgba(31,41,55,0.4) — near invisible.
         bark: {
-          300: "#1f2937",    // gray-800
-          400: "#374151",    // gray-700
+          300: "#0a0a0b",    // near-black; main copy AND the opacity base
+          400: "#374151",    // gray-700 (rarely used directly)
         },
       },
       fontFamily: {
