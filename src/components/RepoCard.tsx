@@ -1,26 +1,40 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import type { Repo } from "../api/client";
 
 const KIND_GLYPH: Record<string, string> = {
   app: "⁂",
   autoresearch: "⋯",
   agent: "❋",
+  skill: "⌘",
 };
 
 const KIND_LABEL: Record<string, string> = {
   app: "Application",
   autoresearch: "AutoResearch",
-  agent: "Agent",
+  agent: "Agentic KG",
+  skill: "Skill",
 };
 
 export function RepoCard({ repo }: { repo: Repo }) {
+  const nav = useNavigate();
   const { owner_sub, name, display_name, summary, tags, stars, forks, kind, fork_of } = repo;
   const ownerShort = owner_sub.slice(0, 8);
 
+  const openRepo = () =>
+    nav(`/${encodeURIComponent(owner_sub)}/${encodeURIComponent(name)}`);
+
   return (
-    <Link
-      to={`/${encodeURIComponent(owner_sub)}/${encodeURIComponent(name)}`}
-      className="group block rounded-2xl border border-soul-400/15 bg-night-800/60 backdrop-blur px-5 py-4 hover:border-soul-400/40 transition-colors"
+    <div
+      onClick={openRepo}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openRepo();
+        }
+      }}
+      role="link"
+      tabIndex={0}
+      className="group block rounded-2xl border border-soul-400/15 bg-night-800/60 backdrop-blur px-5 py-4 hover:border-soul-400/40 transition-colors cursor-pointer focus:outline-none focus:border-soul-400/60"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -38,7 +52,14 @@ export function RepoCard({ repo }: { repo: Repo }) {
             {display_name || name}
           </div>
           <div className="text-[11px] text-bark-300/40 truncate">
-            {ownerShort}…/{name}
+            <Link
+              to={`/${encodeURIComponent(owner_sub)}`}
+              onClick={(e) => e.stopPropagation()}
+              className="hover:text-soul-300 transition-colors"
+            >
+              {ownerShort}…
+            </Link>
+            /{name}
           </div>
         </div>
         <div className="shrink-0 flex items-center gap-3 text-xs text-bark-300/60">
@@ -71,6 +92,6 @@ export function RepoCard({ repo }: { repo: Repo }) {
           ))}
         </div>
       )}
-    </Link>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { listRepos, whoami, type Repo, type RepoKind, type Me } from "../api/client";
+import { listRepos, logout, whoami, type Repo, type RepoKind, type Me } from "../api/client";
 import { AtokirinaField } from "../components/Atokirina";
 import { RepoCard } from "../components/RepoCard";
 
@@ -10,7 +10,8 @@ const TABS: { id: KindTab; label: string }[] = [
   { id: "", label: "◎ All" },
   { id: "app", label: "⁂ Applications" },
   { id: "autoresearch", label: "⋯ AutoResearch" },
-  { id: "agent", label: "❋ Agents" },
+  { id: "agent", label: "❋ Agentic KG" },
+  { id: "skill", label: "⌘ Skills" },
 ];
 
 const SORTS: { id: string; label: string }[] = [
@@ -42,7 +43,11 @@ export function Marketspace() {
 
   useEffect(() => {
     setLoading(true);
-    listRepos({ q, kind: tab, sort: sort as any, limit: 60 })
+    // Public marketspace hides forks — they duplicate upstream with no
+    // differentiating content. Forks are still discoverable via the
+    // upstream's header link and the user's own dashboard.
+    listRepos({ q, kind: tab, sort: sort as any, limit: 60,
+                include_forks: false })
       .then(setRepos)
       .catch(() => setRepos([]))
       .finally(() => setLoading(false));
@@ -59,18 +64,25 @@ export function Marketspace() {
           <span className="w-1.5 h-1.5 inline-block align-middle rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul mr-3" />
           xp.io
         </Link>
-        <div className="flex items-center gap-6 text-[11px] uppercase tracking-widest">
+        <div className="flex items-center gap-4 text-[11px] uppercase tracking-widest">
           {me ? (
             <>
               <Link to="/new" className="text-soul-300 hover:text-soul-400 transition-colors">
                 + new
               </Link>
+              <Link
+                to={`/${encodeURIComponent(me.sub)}`}
+                className="text-bark-300/70 hover:text-soul-300 transition-colors"
+              >
+                profile
+              </Link>
               <Link to="/dashboard" className="text-bark-300/70 hover:text-soul-300 transition-colors">
                 dashboard
               </Link>
+              <SignOutLink />
             </>
           ) : (
-            <SignInLink />
+            <SignInLink variant="primary" />
           )}
         </div>
       </nav>
@@ -81,9 +93,17 @@ export function Marketspace() {
             The Marketspace
           </h1>
           <p className="mt-3 text-sm text-bark-300/60 max-w-xl mx-auto">
-            Applications, AutoResearch loops, and knowledge agents — versioned in git,
+            Applications, AutoResearch loops, skills, and Agentic KGs — versioned in git,
             forkable, pullable, mergeable.
           </p>
+          {!me && (
+            <div className="mt-6 flex items-center justify-center gap-4 flex-wrap">
+              <SignInLink variant="hero" />
+              <span className="text-[11px] uppercase tracking-widest text-bark-300/40">
+                or keep browsing anon
+              </span>
+            </div>
+          )}
         </header>
 
         {/* Search bar */}
@@ -157,14 +177,51 @@ export function Marketspace() {
   );
 }
 
-function SignInLink() {
+function SignOutLink() {
   return (
     <button
       onClick={async () => {
-        const { beginLogin } = await import("../lib/pkce");
-        await beginLogin();
+        try { await logout(); } catch { /* ignore; cookie is cleared server-side */ }
+        // Land back on the public marketspace, signed out.
+        window.location.href = "/";
       }}
-      className="text-soul-300 hover:text-soul-400 transition-colors uppercase tracking-widest text-[11px]"
+      className="text-bark-300/60 hover:text-atokirina-400 transition-colors uppercase tracking-widest text-[11px]"
+    >
+      sign out
+    </button>
+  );
+}
+
+function SignInLink({ variant = "nav" }: { variant?: "nav" | "primary" | "hero" }) {
+  const onClick = async () => {
+    const { beginLogin } = await import("../lib/pkce");
+    await beginLogin();
+  };
+  if (variant === "primary") {
+    return (
+      <button
+        onClick={onClick}
+        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-soul-400/15 border border-soul-400/40 text-soul-300 hover:bg-soul-400/25 hover:border-soul-400/70 transition-colors uppercase tracking-widest text-[11px]"
+      >
+        sign up · sign in
+      </button>
+    );
+  }
+  if (variant === "hero") {
+    return (
+      <button
+        onClick={onClick}
+        className="soul-ring inline-flex items-center gap-3 px-6 py-3 rounded-full bg-soul-400/20 border border-soul-400/50 text-soul-200 hover:text-bark-300 hover:bg-soul-400/30 transition-colors uppercase tracking-[0.25em] text-xs shadow-soul"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-soul-400 animate-pulse-soul" />
+        sign in with lum.id
+      </button>
+    );
+  }
+  return (
+    <button
+      onClick={onClick}
+      className="text-bark-300/60 hover:text-soul-300 transition-colors uppercase tracking-widest text-[11px]"
     >
       sign in
     </button>

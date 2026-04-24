@@ -7,8 +7,10 @@ const KINDS: { id: RepoKind; label: string; glyph: string; blurb: string }[] = [
     blurb: "A Claude Code app — manifest + procedures + prompts. Installable." },
   { id: "autoresearch", glyph: "⋯", label: "AutoResearch",
     blurb: "A loop that runs on a schedule and accumulates knowledge." },
-  { id: "agent", glyph: "❋", label: "Agent",
-    blurb: "A memory bundle — an accumulating knowledge graph you can share." },
+  { id: "agent", glyph: "❋", label: "Agentic KG",
+    blurb: "An accumulating knowledge graph — memories you can share, fork, and compound." },
+  { id: "skill", glyph: "⌘", label: "Skill",
+    blurb: "A SKILL.md with instructions + context files. Loaded into an AI at the right moment." },
 ];
 
 export function NewRepo() {

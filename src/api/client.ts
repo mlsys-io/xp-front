@@ -38,7 +38,7 @@ export async function logout() {
 
 // ── Repos ────────────────────────────────────────────────────────
 
-export type RepoKind = "app" | "autoresearch" | "agent";
+export type RepoKind = "app" | "autoresearch" | "agent" | "skill";
 export type Visibility = "public" | "private";
 
 export type Repo = {
@@ -58,7 +58,22 @@ export type Repo = {
   updated_at: number;
 };
 
-export type Branch = { name: string; sha: string };
+export type Branch = {
+  name: string;
+  sha: string;
+  is_default?: boolean;
+  from_upstream?: boolean;        // true for fork branches that match upstream
+  ahead?: number;
+  behind?: number;
+  last_commit?: {
+    sha: string;
+    short_sha: string;
+    author: string;
+    email: string;
+    date: string;                // ISO-8601 with timezone
+    message_summary: string;
+  };
+};
 
 export type TreeEntry = {
   name: string;
@@ -78,6 +93,7 @@ export type ListReposParams = {
   owner?: string;
   sort?: "updated" | "created" | "stars" | "forks" | "name";
   limit?: number;
+  include_forks?: boolean;
 };
 
 /** Anonymous — returns only public repos unless the user is signed in. */
@@ -112,7 +128,7 @@ export async function createRepo(input: {
 
 export async function patchRepo(
   owner: string, name: string,
-  patch: Partial<Pick<Repo, "visibility" | "display_name" | "summary" | "tags">>,
+  patch: Partial<Pick<Repo, "name" | "visibility" | "display_name" | "summary" | "tags">>,
 ): Promise<Repo> {
   const r = await api.patch(`/api/v1/repos/${enc(owner)}/${enc(name)}`, patch);
   return r.data.repo as Repo;

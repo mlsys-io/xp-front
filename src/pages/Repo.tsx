@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Link, useLocation, useNavigate, useParams, useSearchParams,
 } from "react-router-dom";
@@ -29,11 +29,11 @@ import {
   type Visibility,
 } from "../api/client";
 
-type Tab = "code" | "pulls" | "settings";
+type Tab = "code" | "branches" | "pulls" | "settings";
 
-const KIND_GLYPH: Record<string, string> = { app: "⁂", autoresearch: "⋯", agent: "❋" };
+const KIND_GLYPH: Record<string, string> = { app: "⁂", autoresearch: "⋯", agent: "❋", skill: "⌘" };
 const KIND_LABEL: Record<string, string> = {
-  app: "Application", autoresearch: "AutoResearch", agent: "Agent",
+  app: "Application", autoresearch: "AutoResearch", agent: "Agentic KG", skill: "Skill",
 };
 
 /**
@@ -54,24 +54,28 @@ export function Repo() {
   // so we read the pathname. Order matters: /pulls/new before /pulls/:n.
   const pathname = location.pathname;
   const prefix = `/${owner}/${name}`;
-  const mode: "tree" | "blob" | "blob-edit" | "pulls" | "pull-detail" | "pull-new" | "settings" =
-    pathname === `${prefix}/pulls/new`
-      ? "pull-new"
-      : numberParam
-        ? "pull-detail"
-        : pathname.startsWith(`${prefix}/pulls`)
-          ? "pulls"
-          : pathname.startsWith(`${prefix}/blob/`)
-            ? (searchParams.get("edit") === "1" ? "blob-edit" : "blob")
-            : pathname.startsWith(`${prefix}/settings`)
-              ? "settings"
-              : "tree";
+  const mode: "tree" | "blob" | "blob-edit" | "branches" | "pulls" | "pull-detail" | "pull-new" | "settings" =
+    pathname === `${prefix}/branches`
+      ? "branches"
+      : pathname === `${prefix}/pulls/new`
+        ? "pull-new"
+        : numberParam
+          ? "pull-detail"
+          : pathname.startsWith(`${prefix}/pulls`)
+            ? "pulls"
+            : pathname.startsWith(`${prefix}/blob/`)
+              ? (searchParams.get("edit") === "1" ? "blob-edit" : "blob")
+              : pathname.startsWith(`${prefix}/settings`)
+                ? "settings"
+                : "tree";
 
-  const tab: Tab = mode.startsWith("pull")
-    ? "pulls"
-    : mode === "settings"
-      ? "settings"
-      : "code";
+  const tab: Tab = mode === "branches"
+    ? "branches"
+    : mode.startsWith("pull")
+      ? "pulls"
+      : mode === "settings"
+        ? "settings"
+        : "code";
   const branch = branchParam || "main";
 
   const [me, setMe] = useState<Me | null>(null);
@@ -112,6 +116,7 @@ export function Repo() {
 
       <div className="mt-8 border-b border-soul-400/10 flex gap-6">
         <TabLink to={`/${enc(owner)}/${enc(name)}`} active={tab === "code"}>Code</TabLink>
+        <TabLink to={`/${enc(owner)}/${enc(name)}/branches`} active={tab === "branches"}>Branches</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/pulls`} active={tab === "pulls"}>Pull Requests</TabLink>
         {isOwner && (
           <TabLink to={`/${enc(owner)}/${enc(name)}/settings`} active={tab === "settings"}>
@@ -124,6 +129,7 @@ export function Repo() {
         {mode === "tree" && <CodeTab repo={repo} branch={branch} path={branchParam ? splat : ""} isOwner={isOwner} />}
         {mode === "blob" && <BlobView repo={repo} branch={branch} path={splat} isOwner={isOwner} />}
         {mode === "blob-edit" && <BlobEditor repo={repo} branch={branch} path={splat} />}
+        {mode === "branches" && <BranchesTab repo={repo} me={me} />}
         {mode === "pulls" && <PullsTab repo={repo} me={me} />}
         {mode === "pull-new" && <NewPullForm repo={repo} me={me} />}
         {mode === "pull-detail" && numberParam && (
@@ -187,7 +193,12 @@ function RepoHeader({
   return (
     <div>
       <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-bark-300/40">
-        <span>{repo.owner_sub.slice(0, 10)}</span>
+        <Link
+          to={`/${enc(repo.owner_sub)}`}
+          className="hover:text-soul-300 transition-colors"
+        >
+          {repo.owner_sub.slice(0, 10)}
+        </Link>
         <span>/</span>
         <span className="text-bark-300/80">{repo.name}</span>
         {repo.visibility === "private" && (
@@ -348,19 +359,165 @@ function BranchPicker({
   repo: RepoT; branches: Branch[]; branch: string; path: string;
 }) {
   const nav = useNavigate();
-  return (
-    <select
-      value={branch}
-      onChange={(e) =>
-        nav(`/${enc(repo.owner_sub)}/${enc(repo.name)}/tree/${enc(e.target.value)}${path ? "/" + path : ""}`)
-      }
-      className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-1.5 text-xs text-bark-300/80"
-    >
-      {(branches.length ? branches : [{ name: branch, sha: "" }]).map((b) => (
-        <option key={b.name} value={b.name}>{b.name}</option>
-      ))}
-    </select>
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  // Close on outside-click.
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  const list = branches.length ? branches : [{ name: branch, sha: "" } as Branch];
+  // The Code tab isn't the place to enumerate every branch — the Branches
+  // tab is. Filter out fork-inherited branches (same tip as upstream),
+  // exclude the current one, and cap the shortlist for quick-switch.
+  const other = list.filter(
+    (b) => b.name !== branch && !b.from_upstream,
   );
+  const count = branches.length || 1;
+  const SHORTLIST = 6;
+  const shortlist = other.slice(0, SHORTLIST - 1);
+  const hidden = Math.max(0, count - 1 - shortlist.length);
+
+  return (
+    <div ref={ref} className="relative inline-block">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-2 bg-night-800/80 border border-soul-400/20 hover:border-soul-400/50 rounded-md px-3 py-1.5 text-xs text-bark-300/90 transition-colors"
+      >
+        <span className="text-soul-400/70">⎇</span>
+        <span className="font-mono">{branch}</span>
+        <span className="text-bark-300/40">▾</span>
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-30 w-72 rounded-lg border border-soul-400/20 bg-night-800/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+          <div className="px-3 py-2 text-[10px] uppercase tracking-widest text-bark-300/50 border-b border-soul-400/10">
+            Switch branch ({count})
+          </div>
+          <ul>
+            {shortlist.map((b) => (
+              <li key={b.name}>
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    nav(`/${enc(repo.owner_sub)}/${enc(repo.name)}/tree/${enc(b.name)}${path ? "/" + path : ""}`);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs text-bark-300/85 hover:bg-soul-400/10 flex items-center justify-between gap-3"
+                >
+                  <span className="font-mono truncate">{b.name}</span>
+                  {b.is_default && (
+                    <span className="text-[10px] uppercase tracking-wider text-soul-400/70 shrink-0">default</span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <Link
+            to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/branches`}
+            onClick={() => setOpen(false)}
+            className="block px-3 py-2 text-[11px] uppercase tracking-widest text-soul-300 hover:text-soul-400 border-t border-soul-400/10"
+          >
+            {hidden > 0 ? `View all ${count} branches →` : "View all branches →"}
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Branches tab ──────────────────────────────────────────────────
+
+function BranchesTab({ repo, me }: { repo: RepoT; me: Me | null }) {
+  const nav = useNavigate();
+  const [branches, setBranches] = useState<Branch[] | null>(null);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    listBranches(repo.owner_sub, repo.name)
+      .then(setBranches)
+      .catch((e) => setErr(e?.response?.data?.detail || "failed to load"));
+  }, [repo.owner_sub, repo.name]);
+
+  if (branches === null) {
+    return <div className="py-10 text-center text-sm text-bark-300/40">{err || "loading…"}</div>;
+  }
+
+  const canCreatePR = !!me;
+
+  return (
+    <div>
+      <div className="text-xs uppercase tracking-widest text-bark-300/50 mb-3">
+        {branches.length} branch{branches.length === 1 ? "" : "es"}
+      </div>
+      <ul className="rounded-xl border border-soul-400/10 divide-y divide-soul-400/5 overflow-hidden">
+        {branches.map((b) => (
+          <li key={b.name} className="px-4 py-3 flex items-center justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Link
+                  to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/tree/${enc(b.name)}`}
+                  className="font-mono text-sm text-bark-300/90 hover:text-soul-300 truncate"
+                >
+                  {b.name}
+                </Link>
+                {b.is_default && (
+                  <span className="text-[10px] uppercase tracking-wider text-soul-400/70 border border-soul-400/30 rounded-full px-2 py-0.5">default</span>
+                )}
+                {!b.is_default && (b.ahead !== undefined || b.behind !== undefined) && (
+                  <span className="text-[11px] tabular-nums text-bark-300/60">
+                    <span className="text-soul-400">↑{b.ahead ?? 0}</span>
+                    <span className="mx-1.5 text-bark-300/30">·</span>
+                    <span className="text-atokirina-400/80">↓{b.behind ?? 0}</span>
+                  </span>
+                )}
+              </div>
+              {b.last_commit && (
+                <div className="mt-1 text-[11px] text-bark-300/50 truncate">
+                  <code className="font-mono text-bark-300/70 mr-2">{b.last_commit.short_sha}</code>
+                  {b.last_commit.message_summary}
+                  <span className="mx-2 text-bark-300/30">·</span>
+                  <span title={b.last_commit.author}>
+                    {b.last_commit.author.slice(0, 14)}
+                  </span>
+                  <span className="mx-1.5 text-bark-300/30">·</span>
+                  <span>{formatRelative(b.last_commit.date)}</span>
+                </div>
+              )}
+            </div>
+            {!b.is_default && canCreatePR && (b.ahead ?? 0) > 0 && (
+              <button
+                onClick={() =>
+                  nav(`/${enc(repo.owner_sub)}/${enc(repo.name)}/pulls/new?head=${encodeURIComponent(b.name)}`)
+                }
+                className="shrink-0 px-3 py-1.5 text-[11px] uppercase tracking-widest rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70"
+              >
+                New PR
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function formatRelative(iso: string): string {
+  try {
+    const then = new Date(iso).getTime();
+    const diff = (Date.now() - then) / 1000;
+    if (diff < 60) return "just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 86400 * 30) return `${Math.floor(diff / 86400)}d ago`;
+    return new Date(iso).toISOString().slice(0, 10);
+  } catch {
+    return iso;
+  }
 }
 
 function ReadmePreview({ repo, branch, path }: { repo: RepoT; branch: string; path: string }) {
@@ -623,6 +780,10 @@ function PullsTab({ repo, me }: { repo: RepoT; me: Me | null }) {
 
 function NewPullForm({ repo, me }: { repo: RepoT; me: Me | null }) {
   const nav = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Prefilled via ?head=<branch> when coming from the Branches tab's
+  // "New PR" quickshot.
+  const preHead = searchParams.get("head") || "";
   const [baseBranch, setBaseBranch] = useState("main");
   const [baseBranches, setBaseBranches] = useState<Branch[]>([]);
   // Candidates for the head repo: this same repo (same-owner branches) plus
@@ -630,7 +791,7 @@ function NewPullForm({ repo, me }: { repo: RepoT; me: Me | null }) {
   const [candidates, setCandidates] = useState<RepoT[]>([]);
   const [headSlug, setHeadSlug] = useState("");  // "owner/name"
   const [headBranches, setHeadBranches] = useState<Branch[]>([]);
-  const [headBranch, setHeadBranch] = useState("");
+  const [headBranch, setHeadBranch] = useState(preHead);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
@@ -984,22 +1145,35 @@ function SettingsTab({
   onChange: (r: RepoT) => void;
   onDeleted: () => void;
 }) {
+  const nav = useNavigate();
+  const [name, setName] = useState(repo.name);
   const [visibility, setVisibility] = useState<Visibility>(repo.visibility);
   const [summary, setSummary] = useState(repo.summary);
   const [tags, setTags] = useState(repo.tags.join(", "));
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string>("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const save = async () => {
     setBusy(true);
     setMsg("");
+    const trimmedName = name.trim();
+    const renaming = trimmedName && trimmedName !== repo.name;
     try {
-      const updated = await patchRepo(repo.owner_sub, repo.name, {
+      const patch: any = {
         visibility,
         summary,
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
-      });
+      };
+      if (renaming) patch.name = trimmedName;
+      const updated = await patchRepo(repo.owner_sub, repo.name, patch);
       onChange(updated);
+      if (renaming && updated.name !== repo.name) {
+        // Slug changed — URL must follow.
+        nav(`/${enc(updated.owner_sub)}/${enc(updated.name)}/settings`,
+            { replace: true });
+        return;
+      }
       setMsg("saved.");
     } catch (e: any) {
       setMsg(e?.response?.data?.detail || "save failed");
@@ -1008,64 +1182,160 @@ function SettingsTab({
     }
   };
 
-  const del = async () => {
-    if (!confirm(`Delete ${repo.owner_sub.slice(0, 8)}…/${repo.name}? This cannot be undone.`)) return;
+  return (
+    <>
+      <div className="max-w-xl space-y-6">
+        <Field label="Name">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="lowercase, alnum + . _ -"
+            className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full font-mono"
+          />
+          {name.trim() && name.trim() !== repo.name && (
+            <div className="mt-1 text-[11px] text-bark-300/50">
+              Renaming updates every PR and fork pointer. New URL:
+              {" "}
+              <span className="font-mono text-soul-300/80">
+                /{repo.owner_sub.slice(0, 10)}/{name.trim()}
+              </span>
+            </div>
+          )}
+        </Field>
+        <Field label="Visibility">
+          <select
+            value={visibility}
+            onChange={(e) => setVisibility(e.target.value as Visibility)}
+            className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+          >
+            <option value="public">public — anyone can browse</option>
+            <option value="private">private — only you</option>
+          </select>
+        </Field>
+        <Field label="Summary">
+          <textarea
+            value={summary}
+            onChange={(e) => setSummary(e.target.value)}
+            rows={2}
+            className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+          />
+        </Field>
+        <Field label="Tags (comma-separated)">
+          <input
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+          />
+        </Field>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={save}
+            disabled={busy}
+            className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70 disabled:opacity-50"
+          >
+            {busy ? "saving…" : "save"}
+          </button>
+          {msg && <span className="text-xs text-bark-300/60">{msg}</span>}
+        </div>
+        <div className="border-t border-atokirina-400/15 pt-6 mt-10">
+          <div className="text-xs uppercase tracking-widest text-atokirina-400 mb-2">Danger zone</div>
+          <button
+            onClick={() => setDeleteOpen(true)}
+            disabled={busy}
+            className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-atokirina-400/50 text-atokirina-400 hover:bg-atokirina-400/10 disabled:opacity-50"
+          >
+            Delete repo
+          </button>
+        </div>
+      </div>
+      <DeleteModal
+        open={deleteOpen}
+        repo={repo}
+        onClose={() => setDeleteOpen(false)}
+        onDeleted={onDeleted}
+      />
+    </>
+  );
+}
+
+function DeleteModal({
+  open, repo, onClose, onDeleted,
+}: {
+  open: boolean;
+  repo: RepoT;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    if (!open) {
+      setTyped("");
+      setErr("");
+      setBusy(false);
+    }
+  }, [open]);
+
+  if (!open) return null;
+
+  const confirm = async () => {
+    if (typed !== repo.name) return;
     setBusy(true);
+    setErr("");
     try {
       await deleteRepo(repo.owner_sub, repo.name);
       onDeleted();
     } catch (e: any) {
-      setMsg(e?.response?.data?.detail || "delete failed");
+      setErr(e?.response?.data?.detail || "delete failed");
       setBusy(false);
     }
   };
 
   return (
-    <div className="max-w-xl space-y-6">
-      <Field label="Visibility">
-        <select
-          value={visibility}
-          onChange={(e) => setVisibility(e.target.value as Visibility)}
-          className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
-        >
-          <option value="public">public — anyone can browse</option>
-          <option value="private">private — only you</option>
-        </select>
-      </Field>
-      <Field label="Summary">
-        <textarea
-          value={summary}
-          onChange={(e) => setSummary(e.target.value)}
-          rows={2}
-          className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
-        />
-      </Field>
-      <Field label="Tags (comma-separated)">
+    <div
+      className="fixed inset-0 z-[100] bg-night-900/80 backdrop-blur-sm flex items-center justify-center p-6"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative z-[110] w-full max-w-md rounded-2xl border border-atokirina-400/30 bg-night-800/95 backdrop-blur-xl shadow-2xl p-6"
+      >
+        <div className="text-xs uppercase tracking-[0.3em] text-atokirina-400 mb-2">
+          ⚠ Delete repo
+        </div>
+        <div className="text-sm text-bark-300/85">
+          This deletes <span className="font-mono text-bark-300">{repo.owner_sub.slice(0, 10)}/{repo.name}</span>
+          {" "}and all of its branches, PRs, and stars. It cannot be undone.
+        </div>
+        <div className="mt-4 text-xs text-bark-300/55">
+          Type <span className="font-mono text-atokirina-400">{repo.name}</span> to confirm:
+        </div>
         <input
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          className="bg-night-800/60 border border-soul-400/15 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full"
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
+          placeholder={repo.name}
+          autoFocus
+          className="mt-2 bg-night-900/60 border border-atokirina-400/30 rounded-md px-3 py-2 text-sm text-bark-300/90 w-full font-mono"
         />
-      </Field>
-      <div className="flex items-center gap-3">
-        <button
-          onClick={save}
-          disabled={busy}
-          className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70 disabled:opacity-50"
-        >
-          {busy ? "saving…" : "save"}
-        </button>
-        {msg && <span className="text-xs text-bark-300/60">{msg}</span>}
-      </div>
-      <div className="border-t border-atokirina-400/15 pt-6 mt-10">
-        <div className="text-xs uppercase tracking-widest text-atokirina-400 mb-2">Danger zone</div>
-        <button
-          onClick={del}
-          disabled={busy}
-          className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-atokirina-400/50 text-atokirina-400 hover:bg-atokirina-400/10 disabled:opacity-50"
-        >
-          Delete repo
-        </button>
+        {err && <div className="mt-2 text-xs text-atokirina-400">{err}</div>}
+        <div className="mt-5 flex items-center gap-3 justify-end">
+          <button
+            onClick={onClose}
+            disabled={busy}
+            className="text-xs uppercase tracking-widest text-bark-300/50 hover:text-bark-300/80 px-2 py-2"
+          >
+            cancel
+          </button>
+          <button
+            onClick={confirm}
+            disabled={busy || typed !== repo.name}
+            className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-atokirina-400/60 text-atokirina-400 hover:bg-atokirina-400/15 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {busy ? "deleting…" : "delete forever"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1093,7 +1363,18 @@ function Shell({ children, me }: { children: React.ReactNode; me?: Me | null }) 
         </Link>
         <div className="flex items-center gap-6 text-[11px] uppercase tracking-widest">
           {me ? (
-            <Link to="/dashboard" className="text-bark-300/70 hover:text-soul-300">dashboard</Link>
+            <>
+              <Link to="/dashboard" className="text-bark-300/70 hover:text-soul-300">dashboard</Link>
+              <button
+                onClick={async () => {
+                  try { const { logout } = await import("../api/client"); await logout(); } catch { /* cookie cleared server-side */ }
+                  window.location.href = "/";
+                }}
+                className="text-bark-300/60 hover:text-atokirina-400 uppercase tracking-widest text-[11px]"
+              >
+                sign out
+              </button>
+            </>
           ) : null}
         </div>
       </nav>

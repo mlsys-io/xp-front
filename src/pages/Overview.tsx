@@ -21,19 +21,21 @@ export function Overview() {
     app: repos?.filter((r) => r.kind === "app").length ?? 0,
     autoresearch: repos?.filter((r) => r.kind === "autoresearch").length ?? 0,
     agent: repos?.filter((r) => r.kind === "agent").length ?? 0,
+    skill: repos?.filter((r) => r.kind === "skill").length ?? 0,
   };
 
   const stats = [
     { value: counts.app, label: "apps", glyph: "⁂", dot: "bg-spirit-400", glow: "from-spirit-400/25", to: "/dashboard/repos" },
     { value: counts.autoresearch, label: "autoresearch", glyph: "⋯", dot: "bg-soul-400", glow: "from-soul-400/25", to: "/dashboard/repos" },
-    { value: counts.agent, label: "agents", glyph: "❋", dot: "bg-atokirina-400", glow: "from-atokirina-400/25", to: "/dashboard/repos" },
+    { value: counts.agent, label: "agentic kg", glyph: "❋", dot: "bg-atokirina-400", glow: "from-atokirina-400/25", to: "/dashboard/repos" },
+    { value: counts.skill, label: "skills", glyph: "⌘", dot: "bg-spirit-400", glow: "from-spirit-400/25", to: "/dashboard/repos" },
   ];
 
   return (
     <div>
       <h1 className="font-display text-3xl tracking-wide text-bark-300">Overview</h1>
 
-      <div className="mt-8 grid grid-cols-3 gap-5">
+      <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-5">
         {stats.map((s) => (
           <Link
             key={s.label}
