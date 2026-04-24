@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { listRepos, logout, whoami, type Repo, type RepoKind, type Me } from "../api/client";
-import { AtokirinaField } from "../components/Atokirina";
 import { RepoCard } from "../components/RepoCard";
 
 type KindTab = "" | RepoKind;
@@ -54,12 +53,9 @@ export function Marketspace() {
   }, [q, tab, sort]);
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      <div className="absolute inset-0 starfield opacity-40" aria-hidden="true" />
-      <AtokirinaField count={10} />
-
+    <div className="min-h-screen">
       {/* Top nav */}
-      <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-gray-200">
+      <nav className="flex items-center justify-between px-8 py-5 border-b border-gray-200">
         <Link to="/" className="text-soul-300 font-display tracking-[0.35em] text-sm">
           <span className="w-1.5 h-1.5 inline-block align-middle rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul mr-3" />
           xp.io
@@ -87,7 +83,7 @@ export function Marketspace() {
         </div>
       </nav>
 
-      <main className="relative z-10 mx-auto max-w-6xl px-8 py-12">
+      <main className="mx-auto max-w-6xl px-8 py-12">
         <header className="text-center mb-10">
           <h1 className="text-3xl font-semibold text-gray-900">
             The Marketspace

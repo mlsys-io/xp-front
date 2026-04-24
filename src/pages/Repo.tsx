@@ -270,7 +270,7 @@ function RepoHeader({
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-xs text-gray-500">
+      <div className="flex items-center gap-2 text-sm text-gray-600 font-mono">
         <Link
           to={`/${enc(repo.owner_sub)}`}
           className="hover:text-soul-300 transition-colors"
@@ -278,7 +278,7 @@ function RepoHeader({
           {repo.owner_sub.slice(0, 10)}
         </Link>
         <span>/</span>
-        <span className="text-gray-900">{repo.name}</span>
+        <span className="text-gray-900 font-semibold">{repo.name}</span>
         {repo.visibility === "private" && (
           <span className="ml-2 text-[10px] uppercase tracking-wider text-atokirina-400">private</span>
         )}
@@ -1826,8 +1826,18 @@ function relTime(unixSec: number): string {
   return new Date(unixSec * 1000).toISOString().slice(0, 10);
 }
 
-function initial(name: string): string {
-  return (name || "?").trim().charAt(0).toUpperCase();
+function initial(name: string, email?: string): string {
+  // Upstream commits are authored with GIT_AUTHOR_NAME=user_sub (a UUID),
+  // so the raw first char is a hex digit. Prefer the email local-part
+  // in that case — more likely to read as a real identity letter.
+  const raw = (name || "").trim();
+  const looksLikeUuid = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(raw)
+    || /^[0-9a-f]{6,}$/i.test(raw);
+  if (looksLikeUuid && email) {
+    const prefix = email.split("@")[0];
+    if (prefix) return prefix.charAt(0).toUpperCase();
+  }
+  return raw.charAt(0).toUpperCase() || "?";
 }
 
 function CommitsTab({ repo, branch }: { repo: RepoT; branch: string }) {
@@ -1851,8 +1861,8 @@ function CommitsTab({ repo, branch }: { repo: RepoT; branch: string }) {
     <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-200">
       {commits.map((c) => (
         <div key={c.sha} className="flex items-center gap-3 p-3">
-          <div className="w-8 h-8 rounded-full bg-soul-400/20 text-soul-300 font-display flex items-center justify-center shrink-0">
-            {initial(c.author)}
+          <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-700 text-xs font-semibold flex items-center justify-center shrink-0">
+            {initial(c.author, c.email)}
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-sm text-bark-300 truncate">{c.subject}</div>

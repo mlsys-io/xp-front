@@ -4,6 +4,7 @@ import {
   listActivity, listTrending,
   type Activity, type Repo, type RepoKind,
 } from "../api/client";
+import { RepoCard } from "../components/RepoCard";
 
 const KIND_TABS: { id: "" | RepoKind; label: string }[] = [
   { id: "", label: "All" },
@@ -68,9 +69,8 @@ export function Explore() {
   }, []);
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      <div className="absolute inset-0 starfield opacity-40" aria-hidden="true" />
-      <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-gray-200">
+    <div className="min-h-screen">
+      <nav className="flex items-center justify-between px-8 py-5 border-b border-gray-200">
         <Link to="/" className="text-soul-300 font-display tracking-[0.35em] text-sm">
           <span className="w-1.5 h-1.5 inline-block align-middle rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul mr-3" />
           xp.io
@@ -81,7 +81,7 @@ export function Explore() {
         </div>
       </nav>
 
-      <main className="relative z-10 max-w-5xl mx-auto px-6 py-10">
+      <main className="max-w-5xl mx-auto px-6 py-10">
         <header className="mb-8">
           <h1 className="text-2xl font-semibold text-gray-900">Explore</h1>
           <p className="mt-2 text-sm text-gray-700">
@@ -125,26 +125,9 @@ export function Explore() {
               Nothing's trending in this window yet.
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid md:grid-cols-2 gap-3">
               {trending.map((r) => (
-                <Link
-                  key={`${r.owner_sub}/${r.name}`}
-                  to={`/${encodeURIComponent(r.owner_sub)}/${encodeURIComponent(r.name)}`}
-                  className="rounded-xl border border-gray-200 bg-white p-4 hover:border-gray-300 transition-colors"
-                >
-                  <div className="text-[11px] text-gray-700 mb-1">
-                    {KIND_EMOJI[r.kind] || "◎"} {r.kind}
-                  </div>
-                  <div className="font-mono text-sm text-bark-300 truncate">
-                    {r.owner_sub.slice(0, 10)} / <span className="text-soul-300">{r.name}</span>
-                  </div>
-                  {r.summary && (
-                    <div className="text-xs text-gray-700 mt-2 line-clamp-2">{r.summary}</div>
-                  )}
-                  <div className="text-[11px] text-gray-500 mt-3">
-                    ★ {r.stars} · ⑂ {r.forks}
-                  </div>
-                </Link>
+                <RepoCard key={`${r.owner_sub}/${r.name}`} repo={r} />
               ))}
             </div>
           )}
