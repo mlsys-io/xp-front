@@ -75,7 +75,7 @@ export function Explore() {
           <span className="w-1.5 h-1.5 inline-block align-middle rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul mr-3" />
           xp.io
         </Link>
-        <div className="flex items-center gap-4 text-[11px] uppercase tracking-widest">
+        <div className="flex items-center gap-4 text-xs">
           <Link to="/" className="text-bark-300/70 hover:text-soul-300">marketspace</Link>
           <Link to="/explore" className="text-soul-300">explore</Link>
         </div>
@@ -83,7 +83,7 @@ export function Explore() {
 
       <main className="relative z-10 max-w-5xl mx-auto px-6 py-10">
         <header className="mb-8">
-          <h1 className="font-display text-3xl text-bark-300">Explore</h1>
+          <h1 className="text-2xl font-semibold text-bark-200">Explore</h1>
           <p className="mt-2 text-sm text-bark-300/60">
             Trending repos and a live feed of what the xp.io community is doing.
           </p>
@@ -92,10 +92,10 @@ export function Explore() {
         {/* Trending */}
         <section className="mb-10">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <h2 className="font-display text-lg uppercase tracking-[0.3em] text-soul-300">
+            <h2 className="text-sm font-medium text-bark-300/80">
               ✦ Trending
             </h2>
-            <div className="flex items-center gap-4 text-[11px] uppercase tracking-widest">
+            <div className="flex items-center gap-4 text-xs">
               <div className="flex gap-3">
                 {KIND_TABS.map((t) => (
                   <button
@@ -132,7 +132,7 @@ export function Explore() {
                   to={`/${encodeURIComponent(r.owner_sub)}/${encodeURIComponent(r.name)}`}
                   className="rounded-xl border border-soul-400/10 bg-night-800/40 p-4 hover:border-soul-400/30 transition-colors"
                 >
-                  <div className="text-[10px] uppercase tracking-widest text-soul-400/60 mb-1">
+                  <div className="text-[11px] text-bark-300/55 mb-1">
                     {KIND_EMOJI[r.kind] || "◎"} {r.kind}
                   </div>
                   <div className="font-mono text-sm text-bark-300 truncate">
@@ -152,7 +152,7 @@ export function Explore() {
 
         {/* Activity feed */}
         <section>
-          <h2 className="font-display text-lg uppercase tracking-[0.3em] text-soul-300 mb-4">
+          <h2 className="text-sm font-medium text-bark-300/80 mb-4">
             ⌘ Activity
           </h2>
           {activity === null ? (

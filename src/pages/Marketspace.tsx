@@ -64,7 +64,7 @@ export function Marketspace() {
           <span className="w-1.5 h-1.5 inline-block align-middle rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul mr-3" />
           xp.io
         </Link>
-        <div className="flex items-center gap-4 text-[11px] uppercase tracking-widest">
+        <div className="flex items-center gap-4 text-xs">
           {me ? (
             <>
               <Link to="/new" className="text-soul-300 hover:text-soul-400 transition-colors">
@@ -89,7 +89,7 @@ export function Marketspace() {
 
       <main className="relative z-10 mx-auto max-w-6xl px-8 py-12">
         <header className="text-center mb-10">
-          <h1 className="font-display text-4xl tracking-wide text-bark-300">
+          <h1 className="text-3xl font-semibold text-bark-200">
             The Marketspace
           </h1>
           <p className="mt-3 text-sm text-bark-300/60 max-w-xl mx-auto">
@@ -99,7 +99,7 @@ export function Marketspace() {
           {!me && (
             <div className="mt-6 flex items-center justify-center gap-4 flex-wrap">
               <SignInLink variant="hero" />
-              <span className="text-[11px] uppercase tracking-widest text-bark-300/40">
+              <span className="text-xs text-bark-300/40">
                 or keep browsing anon
               </span>
             </div>
@@ -123,10 +123,10 @@ export function Marketspace() {
               <button
                 key={t.id || "all"}
                 onClick={() => setTab(t.id)}
-                className={`font-display text-sm tracking-[0.25em] uppercase transition-colors pb-1 ${
+                className={`text-sm transition-colors pb-1 border-b-2 ${
                   tab === t.id
-                    ? "text-soul-300 border-b border-soul-400"
-                    : "text-bark-300/40 hover:text-bark-300/70"
+                    ? "text-bark-200 border-soul-400 font-medium"
+                    : "text-bark-300/55 border-transparent hover:text-bark-300/85"
                 }`}
               >
                 {t.label}
@@ -155,7 +155,7 @@ export function Marketspace() {
             {me ? (
               <Link
                 to="/new"
-                className="mt-4 inline-block font-display text-xs uppercase tracking-[0.3em] text-soul-300 hover:text-soul-400"
+                className="mt-4 inline-block text-sm text-soul-300 hover:text-soul-400"
               >
                 ✦ plant the first seed
               </Link>

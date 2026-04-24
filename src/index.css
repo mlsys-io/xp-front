@@ -51,61 +51,67 @@ body {
 ::-webkit-scrollbar-thumb { background: #1a2350; border-radius: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: #253066; }
 
-/* ── HF-inspired tokens (kept on top of lum.id's dark palette) ──
-   Huggingface is light-bg by default; we stay dark, but borrow HF's
-   structural habits: tight cards, pill tags, monospace handles, compact
-   row density. These classes are additive — existing Tailwind utility
-   usage is unchanged. */
+/* ── HF-style tokens (quiet, compact, no serif headings) ─────────
+   Hugging Face's look is clean sans-serif + muted grays + a single
+   accent. We keep the dark lum.id palette for background but drop the
+   decorative Cinzel / uppercase-tracking-widest habits in favour of
+   regular sentence case + standard weights. */
 .card-hf {
-  @apply rounded-xl border border-soul-400/10 bg-night-800/40;
+  @apply rounded-lg border border-white/5 bg-white/[0.02];
 }
 .card-hf-row {
-  @apply divide-y divide-soul-400/10;
+  @apply divide-y divide-white/5;
 }
 .pill-hf {
-  @apply inline-block rounded-full border border-soul-400/15 px-2 py-0.5
-         text-[10px] uppercase tracking-widest text-bark-300/60;
+  @apply inline-block rounded-md border border-white/10 px-1.5 py-0.5
+         text-[11px] text-bark-300/70;
 }
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-/* Markdown (READMEs, PR bodies, discussion posts) — GFM-safe, dark-theme
-   friendly. react-markdown emits plain HTML; rehype-sanitize strips the
-   dangerous bits; these rules style what's left. */
+/* Markdown (READMEs, PR bodies, discussions) — sans-serif, understated.
+   Deliberately NOT "look at me": the content is the point, not the
+   chrome. */
 .markdown-body {
-  line-height: 1.65;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.6;
   word-break: break-word;
+  color: rgba(228, 219, 200, 0.88);
 }
 .markdown-body h1,
 .markdown-body h2,
 .markdown-body h3,
 .markdown-body h4 {
-  font-family: 'Cinzel', serif;
+  font-family: inherit;
+  font-weight: 600;
   color: #e4dbc8;
-  margin-top: 1.5em;
+  margin-top: 1.4em;
   margin-bottom: 0.5em;
+  letter-spacing: normal;
 }
-.markdown-body h1 { font-size: 1.5em; border-bottom: 1px solid rgba(62, 212, 193, 0.15); padding-bottom: 0.3em; }
-.markdown-body h2 { font-size: 1.25em; }
-.markdown-body h3 { font-size: 1.1em; }
+.markdown-body h1 { font-size: 1.35em; padding-bottom: 0.3em; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.markdown-body h2 { font-size: 1.15em; padding-bottom: 0.2em; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+.markdown-body h3 { font-size: 1em; }
+.markdown-body h4 { font-size: 0.95em; color: rgba(228, 219, 200, 0.75); }
 .markdown-body p { margin: 0.6em 0; }
 .markdown-body ul,
-.markdown-body ol { padding-left: 1.5em; margin: 0.6em 0; }
-.markdown-body li { margin: 0.2em 0; }
+.markdown-body ol { padding-left: 1.4em; margin: 0.6em 0; }
+.markdown-body li { margin: 0.15em 0; }
 .markdown-body blockquote {
-  border-left: 3px solid rgba(62, 212, 193, 0.35);
-  padding-left: 1em;
-  color: rgba(228, 219, 200, 0.7);
+  border-left: 2px solid rgba(255, 255, 255, 0.18);
+  padding-left: 0.85em;
+  color: rgba(228, 219, 200, 0.6);
   margin: 0.8em 0;
 }
 .markdown-body pre {
-  background: rgba(5, 8, 22, 0.6);
-  border: 1px solid rgba(62, 212, 193, 0.12);
-  border-radius: 0.5rem;
-  padding: 0.85em 1em;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.375rem;
+  padding: 0.75em 0.9em;
   overflow-x: auto;
   font-size: 0.85em;
+  line-height: 1.5;
 }
 .markdown-body table {
   border-collapse: collapse;
@@ -115,13 +121,13 @@ body {
 }
 .markdown-body th,
 .markdown-body td {
-  border: 1px solid rgba(62, 212, 193, 0.12);
-  padding: 0.4em 0.75em;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.4em 0.65em;
   text-align: left;
 }
-.markdown-body th { background: rgba(62, 212, 193, 0.06); }
-.markdown-body hr { border: 0; border-top: 1px solid rgba(62, 212, 193, 0.1); margin: 1.5em 0; }
-.markdown-body img { max-width: 100%; border-radius: 0.5rem; }
+.markdown-body th { background: rgba(255, 255, 255, 0.03); font-weight: 600; }
+.markdown-body hr { border: 0; border-top: 1px solid rgba(255, 255, 255, 0.06); margin: 1.5em 0; }
+.markdown-body img { max-width: 100%; border-radius: 0.375rem; }
 .markdown-body input[type="checkbox"] { margin-right: 0.4em; }
 /* Syntax highlighting — rehype-highlight emits .hljs-* classes. */
 .markdown-body .hljs-comment,

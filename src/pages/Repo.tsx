@@ -143,9 +143,9 @@ export function Repo() {
     return (
       <Shell>
         <div className="py-16 text-center">
-          <div className="font-display text-2xl text-bark-300/80">not found</div>
+          <div className="text-xl font-semibold text-bark-300/80">not found</div>
           <div className="mt-2 text-sm text-bark-300/50">No such repo here.</div>
-          <Link to="/" className="mt-6 inline-block text-xs uppercase tracking-widest text-soul-300 hover:text-soul-400">
+          <Link to="/" className="mt-6 inline-block text-xs text-soul-300 hover:text-soul-400">
             ← back to the marketspace
           </Link>
         </div>
@@ -270,7 +270,7 @@ function RepoHeader({
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-bark-300/40">
+      <div className="flex items-center gap-2 text-xs text-bark-300/40">
         <Link
           to={`/${enc(repo.owner_sub)}`}
           className="hover:text-soul-300 transition-colors"
@@ -284,39 +284,38 @@ function RepoHeader({
         )}
       </div>
       <div className="mt-1 flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="font-display text-3xl text-bark-300">
-            <span className="text-soul-400/60 mr-2">{KIND_GLYPH[repo.kind]}</span>
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold text-bark-200 flex items-center gap-2">
+            <span className="text-soul-400/50 text-base">{KIND_GLYPH[repo.kind]}</span>
             {repo.display_name || repo.name}
           </h1>
-          <div className="mt-1 text-xs uppercase tracking-widest text-soul-400/60">
-            {KIND_LABEL[repo.kind] || repo.kind}
+          <div className="mt-1 text-xs text-bark-300/55">
+            <span className="font-mono lowercase">{repo.kind}</span>
             {repo.fork_of && (
-              <span className="ml-3 text-spirit-300/70">
+              <span className="ml-3">
                 ⑂ forked from{" "}
-                <Link to={`/${repo.fork_of}`} className="hover:text-soul-300">{repo.fork_of}</Link>
+                <Link to={`/${repo.fork_of}`} className="font-mono hover:text-soul-300">{repo.fork_of}</Link>
               </span>
             )}
           </div>
           {repo.summary && (
-            <p className="mt-3 text-sm text-bark-300/70 max-w-2xl">{repo.summary}</p>
+            <p className="mt-2 text-sm text-bark-300/70 max-w-2xl">{repo.summary}</p>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={onWatch}
-            className={`px-3 py-1.5 text-xs uppercase tracking-widest border rounded-full transition-colors ${
+            className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
               watch.watching
-                ? "border-spirit-400/60 text-spirit-300"
-                : "border-soul-400/20 text-bark-300/80 hover:border-spirit-400/60 hover:text-spirit-300"
+                ? "border-spirit-400/40 text-spirit-300 bg-spirit-400/5"
+                : "border-white/10 text-bark-300/80 hover:border-white/25 hover:text-bark-200"
             }`}
           >
-            <span className="mr-1">👁</span>
-            {watch.watching ? "Watching" : "Watch"} ({watch.watchers})
+            {watch.watching ? "Watching" : "Watch"} · {watch.watchers}
           </button>
           <button
             onClick={onStar}
-            className="px-3 py-1.5 text-xs uppercase tracking-widest border border-soul-400/20 rounded-full text-bark-300/80 hover:border-atokirina-400/60 hover:text-atokirina-400 transition-colors"
+            className="px-2.5 py-1 text-xs rounded-md border border-white/10 text-bark-300/80 hover:border-white/25 hover:text-bark-200 transition-colors"
           >
             <span className="text-atokirina-400 mr-1">★</span>
             {repo.stars}
@@ -325,10 +324,9 @@ function RepoHeader({
             <button
               disabled={busy}
               onClick={onFork}
-              className="px-3 py-1.5 text-xs uppercase tracking-widest border border-soul-400/20 rounded-full text-bark-300/80 hover:border-spirit-400/60 hover:text-spirit-300 transition-colors disabled:opacity-50"
+              className="px-2.5 py-1 text-xs rounded-md border border-white/10 text-bark-300/80 hover:border-white/25 hover:text-bark-200 transition-colors disabled:opacity-50"
             >
-              <span className="text-spirit-400 mr-1">⑂</span>
-              {busy ? "forking…" : `Fork (${repo.forks})`}
+              {busy ? "Forking…" : `Fork · ${repo.forks}`}
             </button>
           )}
         </div>
@@ -336,7 +334,7 @@ function RepoHeader({
       {repo.tags.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {repo.tags.map((t) => (
-            <span key={t} className="text-[10px] uppercase tracking-widest text-bark-300/50 border border-soul-400/10 rounded-full px-2 py-0.5">
+            <span key={t} className="text-[10px] text-bark-300/50 border border-soul-400/10 rounded-full px-2 py-0.5">
               {t}
             </span>
           ))}
@@ -412,10 +410,10 @@ function KindCard({ repo }: { repo: RepoT }) {
   if (pills.length === 0) return null;
 
   return (
-    <div className="mt-4 rounded-xl border border-soul-400/10 bg-night-800/40 p-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[11px]">
+    <div className="mt-4 rounded-lg border border-white/5 bg-white/[0.02] p-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[12px]">
       {pills.map(([k, v]) => (
-        <span key={k} className="text-bark-300/70">
-          <span className="text-soul-400/70 uppercase tracking-widest mr-1.5">{k}</span>
+        <span key={k} className="text-bark-300/80">
+          <span className="text-bark-300/50 mr-1.5">{k}:</span>
           <span className="font-mono">{v}</span>
         </span>
       ))}
@@ -562,7 +560,7 @@ function BranchPicker({
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 z-30 w-72 rounded-lg border border-soul-400/20 bg-night-800/95 backdrop-blur-xl shadow-2xl overflow-hidden">
-          <div className="px-3 py-2 text-[10px] uppercase tracking-widest text-bark-300/50 border-b border-soul-400/10">
+          <div className="px-3 py-2 text-[10px] text-bark-300/50 border-b border-soul-400/10">
             Switch branch ({count})
           </div>
           <ul>
@@ -586,7 +584,7 @@ function BranchPicker({
           <Link
             to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/branches`}
             onClick={() => setOpen(false)}
-            className="block px-3 py-2 text-[11px] uppercase tracking-widest text-soul-300 hover:text-soul-400 border-t border-soul-400/10"
+            className="block px-3 py-2 text-[11px] text-soul-300 hover:text-soul-400 border-t border-soul-400/10"
           >
             {hidden > 0 ? `View all ${count} branches →` : "View all branches →"}
           </Link>
@@ -617,7 +615,7 @@ function BranchesTab({ repo, me }: { repo: RepoT; me: Me | null }) {
 
   return (
     <div>
-      <div className="text-xs uppercase tracking-widest text-bark-300/50 mb-3">
+      <div className="text-xs text-bark-300/50 mb-3">
         {branches.length} branch{branches.length === 1 ? "" : "es"}
       </div>
       <ul className="rounded-xl border border-soul-400/10 divide-y divide-soul-400/5 overflow-hidden">
@@ -660,7 +658,7 @@ function BranchesTab({ repo, me }: { repo: RepoT; me: Me | null }) {
                 onClick={() =>
                   nav(`/${enc(repo.owner_sub)}/${enc(repo.name)}/pulls/new?head=${encodeURIComponent(b.name)}`)
                 }
-                className="shrink-0 px-3 py-1.5 text-[11px] uppercase tracking-widest rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70"
+                className="shrink-0 px-3 py-1.5 text-[11px] rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70"
               >
                 New PR
               </button>
@@ -740,7 +738,7 @@ function BlobView({ repo, branch, path, isOwner }: {
         {isOwner && (
           <Link
             to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/blob/${enc(branch)}/${pathEnc(path)}?edit=1`}
-            className="text-[11px] uppercase tracking-widest text-soul-300 hover:text-soul-400"
+            className="text-[11px] text-soul-300 hover:text-soul-400"
           >
             ✎ edit
           </Link>
@@ -851,13 +849,13 @@ function BlobEditor({ repo, branch, path }: { repo: RepoT; branch: string; path:
             <button
               onClick={submit}
               disabled={busy || !message.trim()}
-              className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70 disabled:opacity-50"
+              className="px-4 py-2 text-xs rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70 disabled:opacity-50"
             >
               {busy ? "committing…" : "✦ commit"}
             </button>
             <Link
               to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/blob/${enc(branch)}/${pathEnc(path)}`}
-              className="text-xs uppercase tracking-widest text-bark-300/40 hover:text-bark-300/70"
+              className="text-xs text-bark-300/40 hover:text-bark-300/70"
             >
               cancel
             </Link>
@@ -883,7 +881,7 @@ function PullsTab({ repo, me }: { repo: RepoT; me: Me | null }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <div className="flex items-center gap-4 text-xs uppercase tracking-widest">
+        <div className="flex items-center gap-4 text-xs">
           {(["open", "merged", "closed", "all"] as const).map((s) => (
             <button
               key={s}
@@ -899,7 +897,7 @@ function PullsTab({ repo, me }: { repo: RepoT; me: Me | null }) {
         {me && (
           <Link
             to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/pulls/new`}
-            className="px-3 py-1.5 text-xs uppercase tracking-widest rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70"
+            className="px-3 py-1.5 text-xs rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70"
           >
             + new pr
           </Link>
@@ -929,7 +927,7 @@ function PullsTab({ repo, me }: { repo: RepoT; me: Me | null }) {
                       {p.head_owner.slice(0, 10)}:{p.head_branch} → {p.base_branch}
                     </div>
                   </div>
-                  <div className="shrink-0 text-[10px] uppercase tracking-widest">
+                  <div className="shrink-0 text-[10px]">
                     <StateBadge state={p.state} />
                   </div>
                 </div>
@@ -1110,13 +1108,13 @@ function NewPullForm({ repo, me }: { repo: RepoT; me: Me | null }) {
         <button
           type="submit"
           disabled={busy || !title.trim() || !headBranch.trim() || !headOwner}
-          className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70 disabled:opacity-50"
+          className="px-4 py-2 text-xs rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70 disabled:opacity-50"
         >
           {busy ? "opening…" : "✦ open pr"}
         </button>
         <Link
           to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/pulls`}
-          className="text-xs uppercase tracking-widest text-bark-300/40 hover:text-bark-300/70"
+          className="text-xs text-bark-300/40 hover:text-bark-300/70"
         >
           cancel
         </Link>
@@ -1188,12 +1186,12 @@ function PullDetail({
     <div>
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          <div className="text-xs uppercase tracking-widest text-bark-300/40">
+          <div className="text-xs text-bark-300/40">
             <Link to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/pulls`} className="hover:text-soul-300">
               ← pulls
             </Link>
           </div>
-          <h2 className="mt-1 font-display text-2xl text-bark-300">
+          <h2 className="mt-1 text-xl font-semibold text-bark-300">
             <span className="text-bark-300/40 mr-2">#{pr.number}</span>
             {pr.title}
           </h2>
@@ -1213,14 +1211,14 @@ function PullDetail({
               <button
                 onClick={() => doMerge("merge")}
                 disabled={busy}
-                className="px-3 py-1.5 text-xs uppercase tracking-widest rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70 disabled:opacity-50"
+                className="px-3 py-1.5 text-xs rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70 disabled:opacity-50"
               >
                 {busy ? "merging…" : "✦ merge"}
               </button>
               <button
                 onClick={() => doMerge("ff-only")}
                 disabled={busy}
-                className="px-3 py-1.5 text-xs uppercase tracking-widest rounded-full border border-spirit-400/40 text-spirit-300 hover:border-spirit-400/70 disabled:opacity-50"
+                className="px-3 py-1.5 text-xs rounded-full border border-spirit-400/40 text-spirit-300 hover:border-spirit-400/70 disabled:opacity-50"
               >
                 ff only
               </button>
@@ -1230,7 +1228,7 @@ function PullDetail({
             <button
               onClick={doClose}
               disabled={busy}
-              className="px-3 py-1.5 text-xs uppercase tracking-widest rounded-full border border-atokirina-400/40 text-atokirina-400 hover:bg-atokirina-400/10 disabled:opacity-50"
+              className="px-3 py-1.5 text-xs rounded-full border border-atokirina-400/40 text-atokirina-400 hover:bg-atokirina-400/10 disabled:opacity-50"
             >
               close
             </button>
@@ -1249,7 +1247,7 @@ function PullDetail({
       <PRCommentsBlock repo={repo} number={number} me={me} />
 
       <div className="mt-8">
-        <div className="text-xs uppercase tracking-widest text-bark-300/50 mb-2">
+        <div className="text-xs text-bark-300/50 mb-2">
           Files changed {diff?.files.length ? `(${diff.files.length})` : ""}
         </div>
         {!diff ? (
@@ -1337,7 +1335,7 @@ function PRCommentsBlock({
 
   return (
     <div className="mt-6">
-      <div className="text-xs uppercase tracking-widest text-bark-300/50 mb-3">
+      <div className="text-xs text-bark-300/50 mb-3">
         Conversation {comments?.length ? `(${comments.length})` : ""}
       </div>
       {!comments ? (
@@ -1373,7 +1371,7 @@ function PRCommentsBlock({
         />
         <button
           disabled={busy || !body.trim()}
-          className="px-3 py-1.5 text-[11px] uppercase tracking-widest border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
+          className="px-3 py-1.5 text-[11px] border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
         >
           {busy ? "posting…" : "comment"}
         </button>
@@ -1477,7 +1475,7 @@ function SettingsTab({
           <button
             onClick={save}
             disabled={busy}
-            className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70 disabled:opacity-50"
+            className="px-4 py-2 text-xs rounded-full border border-soul-400/40 text-soul-300 hover:text-soul-400 hover:border-soul-400/70 disabled:opacity-50"
           >
             {busy ? "saving…" : "save"}
           </button>
@@ -1489,11 +1487,11 @@ function SettingsTab({
       <TransferSection repo={repo} />
 
       <div className="max-w-xl border-t border-atokirina-400/15 pt-6 mt-10">
-        <div className="text-xs uppercase tracking-widest text-atokirina-400 mb-2">Danger zone</div>
+        <div className="text-xs text-atokirina-400 mb-2">Danger zone</div>
         <button
           onClick={() => setDeleteOpen(true)}
           disabled={busy}
-          className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-atokirina-400/50 text-atokirina-400 hover:bg-atokirina-400/10 disabled:opacity-50"
+          className="px-4 py-2 text-xs rounded-full border border-atokirina-400/50 text-atokirina-400 hover:bg-atokirina-400/10 disabled:opacity-50"
         >
           Delete repo
         </button>
@@ -1544,7 +1542,7 @@ function CollaboratorsSection({ repo }: { repo: RepoT }) {
 
   return (
     <div className="max-w-xl border-t border-soul-400/10 pt-6 mt-10">
-      <div className="text-xs uppercase tracking-widest text-soul-300 mb-3">Collaborators</div>
+      <div className="text-xs text-soul-300 mb-3">Collaborators</div>
       {collabs === null ? (
         <div className="text-xs text-bark-300/40">loading…</div>
       ) : collabs.length === 0 ? (
@@ -1555,10 +1553,10 @@ function CollaboratorsSection({ repo }: { repo: RepoT }) {
             <div key={c.user_sub} className="flex items-center justify-between p-2">
               <div className="font-mono text-xs text-bark-300/80">{c.user_sub.slice(0, 18)}…</div>
               <div className="flex items-center gap-3">
-                <span className="text-[11px] uppercase tracking-widest text-bark-300/50">{c.role}</span>
+                <span className="text-[11px] text-bark-300/50">{c.role}</span>
                 <button
                   onClick={() => onRemove(c.user_sub)}
-                  className="text-[11px] uppercase tracking-widest text-atokirina-400 hover:text-atokirina-300"
+                  className="text-[11px] text-atokirina-400 hover:text-atokirina-300"
                 >
                   remove
                 </button>
@@ -1586,7 +1584,7 @@ function CollaboratorsSection({ repo }: { repo: RepoT }) {
         </select>
         <button
           disabled={busy || !newSub.trim()}
-          className="px-3 py-1.5 text-[11px] uppercase tracking-widest border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
+          className="px-3 py-1.5 text-[11px] border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
         >
           add
         </button>
@@ -1627,7 +1625,7 @@ function TransferSection({ repo }: { repo: RepoT }) {
 
   return (
     <div className="max-w-xl border-t border-soul-400/10 pt-6 mt-10">
-      <div className="text-xs uppercase tracking-widest text-soul-300 mb-3">Transfer ownership</div>
+      <div className="text-xs text-soul-300 mb-3">Transfer ownership</div>
       {pending ? (
         <div className="rounded border border-atokirina-400/30 bg-atokirina-400/5 p-3 text-xs text-bark-300/80">
           Transfer pending → <span className="font-mono">{pending.new_owner_sub.slice(0, 12)}…</span>
@@ -1644,7 +1642,7 @@ function TransferSection({ repo }: { repo: RepoT }) {
           />
           <button
             disabled={busy || !newOwner.trim()}
-            className="px-3 py-1.5 text-[11px] uppercase tracking-widest border border-atokirina-400/40 rounded text-atokirina-400 hover:border-atokirina-400/70 disabled:opacity-40"
+            className="px-3 py-1.5 text-[11px] border border-atokirina-400/40 rounded text-atokirina-400 hover:border-atokirina-400/70 disabled:opacity-40"
           >
             initiate transfer
           </button>
@@ -1721,14 +1719,14 @@ function DeleteModal({
           <button
             onClick={onClose}
             disabled={busy}
-            className="text-xs uppercase tracking-widest text-bark-300/50 hover:text-bark-300/80 px-2 py-2"
+            className="text-xs text-bark-300/50 hover:text-bark-300/80 px-2 py-2"
           >
             cancel
           </button>
           <button
             onClick={confirm}
             disabled={busy || typed !== repo.name}
-            className="px-4 py-2 text-xs uppercase tracking-widest rounded-full border border-atokirina-400/60 text-atokirina-400 hover:bg-atokirina-400/15 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-xs rounded-full border border-atokirina-400/60 text-atokirina-400 hover:bg-atokirina-400/15 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {busy ? "deleting…" : "delete forever"}
           </button>
@@ -1741,7 +1739,7 @@ function DeleteModal({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-widest text-bark-300/50 mb-1">{label}</div>
+      <div className="text-[11px] text-bark-300/50 mb-1">{label}</div>
       {children}
     </div>
   );
@@ -1758,7 +1756,7 @@ function Shell({ children, me }: { children: React.ReactNode; me?: Me | null }) 
           <span className="w-1.5 h-1.5 inline-block align-middle rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul mr-3" />
           xp.io
         </Link>
-        <div className="flex items-center gap-6 text-[11px] uppercase tracking-widest">
+        <div className="flex items-center gap-6 text-[11px]">
           {me ? (
             <>
               <Link to="/dashboard" className="text-bark-300/70 hover:text-soul-300">dashboard</Link>
@@ -1767,7 +1765,7 @@ function Shell({ children, me }: { children: React.ReactNode; me?: Me | null }) 
                   try { const { logout } = await import("../api/client"); await logout(); } catch { /* cookie cleared server-side */ }
                   window.location.href = "/";
                 }}
-                className="text-bark-300/60 hover:text-atokirina-400 uppercase tracking-widest text-[11px]"
+                className="text-bark-300/60 hover:text-atokirina-400 text-[12px]"
               >
                 sign out
               </button>
@@ -1781,11 +1779,14 @@ function Shell({ children, me }: { children: React.ReactNode; me?: Me | null }) 
 }
 
 function TabLink({ to, active, children }: { to: string; active: boolean; children: React.ReactNode }) {
+  // HF-style tabs — regular weight sentence-case, subtle active state.
   return (
     <Link
       to={to}
-      className={`pb-3 text-xs uppercase tracking-widest transition-colors ${
-        active ? "text-soul-300 border-b border-soul-400" : "text-bark-300/50 hover:text-bark-300/80"
+      className={`pb-3 text-sm transition-colors ${
+        active
+          ? "text-bark-200 border-b-2 border-soul-400 font-medium"
+          : "text-bark-300/55 hover:text-bark-300/85 border-b-2 border-transparent"
       }`}
     >
       {children}
@@ -1968,7 +1969,7 @@ function CommunityTab({ repo, me }: { repo: RepoT; me: Me | null }) {
         )}
       </div>
       <form onSubmit={onCreate} className="rounded-xl border border-soul-400/10 bg-night-800/40 p-4 h-fit">
-        <div className="text-xs uppercase tracking-widest text-soul-300 mb-3">Start a thread</div>
+        <div className="text-xs text-soul-300 mb-3">Start a thread</div>
         <input
           type="text"
           placeholder="title"
@@ -1985,7 +1986,7 @@ function CommunityTab({ repo, me }: { repo: RepoT; me: Me | null }) {
         />
         <button
           disabled={busy || !title.trim()}
-          className="w-full py-2 text-xs uppercase tracking-widest border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
+          className="w-full py-2 text-xs border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
         >
           {busy ? "opening…" : "open discussion"}
         </button>
@@ -2037,9 +2038,9 @@ function DiscussionDetail({ repo, me, isOwner }: { repo: RepoT; me: Me | null; i
   return (
     <div>
       <div className="flex items-center justify-between gap-4 mb-4">
-        <h2 className="font-display text-2xl text-bark-300">{disc.title}</h2>
+        <h2 className="text-xl font-semibold text-bark-300">{disc.title}</h2>
         {canClose && disc.state === "open" && (
-          <button onClick={onClose} className="text-xs uppercase tracking-widest text-bark-300/60 hover:text-atokirina-400">
+          <button onClick={onClose} className="text-xs text-bark-300/60 hover:text-atokirina-400">
             close thread
           </button>
         )}
@@ -2065,7 +2066,7 @@ function DiscussionDetail({ repo, me, isOwner }: { repo: RepoT; me: Me | null; i
           />
           <button
             disabled={busy || !reply.trim()}
-            className="px-4 py-2 text-xs uppercase tracking-widest border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
+            className="px-4 py-2 text-xs border border-soul-400/30 rounded text-soul-300 hover:border-soul-400/60 disabled:opacity-40"
           >
             {busy ? "posting…" : "reply"}
           </button>
