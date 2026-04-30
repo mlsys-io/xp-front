@@ -128,7 +128,7 @@ export function Marketspace() {
           </h1>
           <p className="mt-2 text-sm text-gray-600 max-w-2xl mx-auto">
             Two things to browse: <strong>⁂ Applications</strong> (each
-            holds its own ⋯ AutoResearch loops and ▤ datasets) and{" "}
+            holds its own ↻ AutoResearch loops and ▤ datasets) and{" "}
             <strong>❋ Agentic KG</strong> (shareable memory + skills).{" "}
             <ModelToggle />
           </p>
@@ -264,10 +264,11 @@ function ModelToggle() {
   ⁂ Application                ← top tier
    ├── domain goal             what it exists to get better at
    ├── roles[]                 LLM personas + their knowledge banks
-   ├── ⋯ autoresearch loops    one or more (the moat — runs on a
+   ├── ↻ autoresearch loops    one or more (the moat — runs on a
    │     ├── steps[]           schedule, learns, compounds)
-   │     ├── benchmarks
    │     └── ▤ datasets        loop-pinned for reproducibility
+   │                           (each dataset carries its own
+   │                            benchmark / scoring contract)
    └── human_inbox             expert PRs
 
   ❋ Agentic KG                 ← top tier (peer of Application)
@@ -298,7 +299,7 @@ function LoopCard({ loop }: { loop: MarketspaceLoop }) {
       className="rounded-xl border border-gray-200 bg-white p-4 hover:border-soul-300 transition-colors flex flex-col gap-2"
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="text-sm font-semibold text-gray-900">⋯ {loop.display_name}</span>
+        <span className="text-sm font-semibold text-gray-900">↻ {loop.display_name}</span>
         <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded ${
           loop.source === "standalone"
             ? "bg-soul-100 text-soul-700"

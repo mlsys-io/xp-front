@@ -394,8 +394,12 @@ function KindCard({ repo }: { repo: RepoT }) {
 
   // Linked refs for kind=app: when the manifest declares datasets[]
   // or skill_imports[], render them as clickable cards below the pill
-  // strip so users can click through to the dependency repos.
+  // strip so users can click through to the dependency repos. Memory
+  // agents from roles[].memory_agent are surfaced as Agentic KG
+  // badges — they're local-id references today, but the Browse link
+  // takes users to the marketspace's kind=agent + kind=skill view.
   const refLinks: Array<{ label: string; repo: string; version?: string; glyph: string }> = [];
+  const memAgents: string[] = [];
   if (repo.kind === "app") {
     for (const d of (manifest.datasets || []) as any[]) {
       if (d?.repo) refLinks.push({
@@ -408,8 +412,12 @@ function KindCard({ repo }: { repo: RepoT }) {
         repo: im.repo, version: im.version, glyph: "⌘",
       });
     }
-    // Roles' memory_agents are local KG ids, not other repos —
-    // don't render as links until kind=agent snapshots are common.
+    for (const r of (manifest.roles || []) as any[]) {
+      const ma = r?.memory_agent;
+      if (ma && typeof ma === "string" && !memAgents.includes(ma)) {
+        memAgents.push(ma);
+      }
+    }
   }
 
   const pills: Array<[string, string]> = [];
@@ -482,7 +490,7 @@ function KindCard({ repo }: { repo: RepoT }) {
           ))}
         </div>
       )}
-      {refLinks.length > 0 && (
+      {(refLinks.length > 0 || memAgents.length > 0) && (
         <div className="rounded-lg border border-gray-200 bg-white p-3">
           <div className="text-[11px] uppercase tracking-wider text-gray-500 mb-2">
             depends on
@@ -506,7 +514,28 @@ function KindCard({ repo }: { repo: RepoT }) {
                 </Link>
               );
             })}
+            {memAgents.map((a) => (
+              <span
+                key={a}
+                className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-gray-200 bg-gray-50 text-[12px]"
+                title={`Local KG agent — accumulated as cycles run. Browse all published Agentic KG with the link below.`}
+              >
+                <span>❋</span>
+                <span className="font-mono text-gray-900">{a}</span>
+              </span>
+            ))}
           </div>
+          {memAgents.length > 0 && (
+            <div className="mt-2 text-[11px] text-gray-500">
+              <Link
+                to="/?kind=agent"
+                className="text-soul-300 hover:text-soul-400 underline-offset-2 hover:underline"
+              >
+                Browse Agentic KG →
+              </Link>{" "}
+              to seed these with someone else's accumulated wisdom (kind=agent snapshots).
+            </div>
+          )}
         </div>
       )}
     </div>
