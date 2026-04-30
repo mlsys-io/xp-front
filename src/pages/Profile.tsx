@@ -54,6 +54,13 @@ export function Profile() {
           xp.io
         </Link>
         <div className="flex items-center gap-6 text-[11px] uppercase tracking-widest">
+          <a
+            href="https://lum.id"
+            className="text-gray-500 hover:text-soul-300 transition-colors"
+            title="The Lumid ecosystem — xp.io is the marketspace tier"
+          >
+            ← lum.id
+          </a>
           {me ? (
             <>
               <Link to="/dashboard" className="text-gray-700 hover:text-soul-300">dashboard</Link>

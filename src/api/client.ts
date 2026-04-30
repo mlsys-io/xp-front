@@ -38,7 +38,7 @@ export async function logout() {
 
 // ── Repos ────────────────────────────────────────────────────────
 
-export type RepoKind = "app" | "autoresearch" | "agent" | "skill";
+export type RepoKind = "app" | "autoresearch" | "skill" | "agent" | "dataset";
 export type Visibility = "public" | "private";
 
 export type Repo = {
@@ -101,6 +101,39 @@ export async function listRepos(params: ListReposParams = {}): Promise<Repo[]> {
   const client = params.owner ? api : anonApi;  // owned view always via authed client
   const r = await client.get("/api/v1/repos", { params });
   return (r.data?.repos || []) as Repo[];
+}
+
+// ── AutoResearch marketspace aggregation ─────────────────────────
+//
+// The AutoResearch tab unions two sources: standalone kind=autoresearch
+// repos AND loops extracted from kind=app manifests. Surfacing every
+// loop independently is the moat — a researcher can browse loops
+// without first knowing which app hosts them.
+
+export type MarketspaceLoop = {
+  source: "standalone" | "in_app";
+  repo_owner: string;
+  repo_name: string;
+  repo_kind: "app" | "autoresearch";
+  loop_name: string;
+  display_name: string;
+  summary: string;
+  schedule?: string | null;
+  primary_role?: string | null;
+  knowledge_agent?: string | null;
+  skills?: string[] | null;
+  benchmark_set?: string | null;
+  mode?: string;
+  tags?: string[];
+  stars?: number;
+  updated_at?: number | null;
+};
+
+export async function listMarketspaceLoops(
+  params: { q?: string; limit?: number } = {},
+): Promise<MarketspaceLoop[]> {
+  const r = await anonApi.get("/api/v1/marketspace/loops", { params });
+  return (r.data?.loops || []) as MarketspaceLoop[];
 }
 
 export async function getRepo(owner: string, name: string): Promise<Repo | null> {

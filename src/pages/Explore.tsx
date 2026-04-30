@@ -6,12 +6,13 @@ import {
 } from "../api/client";
 import { RepoCard } from "../components/RepoCard";
 
+// Two top-level peers (Application + Agentic KG). AutoResearch and
+// Datasets nest under an application's anatomy; not separate browse
+// modes here.
 const KIND_TABS: { id: "" | RepoKind; label: string }[] = [
   { id: "", label: "All" },
   { id: "app", label: "Apps" },
-  { id: "autoresearch", label: "AutoResearch" },
-  { id: "agent", label: "Agents" },
-  { id: "skill", label: "Skills" },
+  { id: "agent", label: "Agentic KG" },
 ];
 
 const WINDOWS: { id: "day" | "week" | "month"; label: string }[] = [
@@ -76,6 +77,13 @@ export function Explore() {
           xp.io
         </Link>
         <div className="flex items-center gap-4 text-xs">
+          <a
+            href="https://lum.id"
+            className="text-gray-500 hover:text-soul-300 transition-colors"
+            title="The Lumid ecosystem — xp.io is the marketspace tier"
+          >
+            ← lum.id
+          </a>
           <Link to="/" className="text-gray-700 hover:text-soul-300">marketspace</Link>
           <Link to="/explore" className="text-soul-300">explore</Link>
         </div>

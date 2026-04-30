@@ -84,6 +84,15 @@ export function DashboardLayout() {
               <span className="font-display text-xs uppercase tracking-[0.25em]">✦</span>
               <span>New repo</span>
             </NavLink>
+            <a
+              href="https://lum.id"
+              className="group relative flex items-center gap-3 pl-6 pr-4 py-3 text-sm tracking-wide text-gray-500 hover:text-soul-300 transition-colors"
+              title="The Lumid ecosystem — xp.io is the marketspace tier"
+            >
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full bg-soul-400/20 group-hover:bg-soul-400/40" />
+              <span className="font-display text-xs uppercase tracking-[0.25em]">←</span>
+              <span>lum.id</span>
+            </a>
           </nav>
 
           <div className="p-4 border-t border-gray-200">

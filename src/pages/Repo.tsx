@@ -367,10 +367,12 @@ function KindCard({ repo }: { repo: RepoT }) {
     (async () => {
       const branch = repo.head_ref || "main";
       const tryFiles = repo.kind === "autoresearch"
-        ? ["manifest.json", "manifest.yaml", "autoresearch.yaml"]
+        ? ["manifest.json", "manifest.yaml", "autoresearch.yaml", "xpcloud.yaml"]
         : repo.kind === "skill"
           ? ["manifest.json", "manifest.yaml", "SKILL.md"]
-          : ["manifest.json", "manifest.yaml"];
+          : repo.kind === "dataset"
+            ? ["manifest.json", "manifest.yaml", "dataset.yaml", "xpcloud.yaml"]
+            : ["manifest.json", "manifest.yaml", "xpcloud.yaml"];
       for (const f of tryFiles) {
         try {
           const blob = await getBlob(repo.owner_sub, repo.name, branch, f);
@@ -389,6 +391,26 @@ function KindCard({ repo }: { repo: RepoT }) {
   }, [repo.owner_sub, repo.name, repo.head_ref, repo.kind]);
 
   if (manifest === null) return null;
+
+  // Linked refs for kind=app: when the manifest declares datasets[]
+  // or skill_imports[], render them as clickable cards below the pill
+  // strip so users can click through to the dependency repos.
+  const refLinks: Array<{ label: string; repo: string; version?: string; glyph: string }> = [];
+  if (repo.kind === "app") {
+    for (const d of (manifest.datasets || []) as any[]) {
+      if (d?.repo) refLinks.push({
+        label: d.id || d.repo, repo: d.repo, version: d.version, glyph: "▤",
+      });
+    }
+    for (const im of (manifest.skill_imports || []) as any[]) {
+      if (im?.repo) refLinks.push({
+        label: im.repo.split("/").pop() || im.repo,
+        repo: im.repo, version: im.version, glyph: "⌘",
+      });
+    }
+    // Roles' memory_agents are local KG ids, not other repos —
+    // don't render as links until kind=agent snapshots are common.
+  }
 
   const pills: Array<[string, string]> = [];
   if (repo.kind === "app") {
@@ -411,6 +433,11 @@ function KindCard({ repo }: { repo: RepoT }) {
       pills.push(["thresholds",
         Object.entries(manifest.thresholds).map(([k, v]) => `${k}=${v}`).join(" · ")]);
     }
+    if (Array.isArray(manifest.loops)) {
+      pills.push(["loops", manifest.loops.length === 1
+        ? String((manifest.loops[0] as any)?.name || 1)
+        : `${manifest.loops.length} loops`]);
+    }
   } else if (repo.kind === "autoresearch") {
     if (manifest.schedule) pills.push(["schedule", String(manifest.schedule)]);
     if (Array.isArray(manifest.skills)) {
@@ -425,18 +452,63 @@ function KindCard({ repo }: { repo: RepoT }) {
     if (manifest.inputs) pills.push(["inputs", Object.keys(manifest.inputs).join(", ")]);
     if (manifest.outputs) pills.push(["outputs", Object.keys(manifest.outputs).join(", ")]);
     if (manifest.language) pills.push(["lang", String(manifest.language)]);
+  } else if (repo.kind === "dataset") {
+    if (manifest.version) pills.push(["version", String(manifest.version)]);
+    if (manifest.schema?.format) pills.push(["format", String(manifest.schema.format)]);
+    if (Array.isArray(manifest.schema?.fields) && manifest.schema.fields.length) {
+      pills.push(["fields", manifest.schema.fields.slice(0, 6).join(" · ") +
+        (manifest.schema.fields.length > 6 ? ` · +${manifest.schema.fields.length - 6}` : "")]);
+    }
+    if (manifest.size_bytes) {
+      const mb = (Number(manifest.size_bytes) / (1024 * 1024)).toFixed(1);
+      pills.push(["size", `${mb} MB`]);
+    }
+    if (manifest.license) pills.push(["license", String(manifest.license)]);
+    if (manifest.storage?.inline) pills.push(["storage", "inline (git)"]);
+    else if (manifest.storage?.url) pills.push(["storage", "external pointer"]);
   }
 
-  if (pills.length === 0) return null;
+  if (pills.length === 0 && refLinks.length === 0) return null;
 
   return (
-    <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[12px]">
-      {pills.map(([k, v]) => (
-        <span key={k} className="text-gray-900">
-          <span className="text-gray-600 mr-1.5">{k}:</span>
-          <span className="font-mono">{v}</span>
-        </span>
-      ))}
+    <div className="mt-4 space-y-2">
+      {pills.length > 0 && (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[12px]">
+          {pills.map(([k, v]) => (
+            <span key={k} className="text-gray-900">
+              <span className="text-gray-600 mr-1.5">{k}:</span>
+              <span className="font-mono">{v}</span>
+            </span>
+          ))}
+        </div>
+      )}
+      {refLinks.length > 0 && (
+        <div className="rounded-lg border border-gray-200 bg-white p-3">
+          <div className="text-[11px] uppercase tracking-wider text-gray-500 mb-2">
+            depends on
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {refLinks.map((r) => {
+              const [owner, name] = r.repo.split("/", 2);
+              const href = `/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
+              return (
+                <Link
+                  key={`${r.repo}-${r.label}`}
+                  to={href}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-gray-200 hover:border-soul-300 transition-colors text-[12px]"
+                  title={r.repo + (r.version ? ` @ ${r.version}` : "")}
+                >
+                  <span>{r.glyph}</span>
+                  <span className="font-mono text-gray-900">{r.label}</span>
+                  {r.version && (
+                    <span className="text-[10px] text-gray-500">@{r.version}</span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1777,6 +1849,13 @@ function Shell({ children, me }: { children: React.ReactNode; me?: Me | null }) 
           xp.io
         </Link>
         <div className="flex items-center gap-6 text-[11px]">
+          <a
+            href="https://lum.id"
+            className="text-gray-500 hover:text-soul-300 transition-colors"
+            title="The Lumid ecosystem — xp.io is the marketspace tier"
+          >
+            ← lum.id
+          </a>
           {me ? (
             <>
               <Link to="/dashboard" className="text-gray-700 hover:text-soul-300">dashboard</Link>

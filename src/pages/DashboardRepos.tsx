@@ -43,13 +43,15 @@ export function DashboardRepos() {
         </Link>
       </div>
 
+      {/* Two top-level peers. AutoResearch loops + Datasets are
+          nested concepts inside an Application's anatomy and surface
+          on the per-app detail page rather than as separate dashboard
+          tabs. */}
       <div className="flex items-center gap-5 mb-6 flex-wrap">
         {([
           { id: "" as KindTab, label: "◎ All" },
           { id: "app" as KindTab, label: "⁂ Apps" },
-          { id: "autoresearch" as KindTab, label: "⋯ AutoResearch" },
           { id: "agent" as KindTab, label: "❋ Agentic KG" },
-          { id: "skill" as KindTab, label: "⌘ Skills" },
         ]).map((t) => (
           <button
             key={t.id || "all"}

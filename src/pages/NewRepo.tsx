@@ -2,15 +2,21 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createRepo, type RepoKind, type Visibility } from "../api/client";
 
+// Four primitives surface to the user; under the hood `kind=skill` and
+// `kind=agent` are both flavors of Agentic KG (procedural know-how and
+// memory snapshots respectively). The two are presented as sub-options
+// within the Agentic KG choice rather than separate top-level kinds.
 const KINDS: { id: RepoKind; label: string; glyph: string; blurb: string }[] = [
   { id: "app", glyph: "⁂", label: "Application",
-    blurb: "A Claude Code app — manifest + procedures + prompts. Installable." },
+    blurb: "Domain goal + roles + autoresearch loops + skill / dataset references. The whole composition." },
   { id: "autoresearch", glyph: "⋯", label: "AutoResearch",
-    blurb: "A loop that runs on a schedule and accumulates knowledge." },
-  { id: "agent", glyph: "❋", label: "Agentic KG",
-    blurb: "An accumulating knowledge graph — memories you can share, fork, and compound." },
-  { id: "skill", glyph: "⌘", label: "Skill",
-    blurb: "A SKILL.md with instructions + context files. Loaded into an AI at the right moment." },
+    blurb: "A standalone loop template — workflow steps an app can pull in and bind with concrete skills + knowledge." },
+  { id: "agent", glyph: "❋", label: "Agentic KG — memory snapshot",
+    blurb: "Published bank.jsonl + bandit.json + config.json. Seed an app's knowledge agent with someone else's accumulated wisdom." },
+  { id: "skill", glyph: "⌘", label: "Agentic KG — skill",
+    blurb: "Procedural knowledge: a SKILL.md with instructions and an optional Python impl. Importable into any app's cycle via skill_imports[]." },
+  { id: "dataset", glyph: "▤", label: "Dataset",
+    blurb: "A versioned data asset — cases, baselines, snapshots. Loops pin a version for reproducibility." },
 ];
 
 export function NewRepo() {
@@ -51,6 +57,13 @@ export function NewRepo() {
       <div className="absolute inset-0 starfield opacity-25 pointer-events-none" aria-hidden="true" />
       <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-gray-200">
         <Link to="/" className="text-soul-300 font-display tracking-[0.35em] text-sm">xp.io</Link>
+        <a
+          href="https://lum.id"
+          className="text-gray-500 hover:text-soul-300 transition-colors text-xs"
+          title="The Lumid ecosystem — xp.io is the marketspace tier"
+        >
+          ← lum.id
+        </a>
       </nav>
       <main className="relative z-10 mx-auto max-w-2xl px-8 py-12">
         <h1 className="font-display text-3xl text-bark-300 mb-2">Plant a new seed</h1>
