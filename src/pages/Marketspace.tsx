@@ -251,37 +251,66 @@ function ModelToggle() {
     );
   }
   return (
-    <span className="block mt-3 mx-auto max-w-2xl text-left rounded-lg border border-gray-200 bg-white p-3 text-[12px]">
+    <span className="block mt-3 max-w-6xl mx-auto text-left text-[13px] relative">
       <button
         onClick={() => setOpen(false)}
-        className="float-right text-gray-400 hover:text-gray-700 -mt-0.5"
+        className="absolute -top-1 right-0 text-gray-400 hover:text-gray-700 z-10"
         aria-label="Hide"
       >
         ✕
       </button>
-      <pre className="font-mono leading-snug text-[11.5px] text-gray-700 overflow-x-auto m-0">{`Two things on the marketspace:
-
-  ⁂ Application                ← top tier
-   ├── domain goal             what it exists to get better at
-   ├── roles[]                 LLM personas + their knowledge banks
-   ├── ↻ autoresearch loops    one or more (the moat — runs on a
-   │     ├── steps[]           schedule, learns, compounds)
-   │     └── ▤ datasets        loop-pinned for reproducibility
-   │                           (each dataset carries its own
-   │                            benchmark / scoring contract)
-   └── human_inbox             expert PRs
-
-  ❋ Agentic KG                 ← top tier (peer of Application)
-   ├── memory snapshots         bank.jsonl + bandit.json — pull to
-   │                            seed an app's knowledge agent
-   └── ⌘ skills                 SKILL.md + Python impl — imported
-                                into apps via skill_imports[]`}</pre>
-      <p className="mt-2 text-[11px] text-gray-500">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Application */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <div className="flex items-baseline gap-2 mb-2">
+            <span className="text-lg leading-none">⁂</span>
+            <span className="font-semibold text-gray-900">Application</span>
+            <span className="text-[10px] uppercase tracking-wider text-gray-500">
+              top tier
+            </span>
+          </div>
+          <p className="text-gray-700 leading-relaxed">
+            A <strong>domain goal</strong>, the <strong>roles[]</strong> that
+            pursue it (each with its own knowledge bank), and one or more{" "}
+            <strong>↻ autoresearch loops</strong> that run on a schedule.
+            Each loop is a sequence of <code className="bg-gray-100 px-1 rounded text-[12px]">steps[]</code>{" "}
+            that calls skills and consumes loop-pinned{" "}
+            <strong>▤ datasets</strong> — datasets carry their own
+            benchmark, so two users running the same loop see identical
+            inputs and identical scoring.
+          </p>
+          <p className="text-gray-700 mt-2 leading-relaxed">
+            A <strong>human_inbox</strong> lets domain experts drop one-line
+            PRs that the next cycle reads as guidance.
+          </p>
+        </div>
+        {/* Agentic KG */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <div className="flex items-baseline gap-2 mb-2">
+            <span className="text-lg leading-none">❋</span>
+            <span className="font-semibold text-gray-900">Agentic KG</span>
+            <span className="text-[10px] uppercase tracking-wider text-gray-500">
+              top tier (peer of Application)
+            </span>
+          </div>
+          <p className="text-gray-700 leading-relaxed">
+            Shareable knowledge in two flavors. <strong>Memory snapshots</strong>{" "}
+            bundle <code className="bg-gray-100 px-1 rounded text-[12px]">bank.jsonl</code>{" "}
+            + <code className="bg-gray-100 px-1 rounded text-[12px]">bandit.json</code>{" "}
+            from a working agent — pull to seed an app's knowledge with
+            someone else's accumulated wisdom. <strong>⌘ Skills</strong> are
+            procedural know-how (SKILL.md + optional Python impl) that any
+            app can pull in via{" "}
+            <code className="bg-gray-100 px-1 rounded text-[12px]">skill_imports[]</code>.
+          </p>
+          <p className="text-gray-700 mt-2 leading-relaxed">
+            Forks of an existing snapshot inherit the parent's history;
+            downstream cycles add to it.
+          </p>
+        </div>
+      </div>
+      <p className="mt-3 text-[12px] text-gray-500 text-center">
         Everything's a git repo — forkable, pullable, mergeable.
-        AutoResearch is the moat: a loop keeps refining itself across
-        cycles and the knowledge sticks. Datasets travel with the loop
-        that pins them so two users running the same benchmark see
-        identical inputs.
       </p>
     </span>
   );
