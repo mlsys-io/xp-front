@@ -20,13 +20,27 @@ export async function sha256base64(verifier: string): Promise<string> {
 
 const VERIFIER_KEY = "xp:pkce:verifier";
 const STATE_KEY = "xp:pkce:state";
+const RETURN_TO_KEY = "xp:pkce:return_to";
 
-export async function beginLogin(lumidHost = "https://lum.id") {
+export async function beginLogin(
+  returnTo?: string,
+  lumidHost = "https://lum.id",
+) {
   const verifier = randomString(64);
   const state = randomString(16);
   const challenge = await sha256base64(verifier);
   sessionStorage.setItem(VERIFIER_KEY, verifier);
   sessionStorage.setItem(STATE_KEY, state);
+  // Capture where the user was before the OAuth hop so AuthCallback can put
+  // them back. Default: current path + search (but strip /auth/* to avoid
+  // bouncing through the callback again).
+  const fallback = typeof window !== "undefined"
+    ? window.location.pathname + window.location.search
+    : "/";
+  const target = (returnTo || fallback);
+  if (target && !target.startsWith("/auth/")) {
+    sessionStorage.setItem(RETURN_TO_KEY, target);
+  }
   const params = new URLSearchParams({
     client_id: "xp",
     redirect_uri: "https://xp.io/auth/callback",
@@ -45,4 +59,10 @@ export function takeVerifier(): { verifier: string | null; state: string | null 
   sessionStorage.removeItem(VERIFIER_KEY);
   sessionStorage.removeItem(STATE_KEY);
   return { verifier, state };
+}
+
+export function takeReturnTo(): string | null {
+  const t = sessionStorage.getItem(RETURN_TO_KEY);
+  sessionStorage.removeItem(RETURN_TO_KEY);
+  return t;
 }
