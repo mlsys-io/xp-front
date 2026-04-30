@@ -9,7 +9,7 @@ import { createRepo, type RepoKind, type Visibility } from "../api/client";
 const KINDS: { id: RepoKind; label: string; glyph: string; blurb: string }[] = [
   { id: "app", glyph: "⁂", label: "Application",
     blurb: "Domain goal + roles + autoresearch loops + skill / dataset references. The whole composition." },
-  { id: "autoresearch", glyph: "⋯", label: "AutoResearch",
+  { id: "autoresearch", glyph: "↻", label: "AutoResearch",
     blurb: "A standalone loop template — workflow steps an app can pull in and bind with concrete skills + knowledge." },
   { id: "agent", glyph: "❋", label: "Agentic KG — memory snapshot",
     blurb: "Published bank.jsonl + bandit.json + config.json. Seed an app's knowledge agent with someone else's accumulated wisdom." },

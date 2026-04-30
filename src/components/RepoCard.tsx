@@ -3,7 +3,7 @@ import type { Repo } from "../api/client";
 
 const KIND_GLYPH: Record<string, string> = {
   app: "⁂",
-  autoresearch: "⋯",
+  autoresearch: "↻",
   agent: "❋",
   skill: "⌘",
 };
