@@ -38,7 +38,11 @@ export async function logout() {
 
 // ── Repos ────────────────────────────────────────────────────────
 
-export type RepoKind = "app" | "autoresearch" | "skill" | "agent" | "dataset";
+// `autoresearch` retired in xp.io 0.3 — every autoresearch loop now lives
+// inside an app's xpcloud.yaml. The AutoResearch marketspace tab still
+// exists; it aggregates loops from kind=app rather than reading standalone
+// repos.
+export type RepoKind = "app" | "skill" | "agent" | "dataset";
 export type Visibility = "public" | "private";
 
 export type Repo = {
@@ -49,9 +53,14 @@ export type Repo = {
   display_name: string;
   summary: string;
   tags: string[];
+  // Manifest-extracted version. Empty string when the repo has no
+  // xpcloud.yaml / pyproject / package.json with a `version`. Surfaced
+  // by the kind-landing pages so visitors can sort by it.
+  version?: string;
   fork_of: string | null;
   stars: number;
   forks: number;
+  downloads?: number;
   head_ref: string;
   head_sha: string;
   published_at: number;
@@ -105,16 +114,17 @@ export async function listRepos(params: ListReposParams = {}): Promise<Repo[]> {
 
 // ── AutoResearch marketspace aggregation ─────────────────────────
 //
-// The AutoResearch tab unions two sources: standalone kind=autoresearch
-// repos AND loops extracted from kind=app manifests. Surfacing every
-// loop independently is the moat — a researcher can browse loops
-// without first knowing which app hosts them.
+// The AutoResearch tab surfaces every loop from every published
+// kind=app. (The standalone kind=autoresearch repo type was retired
+// in xp.io 0.3.) Surfacing every loop independently is the moat — a
+// researcher can browse loops without first knowing which app hosts
+// them.
 
 export type MarketspaceLoop = {
-  source: "standalone" | "in_app";
+  source: "in_app";
   repo_owner: string;
   repo_name: string;
-  repo_kind: "app" | "autoresearch";
+  repo_kind: "app";
   loop_name: string;
   display_name: string;
   summary: string;

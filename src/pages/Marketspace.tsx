@@ -13,9 +13,9 @@ type KindTab = "" | RepoKind | "agentic_kg";
 // Two top-level peers — Application (which contains its own loops and
 // dataset pins) and Agentic KG (memory snapshots + procedural skills).
 // AutoResearch loops live INSIDE applications (browsable from an app's
-// detail page); standalone autoresearch repos are still creatable but
-// surface in the All tab. Datasets are typically pinned by a loop and
-// followed via the application's "depends on" links.
+// detail page); the standalone kind=autoresearch repo type was retired
+// in xp.io 0.3. Datasets are typically pinned by a loop and followed
+// via the application's "depends on" links.
 const TABS: { id: KindTab | "agentic_kg"; label: string }[] = [
   { id: "", label: "◎ All" },
   { id: "app", label: "⁂ Applications" },
@@ -150,6 +150,18 @@ export function Marketspace() {
             placeholder="search repos, tags, descriptions…"
             className="w-full bg-gray-50 border border-gray-200 rounded-full px-5 py-2.5 text-sm text-bark-300 placeholder:text-gray-500 focus:outline-none focus:border-gray-300 transition-colors"
           />
+        </div>
+
+        {/* Phase 2 — kind-scoped landing-page links. The marketspace
+            tabs above are quick filters on this page; these go to
+            dedicated /apps, /skills, /datasets, /agents pages with
+            tag-chip filtering and richer header copy. */}
+        <div className="flex items-center justify-center gap-4 flex-wrap text-[11px] uppercase tracking-widest text-gray-500 mb-3">
+          <span>Browse by kind:</span>
+          <Link to="/apps" className="hover:text-soul-300 transition-colors">⁂ apps</Link>
+          <Link to="/skills" className="hover:text-soul-300 transition-colors">⌘ skills</Link>
+          <Link to="/datasets" className="hover:text-soul-300 transition-colors">▤ datasets</Link>
+          <Link to="/agents" className="hover:text-soul-300 transition-colors">❋ agents</Link>
         </div>
 
         {/* Tabs + sort */}
