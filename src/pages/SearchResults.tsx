@@ -86,6 +86,7 @@ export function SearchResults() {
         </Link>
         <SearchBar />
         <div className="flex items-center gap-4 text-xs">
+          <Link to="/learn" className="text-gray-700 hover:text-soul-300 transition-colors uppercase tracking-widest text-[11px]">learn</Link>
           <Link to="/" className="text-gray-500 hover:text-soul-300 transition-colors">← marketspace</Link>
           {me ? (
             <>

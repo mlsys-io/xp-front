@@ -94,6 +94,13 @@ export function Marketspace() {
         </Link>
         <SearchBar />
         <div className="flex items-center gap-4 text-xs">
+          <Link
+            to="/learn"
+            className="text-gray-700 hover:text-soul-300 transition-colors uppercase tracking-widest text-[11px]"
+            title="What is xp.io? Five-minute tour."
+          >
+            learn
+          </Link>
           <a
             href="https://lum.id"
             className="text-gray-500 hover:text-soul-300 transition-colors"

@@ -6,6 +6,7 @@ import { DashboardLayout } from "./pages/Dashboard";
 import { DashboardRepos } from "./pages/DashboardRepos";
 import { Datasets } from "./pages/Datasets";
 import { Explore } from "./pages/Explore";
+import { Learn } from "./pages/Learn";
 import { Marketspace } from "./pages/Marketspace";
 import { NewRepo } from "./pages/NewRepo";
 import { Overview } from "./pages/Overview";
@@ -21,6 +22,7 @@ export default function App() {
         {/* Landing = public marketspace (anon browse). Sign-in only on actions. */}
         <Route path="/" element={<Marketspace />} />
         <Route path="/explore" element={<Explore />} />
+        <Route path="/learn" element={<Learn />} />
 
         {/* Phase 2 marketspace category landings — kind-scoped browses
             that share the <KindBrowse> shell. /marketspace stays as the
