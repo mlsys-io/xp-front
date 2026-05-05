@@ -24,6 +24,7 @@ import {
   listBranches,
   listCollaborators,
   listCommits,
+  listConsumers,
   listContributors,
   listDiscussions,
   listForks,
@@ -42,6 +43,7 @@ import {
   type Collaborator,
   type CollaboratorRole,
   type Commit,
+  type Consumer,
   type Contributor,
   type Discussion,
   type DiscussionSummary,
@@ -326,6 +328,16 @@ function RepoHeader({
               {repo.stars}
             </span>
           </button>
+          <span
+            title="Total installs (incremented by `/lumid app install`)"
+            className="px-2.5 py-1 text-xs rounded-md border border-gray-200 text-bark-300 inline-flex items-center"
+          >
+            <span className="text-soul-400 mr-1">↓</span>
+            Installs{" "}
+            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-700 tabular-nums">
+              {repo.downloads ?? 0}
+            </span>
+          </span>
           {!isOwner && (
             <button
               disabled={busy}
@@ -339,6 +351,30 @@ function RepoHeader({
                 </span>
               )}
             </button>
+          )}
+          {isOwner && (
+            <a
+              href={`https://lum.id/auth/account/dashboard?app=${encodeURIComponent(repo.name)}`}
+              target="_blank"
+              rel="noreferrer"
+              title="Open the lum.id authoring dashboard for this app (Phase 3 will swap in an in-place editor)"
+              className="px-2.5 py-1 text-xs rounded-md border border-gray-300 text-bark-300 hover:border-soul-400 hover:bg-gray-50 transition-colors"
+            >
+              <span className="text-soul-400 mr-1">✎</span>
+              Edit
+            </a>
+          )}
+          {repo.kind === "app" && (
+            <a
+              href={`https://lum.id/auth/account/skills/new?app=${encodeURIComponent(repo.name)}`}
+              target="_blank"
+              rel="noreferrer"
+              title="Draft a new skill prefilled to import into this app"
+              className="px-2.5 py-1 text-xs rounded-md border border-gray-300 text-bark-300 hover:border-soul-400 hover:bg-gray-50 transition-colors"
+            >
+              <span className="text-soul-400 mr-1">+</span>
+              Add skill draft
+            </a>
           )}
         </div>
       </div>
@@ -366,13 +402,11 @@ function KindCard({ repo }: { repo: RepoT }) {
     // neither exists the card just stays collapsed.
     (async () => {
       const branch = repo.head_ref || "main";
-      const tryFiles = repo.kind === "autoresearch"
-        ? ["manifest.json", "manifest.yaml", "autoresearch.yaml", "xpcloud.yaml"]
-        : repo.kind === "skill"
-          ? ["manifest.json", "manifest.yaml", "SKILL.md"]
-          : repo.kind === "dataset"
-            ? ["manifest.json", "manifest.yaml", "dataset.yaml", "xpcloud.yaml"]
-            : ["manifest.json", "manifest.yaml", "xpcloud.yaml"];
+      const tryFiles = repo.kind === "skill"
+        ? ["manifest.json", "manifest.yaml", "SKILL.md"]
+        : repo.kind === "dataset"
+          ? ["manifest.json", "manifest.yaml", "dataset.yaml", "xpcloud.yaml"]
+          : ["manifest.json", "manifest.yaml", "xpcloud.yaml"];
       for (const f of tryFiles) {
         try {
           const blob = await getBlob(repo.owner_sub, repo.name, branch, f);
@@ -446,12 +480,6 @@ function KindCard({ repo }: { repo: RepoT }) {
         ? String((manifest.loops[0] as any)?.name || 1)
         : `${manifest.loops.length} loops`]);
     }
-  } else if (repo.kind === "autoresearch") {
-    if (manifest.schedule) pills.push(["schedule", String(manifest.schedule)]);
-    if (Array.isArray(manifest.skills)) {
-      pills.push(["skills", manifest.skills.join(" · ")]);
-    }
-    if (manifest.domain) pills.push(["domain", String(manifest.domain)]);
   } else if (repo.kind === "agent") {
     pills.push(["kind", "knowledge bundle"]);
     if (manifest.agent_id) pills.push(["agent", String(manifest.agent_id)]);
@@ -567,7 +595,12 @@ function CodeTab({ repo, branch, path, isOwner }: {
 
   const readmeEntry = entries?.find((e) => e.name.toLowerCase() === "readme.md" && e.type === "blob");
 
+  // Show overview-only sections (consumers, disagreement) when this is
+  // the top-level Code view — i.e. no sub-path is being browsed.
+  const isOverview = !path;
+
   return (
+    <div className="space-y-6">
     <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr] gap-6">
       <div>
         <div className="mb-3 flex items-center gap-2 flex-wrap">
@@ -633,6 +666,283 @@ function CodeTab({ repo, branch, path, isOwner }: {
             No README at this level.
           </div>
         )}
+      </div>
+    </div>
+    {isOverview && repo.kind === "skill" && <ConsumersSection repo={repo} />}
+    {isOverview && repo.kind === "app" && <DisagreementMatrix repo={repo} branch={branch} />}
+    </div>
+  );
+}
+
+// ── Consumers section (kind=skill only) ─────────────────────────
+//
+// Reverse-resolves who imports this skill via the public
+// `/repos/{o}/{n}/consumers` endpoint. Hidden silently while loading
+// and on errors; the empty state still renders so authors get
+// affirmative feedback that nobody has wired their skill in yet.
+
+function ConsumersSection({ repo }: { repo: RepoT }) {
+  const [consumers, setConsumers] = useState<Consumer[] | null>(null);
+
+  useEffect(() => {
+    setConsumers(null);
+    listConsumers(repo.owner_sub, repo.name)
+      .then(setConsumers)
+      .catch(() => setConsumers([]));
+  }, [repo.owner_sub, repo.name]);
+
+  if (consumers === null) return null;  // suppress flicker while loading
+
+  const count = consumers.length;
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-sm font-semibold text-gray-900">
+          Consumed by {count} app{count === 1 ? "" : "s"}
+        </h2>
+        <span className="text-[11px] text-gray-500">
+          public apps that import this skill
+        </span>
+      </div>
+      {count === 0 ? (
+        <div className="text-sm text-gray-500">No public consumers yet.</div>
+      ) : (
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {consumers.map((c) => {
+            const slug = `${c.owner_sub}/${c.name}`;
+            return (
+              <li key={slug}>
+                <Link
+                  to={`/${enc(c.owner_sub)}/${enc(c.name)}`}
+                  className="block rounded-lg border border-gray-200 hover:border-soul-300 transition-colors px-3 py-2"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-gray-900 truncate">
+                      <span className="text-soul-400/60 mr-1">
+                        {KIND_GLYPH[c.kind] || "◦"}
+                      </span>
+                      {c.display_name || c.name}
+                    </span>
+                    {c.version && (
+                      <span className="text-[10px] text-gray-500 font-mono shrink-0">
+                        @{c.version}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-gray-500 font-mono truncate">
+                    {c.kind} · {slug}
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ── Disagreement matrix (kind=app only) ─────────────────────────
+//
+// mbb-ai (and any app following the same convention) writes
+// `disagreement_bench.json` per cycle under
+// `data/outbox/<case_stem>/<ts>/disagreement_bench.json`. There's no
+// `list-tree-recursive` blob endpoint, so we walk the outbox tree:
+// `data/outbox/` → case dirs → ts dirs → bench file. We pick the most
+// recent ts (lex-sorted; the agent writes ISO-like stamps so lex == time).
+// If anything is missing the whole section silently disappears — it's
+// purely additive surface for apps that publish the artefact.
+
+type DisagreementBench = {
+  ts: string;
+  version: string;
+  case_id: string;
+  row_count: number;
+  flag_counts: Record<string, number>;
+  rows: Array<{
+    case_id?: string;
+    q_id?: string;
+    q_type?: string;
+    keypoint?: string;
+    disagreement_flags?: string[];
+  }>;
+};
+
+type DisagreementHit = {
+  bench: DisagreementBench;
+  bundlePath: string;     // e.g. data/outbox/case-foo/2026-04-30T12-00-00
+  filePath: string;       // bundlePath + /disagreement_bench.json
+};
+
+async function discoverDisagreement(
+  owner: string, name: string, branch: string,
+): Promise<DisagreementHit | null> {
+  // 1. Walk data/outbox/.
+  let outbox: TreeEntry[];
+  try {
+    outbox = await getTree(owner, name, branch, "data/outbox");
+  } catch {
+    return null;
+  }
+  const caseDirs = outbox
+    .filter((e) => e.type === "tree")
+    .map((e) => e.name)
+    .sort()
+    .reverse();
+  if (caseDirs.length === 0) return null;
+
+  // 2. For each case dir, walk timestamp dirs (most recent first), and
+  //    return the first disagreement_bench.json we can fetch. Bound the
+  //    search so a pathological repo doesn't burn a thousand requests.
+  let scanned = 0;
+  const MAX_SCANS = 24;
+  for (const caseStem of caseDirs) {
+    if (scanned >= MAX_SCANS) break;
+    let tsEntries: TreeEntry[];
+    try {
+      tsEntries = await getTree(owner, name, branch, `data/outbox/${caseStem}`);
+    } catch {
+      continue;
+    }
+    const tsDirs = tsEntries
+      .filter((e) => e.type === "tree")
+      .map((e) => e.name)
+      .sort()
+      .reverse();
+    for (const ts of tsDirs) {
+      if (scanned >= MAX_SCANS) break;
+      scanned++;
+      const bundlePath = `data/outbox/${caseStem}/${ts}`;
+      const filePath = `${bundlePath}/disagreement_bench.json`;
+      try {
+        const blob = await getBlob(owner, name, branch, filePath);
+        const parsed = JSON.parse(blob.content) as DisagreementBench;
+        return { bench: parsed, bundlePath, filePath };
+      } catch {
+        continue;
+      }
+    }
+  }
+  return null;
+}
+
+function DisagreementMatrix({ repo, branch }: { repo: RepoT; branch: string }) {
+  const [hit, setHit] = useState<DisagreementHit | null | "loading">("loading");
+
+  useEffect(() => {
+    let alive = true;
+    setHit("loading");
+    discoverDisagreement(repo.owner_sub, repo.name, branch)
+      .then((h) => { if (alive) setHit(h); })
+      .catch(() => { if (alive) setHit(null); });
+    return () => { alive = false; };
+  }, [repo.owner_sub, repo.name, branch]);
+
+  if (hit === "loading" || hit === null) return null;
+  const { bench, filePath } = hit;
+
+  // Q-types present in the rows (preserves input order, dedups).
+  const qTypes: string[] = [];
+  for (const r of bench.rows) {
+    const t = (r.q_type || "unknown").trim() || "unknown";
+    if (!qTypes.includes(t)) qTypes.push(t);
+  }
+  // Flag columns — sorted by total count desc so the busiest column is
+  // leftmost, which makes the "where is the friction" read trivial.
+  const flagCols: string[] = Object.entries(bench.flag_counts || {})
+    .sort((a, b) => b[1] - a[1])
+    .map(([k]) => k);
+
+  // Per-(qType, flag) counts.
+  const cell = (qt: string, flag: string): number => {
+    let n = 0;
+    for (const r of bench.rows) {
+      const t = (r.q_type || "unknown").trim() || "unknown";
+      if (t !== qt) continue;
+      if ((r.disagreement_flags || []).includes(flag)) n++;
+    }
+    return n;
+  };
+
+  // Color cells by intensity relative to the hottest cell. Tailwind can't
+  // do dynamic class names, so use inline opacity on a fixed soul-tinted
+  // background. 0 → empty cell; 1+ → tinted.
+  let hottest = 0;
+  for (const qt of qTypes) for (const f of flagCols) {
+    const v = cell(qt, f);
+    if (v > hottest) hottest = v;
+  }
+  const intensity = (v: number): string => {
+    if (v <= 0 || hottest <= 0) return "rgba(0,0,0,0)";
+    const a = 0.12 + 0.55 * (v / hottest);
+    // soul-400 is ~ #3ed4c1 in the existing palette.
+    return `rgba(62, 212, 193, ${a.toFixed(3)})`;
+  };
+
+  const blobHref =
+    `/${enc(repo.owner_sub)}/${enc(repo.name)}/blob/${enc(branch)}/${pathEnc(filePath)}`;
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="flex items-baseline justify-between mb-3 gap-3 flex-wrap">
+        <h2 className="text-sm font-semibold text-gray-900">DisagreementBench</h2>
+        <div className="text-[11px] text-gray-500">
+          {bench.row_count} row{bench.row_count === 1 ? "" : "s"}
+          {" · latest cycle "}
+          <span className="font-mono">{bench.ts}</span>
+        </div>
+      </div>
+      {flagCols.length === 0 || qTypes.length === 0 ? (
+        <div className="text-sm text-gray-500">
+          No disagreement flags recorded in the latest cycle.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="text-[12px] border-collapse">
+            <thead>
+              <tr>
+                <th className="text-left text-[11px] font-medium text-gray-600 px-2 py-1.5"></th>
+                {flagCols.map((f) => (
+                  <th
+                    key={f}
+                    className="text-left text-[11px] font-medium text-gray-700 px-2 py-1.5 font-mono whitespace-nowrap"
+                    title={`${f} — total ${bench.flag_counts[f]} across all Q-types`}
+                  >
+                    {f}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {qTypes.map((qt) => (
+                <tr key={qt} className="border-t border-gray-100">
+                  <td className="text-[11px] text-gray-700 font-mono px-2 py-1.5 whitespace-nowrap">
+                    {qt}
+                  </td>
+                  {flagCols.map((f) => {
+                    const v = cell(qt, f);
+                    return (
+                      <td
+                        key={f}
+                        className="px-2 py-1.5 text-center tabular-nums text-gray-900"
+                        style={{ backgroundColor: intensity(v), minWidth: "3ch" }}
+                        title={`${qt} × ${f}: ${v}`}
+                      >
+                        {v || ""}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div className="mt-3 text-[11px] text-gray-500 flex items-center gap-3 flex-wrap">
+        <span>case: <span className="font-mono">{bench.case_id}</span></span>
+        <Link to={blobHref} className="text-soul-300 hover:text-soul-400">
+          ↓ Download artifact
+        </Link>
       </div>
     </div>
   );

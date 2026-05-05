@@ -5,6 +5,7 @@ import {
   type Me, type Repo, type RepoKind,
 } from "../api/client";
 import { RepoCard } from "../components/RepoCard";
+import { SearchBar } from "../components/SearchBar";
 
 type SortKey = "name" | "version" | "updated";
 
@@ -95,11 +96,12 @@ export function KindBrowse({ kind, glyph, title, blurb }: KindBrowseProps) {
 
   return (
     <div className="min-h-screen">
-      <nav className="flex items-center justify-between px-8 py-5 border-b border-gray-200">
-        <Link to="/" className="text-soul-300 font-display tracking-[0.35em] text-sm">
+      <nav className="flex items-center justify-between px-8 py-5 border-b border-gray-200 gap-4">
+        <Link to="/" className="text-soul-300 font-display tracking-[0.35em] text-sm shrink-0">
           <span className="w-1.5 h-1.5 inline-block align-middle rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul mr-3" />
           xp.io
         </Link>
+        <SearchBar />
         <div className="flex items-center gap-4 text-xs">
           <Link to="/" className="text-gray-500 hover:text-soul-300 transition-colors">← marketspace</Link>
           {me ? (

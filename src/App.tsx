@@ -11,6 +11,7 @@ import { NewRepo } from "./pages/NewRepo";
 import { Overview } from "./pages/Overview";
 import { Profile } from "./pages/Profile";
 import { Repo } from "./pages/Repo";
+import { SearchResults } from "./pages/SearchResults";
 import { Skills } from "./pages/Skills";
 
 export default function App() {
@@ -28,6 +29,11 @@ export default function App() {
         <Route path="/skills" element={<Skills />} />
         <Route path="/datasets" element={<Datasets />} />
         <Route path="/agents" element={<Agents />} />
+
+        {/* Marketspace-wide search results page (anonymous; reads
+            ?q + ?kind from the URL). Distinct from the in-page search
+            box on /; this hits the dedicated /api/v1/repos/search endpoint. */}
+        <Route path="/search" element={<SearchResults />} />
 
         {/* Auth + dashboard */}
         <Route path="/auth/callback" element={<AuthCallback />} />

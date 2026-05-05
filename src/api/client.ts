@@ -112,6 +112,46 @@ export async function listRepos(params: ListReposParams = {}): Promise<Repo[]> {
   return (r.data?.repos || []) as Repo[];
 }
 
+/**
+ * Marketspace-wide search. Whitespace-tokenized query; all tokens must
+ * match somewhere in name/display_name/summary/tags. Anonymous (no auth).
+ * Default limit 20, max 100. Sorted server-side: exact-name match first,
+ * then display-name prefix, then arbitrary.
+ */
+export async function searchRepos(
+  params: { q: string; kind?: RepoKind | ""; limit?: number },
+): Promise<Repo[]> {
+  const r = await anonApi.get("/api/v1/repos/search", { params });
+  return (r.data?.repos || []) as Repo[];
+}
+
+// ── Consumers (reverse skill_imports lookup) ─────────────────────
+//
+// For kind=skill repos, return every public app whose manifest
+// declares this skill in `skill_imports[]`. Anonymous endpoint.
+
+export type Consumer = {
+  owner_sub: string;
+  name: string;
+  kind: RepoKind;
+  display_name: string;
+  version: string;
+};
+
+export async function listConsumers(
+  owner: string, name: string,
+): Promise<Consumer[]> {
+  try {
+    const r = await anonApi.get(
+      `/api/v1/repos/${enc(owner)}/${enc(name)}/consumers`,
+    );
+    return (r.data?.consumers || []) as Consumer[];
+  } catch (e) {
+    if (is404(e)) return [];
+    throw e;
+  }
+}
+
 // ── AutoResearch marketspace aggregation ─────────────────────────
 //
 // The AutoResearch tab surfaces every loop from every published
