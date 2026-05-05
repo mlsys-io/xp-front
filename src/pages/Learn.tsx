@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { logout, whoami, type Me } from "../api/client";
 import { AuthorBadge } from "../components/AuthorBadge";
 import { DeprecationBanner } from "../components/DeprecationBanner";
-import { SearchBar } from "../components/SearchBar";
+import { Header } from "../components/Header";
 
 /**
  * `/learn` — friendly onboarding page for first-time visitors.
@@ -24,42 +22,9 @@ import { SearchBar } from "../components/SearchBar";
  * it for free.
  */
 export function Learn() {
-  const [me, setMe] = useState<Me | null>(null);
-
-  useEffect(() => {
-    whoami().then(setMe).catch(() => setMe(null));
-  }, []);
-
-  const signIn = async () => (await import("../lib/pkce")).beginLogin();
-  const signOut = async () => {
-    try { await logout(); } catch { /* ignore */ }
-    window.location.href = "/";
-  };
-
   return (
     <div className="min-h-screen">
-      {/* Top nav — matches Marketspace / KindBrowse / SearchResults so the
-          shell feels uniform across the public site. */}
-      <nav className="flex items-center justify-between px-8 py-5 border-b border-gray-200 gap-4">
-        <Link to="/" className="text-soul-300 font-display tracking-[0.35em] text-sm shrink-0">
-          <span className="w-1.5 h-1.5 inline-block align-middle rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul mr-3" />
-          xp.io
-        </Link>
-        <SearchBar />
-        <div className="flex items-center gap-4 text-xs">
-          <Link to="/" className="text-gray-500 hover:text-soul-300 transition-colors">← marketspace</Link>
-          {me ? (
-            <>
-              <Link to="/new" className="text-soul-300 hover:text-soul-400 transition-colors">+ new</Link>
-              <Link to={`/${encodeURIComponent(me.sub)}`} className="text-gray-700 hover:text-soul-300 transition-colors">profile</Link>
-              <Link to="/dashboard" className="text-gray-700 hover:text-soul-300 transition-colors">dashboard</Link>
-              <button onClick={signOut} className="text-gray-700 hover:text-atokirina-400 transition-colors uppercase tracking-widest text-[11px]">sign out</button>
-            </>
-          ) : (
-            <button onClick={signIn} className="text-gray-700 hover:text-soul-300 transition-colors uppercase tracking-widest text-[11px]">sign in</button>
-          )}
-        </div>
-      </nav>
+      <Header variant="learn" />
 
       <main className="mx-auto max-w-3xl px-8 py-12">
         {/* Hero — keep it small. The page is for reading, not for signing

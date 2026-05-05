@@ -152,6 +152,40 @@ export async function listConsumers(
   }
 }
 
+// ── Attestations (tested_with) ────────────────────────────────────
+//
+// For kind=skill repos, returns every public consumer that has a
+// declared attestation (i.e. the consumer claims it has tested its
+// integration of this skill at one or more versions). Surfaced on the
+// skill's repo page so authors and visitors can see who is actively
+// validating the integration.
+
+export type AttestationStatus = "pass" | "fail" | "untested";
+
+export type Attestation = {
+  // `repo` is "owner_sub/name" of the consuming repo.
+  repo: string;
+  versions: string[];
+  status: AttestationStatus;
+  last_run: string;             // ISO-8601 timestamp
+  current_version: string;      // version the consumer currently pins
+  is_stale: boolean;            // true when current_version !∈ versions
+};
+
+export async function listAttestations(
+  owner: string, name: string,
+): Promise<Attestation[]> {
+  try {
+    const r = await anonApi.get(
+      `/api/v1/repos/${enc(owner)}/${enc(name)}/attestations`,
+    );
+    return (r.data?.attestations || []) as Attestation[];
+  } catch (e) {
+    if (is404(e)) return [];
+    throw e;
+  }
+}
+
 // ── AutoResearch marketspace aggregation ─────────────────────────
 //
 // The AutoResearch tab surfaces every loop from every published

@@ -21,6 +21,7 @@ import {
   getWatchers,
   initiateTransfer,
   isUnauthorized,
+  listAttestations,
   listBranches,
   listCollaborators,
   listCommits,
@@ -39,6 +40,7 @@ import {
   starRepo,
   toggleWatch,
   whoami,
+  type Attestation,
   type Branch,
   type Collaborator,
   type CollaboratorRole,
@@ -677,9 +679,148 @@ function CodeTab({ repo, branch, path, isOwner }: {
         )}
       </div>
     </div>
+    {isOverview && repo.kind === "skill" && <TestedWithSection repo={repo} />}
     {isOverview && repo.kind === "skill" && <ConsumersSection repo={repo} />}
     {isOverview && repo.kind === "app" && <DisagreementMatrix repo={repo} branch={branch} />}
     </div>
+  );
+}
+
+// ── Tested-with section (kind=skill only) ──────────────────────
+//
+// Lists every consumer that has declared an attestation against this
+// skill (i.e. has run its integration test against one or more
+// versions). Distinct from ConsumersSection — that one shows everyone
+// who *imports* the skill; this one shows everyone who has actually
+// validated their integration. Hidden entirely when there are no
+// attestations (empty box would be noise on a fresh skill).
+//
+// Each row resolves the consumer's display_name via getRepo() so we
+// show a friendly label instead of the slug. Failures fall back to
+// the slug — no UI error state, just degrade quietly.
+
+type EnrichedAttestation = Attestation & {
+  consumer_display_name?: string;
+  consumer_owner_sub?: string;
+  consumer_name?: string;
+};
+
+function TestedWithSection({ repo }: { repo: RepoT }) {
+  const [attestations, setAttestations] = useState<EnrichedAttestation[] | null>(null);
+
+  useEffect(() => {
+    setAttestations(null);
+    let cancelled = false;
+    (async () => {
+      const raw = await listAttestations(repo.owner_sub, repo.name).catch(() => [] as Attestation[]);
+      // Resolve display_name per attestation in parallel. Failures
+      // fall through with no display_name; we'll render the slug.
+      const enriched = await Promise.all(raw.map(async (a) => {
+        const [ownerSub, consumerName] = a.repo.split("/", 2);
+        if (!ownerSub || !consumerName) return { ...a } as EnrichedAttestation;
+        const cr = await getRepo(ownerSub, consumerName).catch(() => null);
+        return {
+          ...a,
+          consumer_display_name: cr?.display_name,
+          consumer_owner_sub: ownerSub,
+          consumer_name: consumerName,
+        } as EnrichedAttestation;
+      }));
+      if (!cancelled) setAttestations(enriched);
+    })();
+    return () => { cancelled = true; };
+  }, [repo.owner_sub, repo.name]);
+
+  if (attestations === null) return null;     // suppress flicker while loading
+  if (attestations.length === 0) return null; // empty state: hide entirely
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-sm font-semibold text-gray-900">
+          Tested with {attestations.length} consumer{attestations.length === 1 ? "" : "s"}
+        </h2>
+        <span className="text-[11px] text-gray-500">
+          declared integration attestations
+        </span>
+      </div>
+      <ul className="flex flex-col gap-2">
+        {attestations.map((a) => (
+          <AttestationRow key={a.repo} att={a} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function AttestationRow({ att }: { att: EnrichedAttestation }) {
+  const ownerSub = att.consumer_owner_sub
+    || att.repo.split("/", 2)[0]
+    || "";
+  const consumerName = att.consumer_name
+    || att.repo.split("/", 2)[1]
+    || att.repo;
+  const label = att.consumer_display_name || consumerName;
+  const href = ownerSub && consumerName ? `/${enc(ownerSub)}/${enc(consumerName)}` : "#";
+
+  return (
+    <li className="rounded-lg border border-gray-200 px-3 py-2 hover:border-soul-300 transition-colors">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 min-w-0">
+          <Link
+            to={href}
+            className="text-sm font-medium text-gray-900 hover:text-soul-400 truncate"
+            title={att.repo}
+          >
+            {label}
+          </Link>
+          <StatusPill status={att.status} />
+        </div>
+        <div className="text-[11px] text-gray-500 shrink-0" title={att.last_run}>
+          {formatRelative(att.last_run)}
+        </div>
+      </div>
+      <div className="mt-1 flex items-center gap-1.5 flex-wrap text-[11px]">
+        <span className="text-gray-500 mr-1">tested:</span>
+        {att.versions.length === 0 ? (
+          <span className="text-gray-400 italic">none</span>
+        ) : (
+          att.versions.map((v) => (
+            <span
+              key={v}
+              className={`px-1.5 py-0.5 rounded font-mono ${
+                v === att.current_version
+                  ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                  : "bg-gray-100 text-gray-700"
+              }`}
+              title={v === att.current_version ? "currently pinned" : undefined}
+            >
+              {v}
+            </span>
+          ))
+        )}
+        {att.is_stale && att.current_version && (
+          <span
+            className="ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 font-mono"
+            title={`Currently pinned ${att.current_version} — not in tested list`}
+          >
+            stale ↑ {att.current_version}
+          </span>
+        )}
+      </div>
+    </li>
+  );
+}
+
+function StatusPill({ status }: { status: Attestation["status"] }) {
+  const styles =
+    status === "pass" ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+    : status === "fail" ? "bg-rose-100 text-rose-800 border border-rose-200"
+    : "bg-gray-100 text-gray-600 border border-gray-200";
+  return (
+    <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded ${styles}`}>
+      {status}
+    </span>
   );
 }
 
