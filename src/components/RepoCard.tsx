@@ -1,5 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import type { Repo } from "../api/client";
+import { AuthorBadge } from "./AuthorBadge";
+import { isRepoTaggedDeprecated } from "./DeprecationBanner";
 
 const KIND_GLYPH: Record<string, string> = {
   app: "⁂",
@@ -19,6 +21,7 @@ export function RepoCard({ repo }: { repo: Repo }) {
   const nav = useNavigate();
   const { owner_sub, name, display_name, summary, tags, stars, forks, kind, fork_of } = repo;
   const ownerShort = owner_sub.slice(0, 8);
+  const deprecated = isRepoTaggedDeprecated(tags);
 
   const openRepo = () =>
     nav(`/${encodeURIComponent(owner_sub)}/${encodeURIComponent(name)}`);
@@ -43,6 +46,15 @@ export function RepoCard({ repo }: { repo: Repo }) {
             <span className="font-mono lowercase">{kind}</span>
             {fork_of && (
               <span className="text-spirit-300/70">· fork</span>
+            )}
+            <AuthorBadge owner_sub={owner_sub} />
+            {deprecated && (
+              <span
+                title="This repo is deprecated"
+                className="inline-flex items-center text-[10px] uppercase tracking-wider rounded-full border border-amber-300 bg-amber-50 text-amber-800 px-1.5 py-0.5"
+              >
+                deprecated
+              </span>
             )}
           </div>
           <div className="mt-0.5 text-base font-semibold text-gray-900 truncate">

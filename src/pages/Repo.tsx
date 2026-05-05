@@ -57,6 +57,8 @@ import {
   type Visibility,
 } from "../api/client";
 import { Markdown } from "../components/Markdown";
+import { AuthorBadge } from "../components/AuthorBadge";
+import { RepoDeprecationBanner } from "../components/DeprecationBanner";
 
 type Tab = "code" | "commits" | "branches" | "pulls" | "community"
          | "forks" | "settings";
@@ -159,6 +161,12 @@ export function Repo() {
 
   return (
     <Shell me={me}>
+      <RepoDeprecationBanner
+        owner_sub={repo.owner_sub}
+        name={repo.name}
+        head_ref={repo.head_ref}
+        kind={repo.kind}
+      />
       <RepoHeader repo={repo} me={me} isOwner={isOwner} onChange={setRepo} />
 
       <div className="mt-8 border-b border-gray-200 flex gap-6 overflow-x-auto">
@@ -281,6 +289,7 @@ function RepoHeader({
         </Link>
         <span>/</span>
         <span className="text-gray-900 font-semibold">{repo.name}</span>
+        <AuthorBadge owner_sub={repo.owner_sub} size="header" className="ml-1" />
         {repo.visibility === "private" && (
           <span className="ml-2 text-[10px] uppercase tracking-wider text-atokirina-400">private</span>
         )}
