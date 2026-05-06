@@ -9,8 +9,6 @@ import { createRepo, type RepoKind, type Visibility } from "../api/client";
 const KINDS: { id: RepoKind; label: string; glyph: string; blurb: string }[] = [
   { id: "app", glyph: "⁂", label: "Application",
     blurb: "Domain goal + roles + autoresearch loops + skill / dataset references. The whole composition." },
-  { id: "autoresearch", glyph: "↻", label: "AutoResearch",
-    blurb: "A standalone loop template — workflow steps an app can pull in and bind with concrete skills + knowledge." },
   { id: "agent", glyph: "❋", label: "Agentic KG — memory snapshot",
     blurb: "Published bank.jsonl + bandit.json + config.json. Seed an app's knowledge agent with someone else's accumulated wisdom." },
   { id: "skill", glyph: "⌘", label: "Agentic KG — skill",
@@ -18,6 +16,11 @@ const KINDS: { id: RepoKind; label: string; glyph: string; blurb: string }[] = [
   { id: "dataset", glyph: "▤", label: "Dataset",
     blurb: "A versioned data asset — cases, baselines, snapshots. Loops pin a version for reproducibility." },
 ];
+
+// `autoresearch` was a 5th kind in xp.io 0.2 (a standalone loop template).
+// Retired in 0.3: every loop now lives inside an Application's xpcloud.yaml
+// as a loops[] entry. The AutoResearch marketspace tab still exists; it
+// aggregates loops from kind=app rather than reading standalone repos.
 
 export function NewRepo() {
   const nav = useNavigate();
