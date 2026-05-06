@@ -378,10 +378,10 @@ function RepoHeader({
           )}
           {repo.kind === "app" && (
             <a
-              href={`https://lum.id/auth/account/skills/new?app=${encodeURIComponent(repo.name)}`}
+              href={`https://lum.id/dashboard/skills/new?app=${encodeURIComponent(repo.name)}`}
               target="_blank"
               rel="noreferrer"
-              title="Draft a new skill prefilled to import into this app"
+              title="Draft a new skill prefilled to import into this app (sign in to lum.id required)"
               className="px-2.5 py-1 text-xs rounded-md border border-gray-300 text-bark-300 hover:border-soul-400 hover:bg-gray-50 transition-colors"
             >
               <span className="text-soul-400 mr-1">+</span>
