@@ -35,11 +35,13 @@ export function Profile() {
   const initials = owner.slice(0, 2).toUpperCase();
   const shortSub = owner.length > 12 ? owner.slice(0, 12) + "…" : owner;
 
+  // The autoresearch repo kind was retired in xp.io 0.3 — every loop
+  // now lives inside an app's manifest. The standalone counter is gone.
   const byKind = {
     app: repos?.filter((r) => r.kind === "app").length ?? 0,
-    autoresearch: repos?.filter((r) => r.kind === "autoresearch").length ?? 0,
     agent: repos?.filter((r) => r.kind === "agent").length ?? 0,
     skill: repos?.filter((r) => r.kind === "skill").length ?? 0,
+    dataset: repos?.filter((r) => r.kind === "dataset").length ?? 0,
   };
   const totalStars = repos?.reduce((a, r) => a + (r.stars || 0), 0) ?? 0;
 
@@ -128,13 +130,13 @@ export function Profile() {
               <span className="text-soul-300 mr-1">⁂</span> {byKind.app} app{byKind.app === 1 ? "" : "s"}
             </span>
             <span className="border border-gray-200 rounded-full px-3 py-1">
-              <span className="text-soul-300 mr-1">⋯</span> {byKind.autoresearch} autoresearch
-            </span>
-            <span className="border border-gray-200 rounded-full px-3 py-1">
               <span className="text-soul-300 mr-1">❋</span> {byKind.agent} agentic kg
             </span>
             <span className="border border-gray-200 rounded-full px-3 py-1">
               <span className="text-soul-300 mr-1">⌘</span> {byKind.skill} skill{byKind.skill === 1 ? "" : "s"}
+            </span>
+            <span className="border border-gray-200 rounded-full px-3 py-1">
+              <span className="text-soul-300 mr-1">▤</span> {byKind.dataset} dataset{byKind.dataset === 1 ? "" : "s"}
             </span>
           </div>
         )}

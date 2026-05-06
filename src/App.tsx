@@ -1,13 +1,19 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { Agents } from "./pages/Agents";
+import { Apps } from "./pages/Apps";
 import { AuthCallback } from "./pages/AuthCallback";
 import { DashboardLayout } from "./pages/Dashboard";
 import { DashboardRepos } from "./pages/DashboardRepos";
+import { Datasets } from "./pages/Datasets";
 import { Explore } from "./pages/Explore";
+import { Learn } from "./pages/Learn";
 import { Marketspace } from "./pages/Marketspace";
 import { NewRepo } from "./pages/NewRepo";
 import { Overview } from "./pages/Overview";
 import { Profile } from "./pages/Profile";
 import { Repo } from "./pages/Repo";
+import { SearchResults } from "./pages/SearchResults";
+import { Skills } from "./pages/Skills";
 
 export default function App() {
   return (
@@ -16,6 +22,20 @@ export default function App() {
         {/* Landing = public marketspace (anon browse). Sign-in only on actions. */}
         <Route path="/" element={<Marketspace />} />
         <Route path="/explore" element={<Explore />} />
+        <Route path="/learn" element={<Learn />} />
+
+        {/* Phase 2 marketspace category landings — kind-scoped browses
+            that share the <KindBrowse> shell. /marketspace stays as the
+            multi-kind view above. */}
+        <Route path="/apps" element={<Apps />} />
+        <Route path="/skills" element={<Skills />} />
+        <Route path="/datasets" element={<Datasets />} />
+        <Route path="/agents" element={<Agents />} />
+
+        {/* Marketspace-wide search results page (anonymous; reads
+            ?q + ?kind from the URL). Distinct from the in-page search
+            box on /; this hits the dedicated /api/v1/repos/search endpoint. */}
+        <Route path="/search" element={<SearchResults />} />
 
         {/* Auth + dashboard */}
         <Route path="/auth/callback" element={<AuthCallback />} />

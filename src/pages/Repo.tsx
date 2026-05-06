@@ -21,9 +21,11 @@ import {
   getWatchers,
   initiateTransfer,
   isUnauthorized,
+  listAttestations,
   listBranches,
   listCollaborators,
   listCommits,
+  listConsumers,
   listContributors,
   listDiscussions,
   listForks,
@@ -38,10 +40,12 @@ import {
   starRepo,
   toggleWatch,
   whoami,
+  type Attestation,
   type Branch,
   type Collaborator,
   type CollaboratorRole,
   type Commit,
+  type Consumer,
   type Contributor,
   type Discussion,
   type DiscussionSummary,
@@ -55,6 +59,9 @@ import {
   type Visibility,
 } from "../api/client";
 import { Markdown } from "../components/Markdown";
+import { AuthorBadge } from "../components/AuthorBadge";
+import { RepoDeprecationBanner } from "../components/DeprecationBanner";
+import { DisagreementMatrixForRepo } from "../components/DisagreementMatrix";
 
 type Tab = "code" | "commits" | "branches" | "pulls" | "community"
          | "forks" | "settings";
@@ -157,6 +164,12 @@ export function Repo() {
 
   return (
     <Shell me={me}>
+      <RepoDeprecationBanner
+        owner_sub={repo.owner_sub}
+        name={repo.name}
+        head_ref={repo.head_ref}
+        kind={repo.kind}
+      />
       <RepoHeader repo={repo} me={me} isOwner={isOwner} onChange={setRepo} />
 
       <div className="mt-8 border-b border-gray-200 flex gap-6 overflow-x-auto">
@@ -279,6 +292,7 @@ function RepoHeader({
         </Link>
         <span>/</span>
         <span className="text-gray-900 font-semibold">{repo.name}</span>
+        <AuthorBadge owner_sub={repo.owner_sub} size="header" className="ml-1" />
         {repo.visibility === "private" && (
           <span className="ml-2 text-[10px] uppercase tracking-wider text-atokirina-400">private</span>
         )}
@@ -326,6 +340,16 @@ function RepoHeader({
               {repo.stars}
             </span>
           </button>
+          <span
+            title="Total installs (incremented by `/lumid app install`)"
+            className="px-2.5 py-1 text-xs rounded-md border border-gray-200 text-bark-300 inline-flex items-center"
+          >
+            <span className="text-soul-400 mr-1">↓</span>
+            Installs{" "}
+            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-700 tabular-nums">
+              {repo.downloads ?? 0}
+            </span>
+          </span>
           {!isOwner && (
             <button
               disabled={busy}
@@ -339,6 +363,30 @@ function RepoHeader({
                 </span>
               )}
             </button>
+          )}
+          {isOwner && (
+            <a
+              href={`https://lum.id/auth/account/dashboard?app=${encodeURIComponent(repo.name)}`}
+              target="_blank"
+              rel="noreferrer"
+              title="Open the lum.id authoring dashboard for this app (Phase 3 will swap in an in-place editor)"
+              className="px-2.5 py-1 text-xs rounded-md border border-gray-300 text-bark-300 hover:border-soul-400 hover:bg-gray-50 transition-colors"
+            >
+              <span className="text-soul-400 mr-1">✎</span>
+              Edit
+            </a>
+          )}
+          {repo.kind === "app" && (
+            <a
+              href={`https://lum.id/dashboard/skills/new?app=${encodeURIComponent(repo.name)}`}
+              target="_blank"
+              rel="noreferrer"
+              title="Draft a new skill prefilled to import into this app (sign in to lum.id required)"
+              className="px-2.5 py-1 text-xs rounded-md border border-gray-300 text-bark-300 hover:border-soul-400 hover:bg-gray-50 transition-colors"
+            >
+              <span className="text-soul-400 mr-1">+</span>
+              Add skill draft
+            </a>
           )}
         </div>
       </div>
@@ -366,13 +414,11 @@ function KindCard({ repo }: { repo: RepoT }) {
     // neither exists the card just stays collapsed.
     (async () => {
       const branch = repo.head_ref || "main";
-      const tryFiles = repo.kind === "autoresearch"
-        ? ["manifest.json", "manifest.yaml", "autoresearch.yaml", "xpcloud.yaml"]
-        : repo.kind === "skill"
-          ? ["manifest.json", "manifest.yaml", "SKILL.md"]
-          : repo.kind === "dataset"
-            ? ["manifest.json", "manifest.yaml", "dataset.yaml", "xpcloud.yaml"]
-            : ["manifest.json", "manifest.yaml", "xpcloud.yaml"];
+      const tryFiles = repo.kind === "skill"
+        ? ["manifest.json", "manifest.yaml", "SKILL.md"]
+        : repo.kind === "dataset"
+          ? ["manifest.json", "manifest.yaml", "dataset.yaml", "xpcloud.yaml"]
+          : ["manifest.json", "manifest.yaml", "xpcloud.yaml"];
       for (const f of tryFiles) {
         try {
           const blob = await getBlob(repo.owner_sub, repo.name, branch, f);
@@ -446,12 +492,6 @@ function KindCard({ repo }: { repo: RepoT }) {
         ? String((manifest.loops[0] as any)?.name || 1)
         : `${manifest.loops.length} loops`]);
     }
-  } else if (repo.kind === "autoresearch") {
-    if (manifest.schedule) pills.push(["schedule", String(manifest.schedule)]);
-    if (Array.isArray(manifest.skills)) {
-      pills.push(["skills", manifest.skills.join(" · ")]);
-    }
-    if (manifest.domain) pills.push(["domain", String(manifest.domain)]);
   } else if (repo.kind === "agent") {
     pills.push(["kind", "knowledge bundle"]);
     if (manifest.agent_id) pills.push(["agent", String(manifest.agent_id)]);
@@ -567,7 +607,12 @@ function CodeTab({ repo, branch, path, isOwner }: {
 
   const readmeEntry = entries?.find((e) => e.name.toLowerCase() === "readme.md" && e.type === "blob");
 
+  // Show overview-only sections (consumers, disagreement) when this is
+  // the top-level Code view — i.e. no sub-path is being browsed.
+  const isOverview = !path;
+
   return (
+    <div className="space-y-6">
     <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr] gap-6">
       <div>
         <div className="mb-3 flex items-center gap-2 flex-wrap">
@@ -635,8 +680,219 @@ function CodeTab({ repo, branch, path, isOwner }: {
         )}
       </div>
     </div>
+    {isOverview && repo.kind === "skill" && <TestedWithSection repo={repo} />}
+    {isOverview && repo.kind === "skill" && <ConsumersSection repo={repo} />}
+    {isOverview && repo.kind === "app" && <DisagreementMatrixForRepo repo={repo} branch={branch} />}
+    </div>
   );
 }
+
+// ── Tested-with section (kind=skill only) ──────────────────────
+//
+// Lists every consumer that has declared an attestation against this
+// skill (i.e. has run its integration test against one or more
+// versions). Distinct from ConsumersSection — that one shows everyone
+// who *imports* the skill; this one shows everyone who has actually
+// validated their integration. Hidden entirely when there are no
+// attestations (empty box would be noise on a fresh skill).
+//
+// Each row resolves the consumer's display_name via getRepo() so we
+// show a friendly label instead of the slug. Failures fall back to
+// the slug — no UI error state, just degrade quietly.
+
+type EnrichedAttestation = Attestation & {
+  consumer_display_name?: string;
+  consumer_owner_sub?: string;
+  consumer_name?: string;
+};
+
+function TestedWithSection({ repo }: { repo: RepoT }) {
+  const [attestations, setAttestations] = useState<EnrichedAttestation[] | null>(null);
+
+  useEffect(() => {
+    setAttestations(null);
+    let cancelled = false;
+    (async () => {
+      const raw = await listAttestations(repo.owner_sub, repo.name).catch(() => [] as Attestation[]);
+      // Resolve display_name per attestation in parallel. Failures
+      // fall through with no display_name; we'll render the slug.
+      const enriched = await Promise.all(raw.map(async (a) => {
+        const [ownerSub, consumerName] = a.repo.split("/", 2);
+        if (!ownerSub || !consumerName) return { ...a } as EnrichedAttestation;
+        const cr = await getRepo(ownerSub, consumerName).catch(() => null);
+        return {
+          ...a,
+          consumer_display_name: cr?.display_name,
+          consumer_owner_sub: ownerSub,
+          consumer_name: consumerName,
+        } as EnrichedAttestation;
+      }));
+      if (!cancelled) setAttestations(enriched);
+    })();
+    return () => { cancelled = true; };
+  }, [repo.owner_sub, repo.name]);
+
+  if (attestations === null) return null;     // suppress flicker while loading
+  if (attestations.length === 0) return null; // empty state: hide entirely
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-sm font-semibold text-gray-900">
+          Tested with {attestations.length} consumer{attestations.length === 1 ? "" : "s"}
+        </h2>
+        <span className="text-[11px] text-gray-500">
+          declared integration attestations
+        </span>
+      </div>
+      <ul className="flex flex-col gap-2">
+        {attestations.map((a) => (
+          <AttestationRow key={a.repo} att={a} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function AttestationRow({ att }: { att: EnrichedAttestation }) {
+  const ownerSub = att.consumer_owner_sub
+    || att.repo.split("/", 2)[0]
+    || "";
+  const consumerName = att.consumer_name
+    || att.repo.split("/", 2)[1]
+    || att.repo;
+  const label = att.consumer_display_name || consumerName;
+  const href = ownerSub && consumerName ? `/${enc(ownerSub)}/${enc(consumerName)}` : "#";
+
+  return (
+    <li className="rounded-lg border border-gray-200 px-3 py-2 hover:border-soul-300 transition-colors">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 min-w-0">
+          <Link
+            to={href}
+            className="text-sm font-medium text-gray-900 hover:text-soul-400 truncate"
+            title={att.repo}
+          >
+            {label}
+          </Link>
+          <StatusPill status={att.status} />
+        </div>
+        <div className="text-[11px] text-gray-500 shrink-0" title={att.last_run}>
+          {formatRelative(att.last_run)}
+        </div>
+      </div>
+      <div className="mt-1 flex items-center gap-1.5 flex-wrap text-[11px]">
+        <span className="text-gray-500 mr-1">tested:</span>
+        {att.versions.length === 0 ? (
+          <span className="text-gray-400 italic">none</span>
+        ) : (
+          att.versions.map((v) => (
+            <span
+              key={v}
+              className={`px-1.5 py-0.5 rounded font-mono ${
+                v === att.current_version
+                  ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                  : "bg-gray-100 text-gray-700"
+              }`}
+              title={v === att.current_version ? "currently pinned" : undefined}
+            >
+              {v}
+            </span>
+          ))
+        )}
+        {att.is_stale && att.current_version && (
+          <span
+            className="ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 font-mono"
+            title={`Currently pinned ${att.current_version} — not in tested list`}
+          >
+            stale ↑ {att.current_version}
+          </span>
+        )}
+      </div>
+    </li>
+  );
+}
+
+function StatusPill({ status }: { status: Attestation["status"] }) {
+  const styles =
+    status === "pass" ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+    : status === "fail" ? "bg-rose-100 text-rose-800 border border-rose-200"
+    : "bg-gray-100 text-gray-600 border border-gray-200";
+  return (
+    <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded ${styles}`}>
+      {status}
+    </span>
+  );
+}
+
+// ── Consumers section (kind=skill only) ─────────────────────────
+//
+// Reverse-resolves who imports this skill via the public
+// `/repos/{o}/{n}/consumers` endpoint. Hidden silently while loading
+// and on errors; the empty state still renders so authors get
+// affirmative feedback that nobody has wired their skill in yet.
+
+function ConsumersSection({ repo }: { repo: RepoT }) {
+  const [consumers, setConsumers] = useState<Consumer[] | null>(null);
+
+  useEffect(() => {
+    setConsumers(null);
+    listConsumers(repo.owner_sub, repo.name)
+      .then(setConsumers)
+      .catch(() => setConsumers([]));
+  }, [repo.owner_sub, repo.name]);
+
+  if (consumers === null) return null;  // suppress flicker while loading
+
+  const count = consumers.length;
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-sm font-semibold text-gray-900">
+          Consumed by {count} app{count === 1 ? "" : "s"}
+        </h2>
+        <span className="text-[11px] text-gray-500">
+          public apps that import this skill
+        </span>
+      </div>
+      {count === 0 ? (
+        <div className="text-sm text-gray-500">No public consumers yet.</div>
+      ) : (
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {consumers.map((c) => {
+            const slug = `${c.owner_sub}/${c.name}`;
+            return (
+              <li key={slug}>
+                <Link
+                  to={`/${enc(c.owner_sub)}/${enc(c.name)}`}
+                  className="block rounded-lg border border-gray-200 hover:border-soul-300 transition-colors px-3 py-2"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-gray-900 truncate">
+                      <span className="text-soul-400/60 mr-1">
+                        {KIND_GLYPH[c.kind] || "◦"}
+                      </span>
+                      {c.display_name || c.name}
+                    </span>
+                    {c.version && (
+                      <span className="text-[10px] text-gray-500 font-mono shrink-0">
+                        @{c.version}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-gray-500 font-mono truncate">
+                    {c.kind} · {slug}
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 
 function BranchPicker({
   repo, branches, branch, path,

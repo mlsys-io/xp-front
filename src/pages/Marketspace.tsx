@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  listRepos, listMarketspaceLoops, logout, whoami,
+  listRepos, whoami,
   type Repo, type RepoKind, type Me, type MarketspaceLoop,
 } from "../api/client";
+import { Header } from "../components/Header";
 import { RepoCard } from "../components/RepoCard";
 
 // "agentic_kg" is a virtual tab id — not a real kind enum value;
@@ -13,9 +14,9 @@ type KindTab = "" | RepoKind | "agentic_kg";
 // Two top-level peers — Application (which contains its own loops and
 // dataset pins) and Agentic KG (memory snapshots + procedural skills).
 // AutoResearch loops live INSIDE applications (browsable from an app's
-// detail page); standalone autoresearch repos are still creatable but
-// surface in the All tab. Datasets are typically pinned by a loop and
-// followed via the application's "depends on" links.
+// detail page); the standalone kind=autoresearch repo type was retired
+// in xp.io 0.3. Datasets are typically pinned by a loop and followed
+// via the application's "depends on" links.
 const TABS: { id: KindTab | "agentic_kg"; label: string }[] = [
   { id: "", label: "◎ All" },
   { id: "app", label: "⁂ Applications" },
@@ -85,41 +86,7 @@ export function Marketspace() {
 
   return (
     <div className="min-h-screen">
-      {/* Top nav */}
-      <nav className="flex items-center justify-between px-8 py-5 border-b border-gray-200">
-        <Link to="/" className="text-soul-300 font-display tracking-[0.35em] text-sm">
-          <span className="w-1.5 h-1.5 inline-block align-middle rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul mr-3" />
-          xp.io
-        </Link>
-        <div className="flex items-center gap-4 text-xs">
-          <a
-            href="https://lum.id"
-            className="text-gray-500 hover:text-soul-300 transition-colors"
-            title="The Lumid ecosystem — xp.io is the marketspace tier"
-          >
-            ← lum.id
-          </a>
-          {me ? (
-            <>
-              <Link to="/new" className="text-soul-300 hover:text-soul-400 transition-colors">
-                + new
-              </Link>
-              <Link
-                to={`/${encodeURIComponent(me.sub)}`}
-                className="text-gray-700 hover:text-soul-300 transition-colors"
-              >
-                profile
-              </Link>
-              <Link to="/dashboard" className="text-gray-700 hover:text-soul-300 transition-colors">
-                dashboard
-              </Link>
-              <SignOutLink />
-            </>
-          ) : (
-            <SignInLink variant="primary" />
-          )}
-        </div>
-      </nav>
+      <Header variant="marketspace" />
 
       <main className="mx-auto max-w-6xl px-8 py-10">
         <header className="text-center mb-8">
@@ -134,7 +101,7 @@ export function Marketspace() {
           </p>
           {!me && (
             <div className="mt-5 flex items-center justify-center gap-4 flex-wrap">
-              <SignInLink variant="hero" />
+              <HeroSignIn />
               <span className="text-xs text-gray-500">
                 or keep browsing anon
               </span>
@@ -150,6 +117,18 @@ export function Marketspace() {
             placeholder="search repos, tags, descriptions…"
             className="w-full bg-gray-50 border border-gray-200 rounded-full px-5 py-2.5 text-sm text-bark-300 placeholder:text-gray-500 focus:outline-none focus:border-gray-300 transition-colors"
           />
+        </div>
+
+        {/* Phase 2 — kind-scoped landing-page links. The marketspace
+            tabs above are quick filters on this page; these go to
+            dedicated /apps, /skills, /datasets, /agents pages with
+            tag-chip filtering and richer header copy. */}
+        <div className="flex items-center justify-center gap-4 flex-wrap text-[11px] uppercase tracking-widest text-gray-500 mb-3">
+          <span>Browse by kind:</span>
+          <Link to="/apps" className="hover:text-soul-300 transition-colors">⁂ apps</Link>
+          <Link to="/skills" className="hover:text-soul-300 transition-colors">⌘ skills</Link>
+          <Link to="/datasets" className="hover:text-soul-300 transition-colors">▤ datasets</Link>
+          <Link to="/agents" className="hover:text-soul-300 transition-colors">❋ agents</Link>
         </div>
 
         {/* Tabs + sort */}
@@ -316,9 +295,10 @@ function ModelToggle() {
   );
 }
 
-// Compact card for a single autoresearch loop — works whether the loop
-// ships standalone (kind=autoresearch repo) or lives inside a published
-// app's manifest. Click takes you to the host repo so you can read the
+// Compact card for a single autoresearch loop — every loop now lives
+// inside a published app's manifest (the standalone kind=autoresearch
+// repo type was retired in xp.io 0.3, so `loop.source` is always
+// "in_app"). Click takes you to the host repo so you can read the
 // full spec / install / fork.
 function LoopCard({ loop }: { loop: MarketspaceLoop }) {
   const repoHref = `/${encodeURIComponent(loop.repo_owner)}/${encodeURIComponent(loop.repo_name)}`;
@@ -329,12 +309,8 @@ function LoopCard({ loop }: { loop: MarketspaceLoop }) {
     >
       <div className="flex items-start justify-between gap-2">
         <span className="text-sm font-semibold text-gray-900">↻ {loop.display_name}</span>
-        <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded ${
-          loop.source === "standalone"
-            ? "bg-soul-100 text-soul-700"
-            : "bg-gray-100 text-gray-600"
-        }`}>
-          {loop.source === "standalone" ? "template" : `in ${loop.repo_name}`}
+        <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+          in {loop.repo_name}
         </span>
       </div>
       {loop.summary && (
@@ -352,53 +328,21 @@ function LoopCard({ loop }: { loop: MarketspaceLoop }) {
   );
 }
 
-function SignOutLink() {
-  return (
-    <button
-      onClick={async () => {
-        try { await logout(); } catch { /* ignore; cookie is cleared server-side */ }
-        // Land back on the public marketspace, signed out.
-        window.location.href = "/";
-      }}
-      className="text-gray-700 hover:text-atokirina-400 transition-colors uppercase tracking-widest text-[11px]"
-    >
-      sign out
-    </button>
-  );
-}
-
-function SignInLink({ variant = "nav" }: { variant?: "nav" | "primary" | "hero" }) {
+// Big "sign in with lum.id" pill rendered in the marketspace hero.
+// Distinct visual weight from the nav's sign-in (Header component) so
+// the page has a clear primary CTA when the visitor is anonymous.
+function HeroSignIn() {
   const onClick = async () => {
     const { beginLogin } = await import("../lib/pkce");
     await beginLogin();
   };
-  if (variant === "primary") {
-    return (
-      <button
-        onClick={onClick}
-        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-soul-400/15 border border-gray-300 text-soul-300 hover:bg-soul-400/25 hover:border-soul-400 transition-colors uppercase tracking-widest text-[11px]"
-      >
-        sign up · sign in
-      </button>
-    );
-  }
-  if (variant === "hero") {
-    return (
-      <button
-        onClick={onClick}
-        className="soul-ring inline-flex items-center gap-3 px-6 py-3 rounded-full bg-soul-400/20 border border-soul-400 text-soul-200 hover:text-bark-300 hover:bg-soul-400/30 transition-colors uppercase tracking-[0.25em] text-xs shadow-soul"
-      >
-        <span className="w-1.5 h-1.5 rounded-full bg-soul-400 animate-pulse-soul" />
-        sign in with lum.id
-      </button>
-    );
-  }
   return (
     <button
       onClick={onClick}
-      className="text-gray-700 hover:text-soul-300 transition-colors uppercase tracking-widest text-[11px]"
+      className="soul-ring inline-flex items-center gap-3 px-6 py-3 rounded-full bg-soul-400/20 border border-soul-400 text-soul-200 hover:text-bark-300 hover:bg-soul-400/30 transition-colors uppercase tracking-[0.25em] text-xs shadow-soul"
     >
-      sign in
+      <span className="w-1.5 h-1.5 rounded-full bg-soul-400 animate-pulse-soul" />
+      sign in with lum.id
     </button>
   );
 }

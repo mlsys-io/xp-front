@@ -38,7 +38,11 @@ export async function logout() {
 
 // ── Repos ────────────────────────────────────────────────────────
 
-export type RepoKind = "app" | "autoresearch" | "skill" | "agent" | "dataset";
+// `autoresearch` retired in xp.io 0.3 — every autoresearch loop now lives
+// inside an app's xpcloud.yaml. The AutoResearch marketspace tab still
+// exists; it aggregates loops from kind=app rather than reading standalone
+// repos.
+export type RepoKind = "app" | "skill" | "agent" | "dataset";
 export type Visibility = "public" | "private";
 
 export type Repo = {
@@ -49,9 +53,14 @@ export type Repo = {
   display_name: string;
   summary: string;
   tags: string[];
+  // Manifest-extracted version. Empty string when the repo has no
+  // xpcloud.yaml / pyproject / package.json with a `version`. Surfaced
+  // by the kind-landing pages so visitors can sort by it.
+  version?: string;
   fork_of: string | null;
   stars: number;
   forks: number;
+  downloads?: number;
   head_ref: string;
   head_sha: string;
   published_at: number;
@@ -103,18 +112,93 @@ export async function listRepos(params: ListReposParams = {}): Promise<Repo[]> {
   return (r.data?.repos || []) as Repo[];
 }
 
+/**
+ * Marketspace-wide search. Whitespace-tokenized query; all tokens must
+ * match somewhere in name/display_name/summary/tags. Anonymous (no auth).
+ * Default limit 20, max 100. Sorted server-side: exact-name match first,
+ * then display-name prefix, then arbitrary.
+ */
+export async function searchRepos(
+  params: { q: string; kind?: RepoKind | ""; limit?: number },
+): Promise<Repo[]> {
+  const r = await anonApi.get("/api/v1/repos/search", { params });
+  return (r.data?.repos || []) as Repo[];
+}
+
+// ── Consumers (reverse skill_imports lookup) ─────────────────────
+//
+// For kind=skill repos, return every public app whose manifest
+// declares this skill in `skill_imports[]`. Anonymous endpoint.
+
+export type Consumer = {
+  owner_sub: string;
+  name: string;
+  kind: RepoKind;
+  display_name: string;
+  version: string;
+};
+
+export async function listConsumers(
+  owner: string, name: string,
+): Promise<Consumer[]> {
+  try {
+    const r = await anonApi.get(
+      `/api/v1/repos/${enc(owner)}/${enc(name)}/consumers`,
+    );
+    return (r.data?.consumers || []) as Consumer[];
+  } catch (e) {
+    if (is404(e)) return [];
+    throw e;
+  }
+}
+
+// ── Attestations (tested_with) ────────────────────────────────────
+//
+// For kind=skill repos, returns every public consumer that has a
+// declared attestation (i.e. the consumer claims it has tested its
+// integration of this skill at one or more versions). Surfaced on the
+// skill's repo page so authors and visitors can see who is actively
+// validating the integration.
+
+export type AttestationStatus = "pass" | "fail" | "untested";
+
+export type Attestation = {
+  // `repo` is "owner_sub/name" of the consuming repo.
+  repo: string;
+  versions: string[];
+  status: AttestationStatus;
+  last_run: string;             // ISO-8601 timestamp
+  current_version: string;      // version the consumer currently pins
+  is_stale: boolean;            // true when current_version !∈ versions
+};
+
+export async function listAttestations(
+  owner: string, name: string,
+): Promise<Attestation[]> {
+  try {
+    const r = await anonApi.get(
+      `/api/v1/repos/${enc(owner)}/${enc(name)}/attestations`,
+    );
+    return (r.data?.attestations || []) as Attestation[];
+  } catch (e) {
+    if (is404(e)) return [];
+    throw e;
+  }
+}
+
 // ── AutoResearch marketspace aggregation ─────────────────────────
 //
-// The AutoResearch tab unions two sources: standalone kind=autoresearch
-// repos AND loops extracted from kind=app manifests. Surfacing every
-// loop independently is the moat — a researcher can browse loops
-// without first knowing which app hosts them.
+// The AutoResearch tab surfaces every loop from every published
+// kind=app. (The standalone kind=autoresearch repo type was retired
+// in xp.io 0.3.) Surfacing every loop independently is the moat — a
+// researcher can browse loops without first knowing which app hosts
+// them.
 
 export type MarketspaceLoop = {
-  source: "standalone" | "in_app";
+  source: "in_app";
   repo_owner: string;
   repo_name: string;
-  repo_kind: "app" | "autoresearch";
+  repo_kind: "app";
   loop_name: string;
   display_name: string;
   summary: string;

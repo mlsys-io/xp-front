@@ -19,16 +19,16 @@ export function Overview() {
 
   const counts = {
     app: repos?.filter((r) => r.kind === "app").length ?? 0,
-    autoresearch: repos?.filter((r) => r.kind === "autoresearch").length ?? 0,
     agent: repos?.filter((r) => r.kind === "agent").length ?? 0,
     skill: repos?.filter((r) => r.kind === "skill").length ?? 0,
+    dataset: repos?.filter((r) => r.kind === "dataset").length ?? 0,
   };
 
   const stats = [
     { value: counts.app, label: "apps", glyph: "⁂", dot: "bg-spirit-400", glow: "from-spirit-400/25", to: "/dashboard/repos" },
-    { value: counts.autoresearch, label: "autoresearch", glyph: "⋯", dot: "bg-soul-400", glow: "from-soul-400/25", to: "/dashboard/repos" },
     { value: counts.agent, label: "agentic kg", glyph: "❋", dot: "bg-atokirina-400", glow: "from-atokirina-400/25", to: "/dashboard/repos" },
     { value: counts.skill, label: "skills", glyph: "⌘", dot: "bg-spirit-400", glow: "from-spirit-400/25", to: "/dashboard/repos" },
+    { value: counts.dataset, label: "datasets", glyph: "▤", dot: "bg-soul-400", glow: "from-soul-400/25", to: "/dashboard/repos" },
   ];
 
   return (
