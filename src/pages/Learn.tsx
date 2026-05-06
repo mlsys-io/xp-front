@@ -1,7 +1,54 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AuthorBadge } from "../components/AuthorBadge";
 import { DeprecationBanner } from "../components/DeprecationBanner";
 import { Header } from "../components/Header";
+import {
+  DisagreementMatrix,
+  type DisagreementHit,
+  discoverDisagreement,
+} from "../components/DisagreementMatrix";
+
+// Live demo wrapper — points the matrix at mbb-ai's published cycle.
+const MBB_AI_OWNER = "ceba53d6-f253-4d22-803a-fdd1ba077626";
+const MBB_AI_NAME = "mbb-ai";
+const MBB_AI_BRANCH = "main";
+
+function MbbAiMatrixDemo() {
+  const [hit, setHit] = useState<DisagreementHit | null | "loading">("loading");
+
+  useEffect(() => {
+    let alive = true;
+    discoverDisagreement(MBB_AI_OWNER, MBB_AI_NAME, MBB_AI_BRANCH)
+      .then((h) => { if (alive) setHit(h); })
+      .catch(() => { if (alive) setHit(null); });
+    return () => { alive = false; };
+  }, []);
+
+  if (hit === "loading") {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-5 text-xs text-gray-500">
+        Loading the latest mbb-ai cycle artifact…
+      </div>
+    );
+  }
+  if (hit === null) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-5 text-xs text-gray-500">
+        No disagreement_bench.json found in mbb-ai's published bundle yet.
+      </div>
+    );
+  }
+  return (
+    <DisagreementMatrix
+      bench={hit.bench}
+      owner={MBB_AI_OWNER}
+      name={MBB_AI_NAME}
+      branch={MBB_AI_BRANCH}
+      filePath={hit.filePath}
+    />
+  );
+}
 
 /**
  * `/learn` — friendly onboarding page for first-time visitors.
@@ -209,19 +256,25 @@ export function Learn() {
             ensembling or whether one role is dominating. mbb-ai is
             the working reference.`}
         />
-        <div className="rounded-xl border border-gray-200 bg-night-800 p-5 mb-12">
-          <div className="text-[11px] uppercase tracking-widest text-gray-500 mb-2">
-            reference example
+        <div className="mb-12 space-y-2">
+          <div className="text-[11px] uppercase tracking-widest text-gray-500">
+            live demo — mbb-ai's most recent published cycle
           </div>
-          <Link
-            to="/ceba53d6-5f97-5d28-aef7-29e74a3a5adb/mbb-ai"
-            className="text-sm text-soul-300 hover:text-soul-400 underline-offset-2 hover:underline"
-          >
-            ceba53d6-…/mbb-ai
-          </Link>
-          <p className="mt-2 text-xs text-gray-600 leading-relaxed">
-            Open the app's detail page and scroll to the cycle
-            artifacts section — each cycle's matrix is one click away.
+          <MbbAiMatrixDemo />
+          <p className="text-xs text-gray-600 leading-relaxed">
+            This is the actual matrix from{" "}
+            <Link
+              to={`/${MBB_AI_OWNER}/${MBB_AI_NAME}`}
+              className="text-soul-300 hover:text-soul-400 underline-offset-2 hover:underline"
+            >
+              {MBB_AI_OWNER.slice(0, 8)}…/{MBB_AI_NAME}
+            </Link>
+            's bundle on xp.io — Q-types as rows, disagreement-flag
+            types as columns, cell brightness scales with the
+            count. The columns reorder by total count, so the
+            busiest column is leftmost: that's the methodology gap
+            the LLM-as-judge alone would have hidden. Click "Download
+            artifact" on the heatmap to grab the raw JSON.
           </p>
         </div>
 
