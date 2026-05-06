@@ -229,6 +229,21 @@ export function Learn() {
           </p>
         </div>
 
+        <SubHead>Compatibility attestations</SubHead>
+        <p className="text-gray-700 leading-relaxed mb-8">
+          Skill repos can publish a{" "}
+          <code className="bg-gray-100 px-1 rounded text-[12px]">tested_with[]</code>{" "}
+          block listing every consumer app and the versions known to
+          pass that consumer's regression suite. The compat runner
+          executes this on a sandboxed fresh HOME for every consumer
+          on every push, so the badges on a skill's repo page
+          ("✓ mbb-ai 0.6.2", "↑ stale on auto-quant") reflect the
+          actual current state of the catalog rather than a manual
+          claim. If the skill ships a new version and a downstream
+          consumer's tests fail, the row goes red on both repos at
+          once — you see the breakage before pulling the skill in.
+        </p>
+
         {/* 4. Dependency graph. */}
         <Section
           eyebrow="dependency graph"
@@ -243,18 +258,23 @@ export function Learn() {
             full chain before you install.`}
         />
 
-        {/* 5. Disagreement matrix. */}
+        {/* 5. Disagreement matrix + κ. */}
         <Section
           eyebrow="disagreement matrix"
-          title="Some apps publish a per-cycle disagreement heatmap."
-          body={`Bandit-arbitration-style apps (BAB) publish a JSON
-            artifact each cycle that scores how much each role
-            disagreed with the others on that round's decisions. The
-            UI renders it as a heatmap — diagonal is unanimous, bright
-            off-diagonal cells are where the roles split. It's the
-            best single signal for whether an ensemble is genuinely
-            ensembling or whether one role is dominating. mbb-ai is
-            the working reference.`}
+          title="Trust the score — when do the methods agree?"
+          body={`A single LLM judge can be confident and wrong. Apps
+            running in triangulation mode score the same answer along
+            multiple independent columns (LLM judge, programmatic
+            check, embedding match, structural rule, human audit) and
+            publish a per-cycle JSON artifact with the disagreement
+            cells flagged. The UI renders it as a heatmap below.
+            Bright off-diagonal cells are the cells worth looking at;
+            everything else is consensus. Apps that run multiple
+            judges also report Cohen's κ between every judge pair —
+            "agreed" (≥0.65) means the rubric is stable, "moderate"
+            (0.4–0.65) is a flag-for-audit band, "discordant" (<0.4)
+            means the rubric itself is unstable, not the candidate.
+            mbb-ai is the working reference.`}
         />
         <div className="mb-12 space-y-2">
           <div className="text-[11px] uppercase tracking-widest text-gray-500">
@@ -276,6 +296,54 @@ export function Learn() {
             the LLM-as-judge alone would have hidden. Click "Download
             artifact" on the heatmap to grab the raw JSON.
           </p>
+        </div>
+
+        {/* 5b. Authoring loop — Lumid Studio. */}
+        <Section
+          eyebrow="authoring"
+          title="The system proposes the next change. You review."
+          body={`Lumid Studio is the authoring layer that watches a
+            running app's cycles and drafts the change it thinks
+            should happen next — a new candidate skill, a tightened
+            judge prompt, a new rubric memo. Drafts come from three
+            sources: the cycle itself (validator gaps + insights
+            candidates + bandit signals), the human web form at
+            lum.id/dashboard/skills/new, and sub-agents inside Claude
+            Code. Each draft runs through draft → validate → review →
+            apply. The approval policy in the app's xpcloud.yaml says
+            which classes auto-apply, which stage for human review,
+            and which always force review (e.g. judge prompt edits in
+            a paper-grade benchmark).`}
+        />
+        <div className="rounded-xl border border-gray-200 bg-white p-5 mb-12 text-sm text-gray-700 leading-relaxed">
+          <p className="mb-2"><strong>The steady-state flow.</strong> After every cycle you wake up to drafts in your inbox: <em>"new skill: revenue_brainstorm"</em>, <em>"prompt edit: judge_score_qual.md"</em>, <em>"new memory: Q4 quantitative answers without ground-truth check should release before scoring"</em>. Open each, see the diff inline, edit if you want, click Approve. The next cycle picks up the patch.</p>
+          <p>Open <Link to="/dashboard/inbox" className="text-soul-300 hover:text-soul-400 underline-offset-2 hover:underline">your inbox</Link> for staged drafts, or <Link to="/dashboard/skills/new" className="text-soul-300 hover:text-soul-400 underline-offset-2 hover:underline">draft a skill from scratch</Link> when you have an idea before the AI's seen enough cycles to suggest one.</p>
+        </div>
+
+        {/* 5c. Cross-team knowledge primitives. */}
+        <Section
+          eyebrow="knowledge marketplace"
+          title="Memories move between teammates without copy-paste."
+          body={`Every published agent ships its memory bank with
+            provenance. Four CLI commands let you move memories
+            between people — by tag, by quality score, by recency,
+            by chain depth — without ever rewriting a JSON file.
+            Each imported memory remembers where it came from, so the
+            verification chain compounds rather than resets. As more
+            teams pull a memo in, its "verified by N agents" stat
+            climbs; the memos that prove themselves rise to the top
+            of every bandit ranking.`}
+        />
+        <div className="rounded-xl border border-gray-200 bg-night-800 p-5 mb-12 font-mono text-[12.5px] leading-relaxed">
+          <div className="text-gray-500"># import filtered memos from a teammate (one-shot, AND-filtered):</div>
+          <div className="text-gray-900">lumid xp merge ceba53d6-…/mbb-ai-judge mbb-ai-judge \</div>
+          <div className="text-gray-900 ml-6">--tag=rubric --min-bandit=0.7 --max=25</div>
+          <div className="mt-3 text-gray-500"># follow a teammate's bank (cursor-based — pulls only NEW memos as they're added):</div>
+          <div className="text-gray-900">lumid xp subscribe mbb-ai-judge ceba53d6-…/mbb-ai-judge</div>
+          <div className="mt-3 text-gray-500"># snapshot someone else's whole bank into a fresh agent (no filters, no overlap with yours):</div>
+          <div className="text-gray-900">lumid xp fork mbb-ai-judge-imported ceba53d6-…/mbb-ai-judge</div>
+          <div className="mt-3 text-gray-500"># inspect quality stats — verified-by counts, max chain depth, source breakdown:</div>
+          <div className="text-gray-900">lumid xp signals --agent mbb-ai-judge</div>
         </div>
 
         {/* 6. Install path. */}
