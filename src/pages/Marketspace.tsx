@@ -91,7 +91,7 @@ export function Marketspace() {
       <main className="mx-auto max-w-6xl px-8 py-10">
         <header className="text-center mb-8">
           <h1 className="text-3xl font-semibold text-gray-900">
-            The Marketspace
+            Marketplace for AutoResearch
           </h1>
           <p className="mt-2 text-sm text-gray-600 max-w-2xl mx-auto">
             Two things to browse: <strong>⁂ Applications</strong> (each
