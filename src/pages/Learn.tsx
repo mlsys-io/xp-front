@@ -344,6 +344,9 @@ export function Learn() {
           <div className="text-gray-900">lumid xp fork mbb-ai-judge-imported ceba53d6-…/mbb-ai-judge</div>
           <div className="mt-3 text-gray-500"># inspect quality stats — verified-by counts, max chain depth, source breakdown:</div>
           <div className="text-gray-900">lumid xp signals --agent mbb-ai-judge</div>
+          <div className="mt-3 text-gray-500"># find agent dirs on disk that aren't in the registry (orphans from older SDK versions or docker runs):</div>
+          <div className="text-gray-900">lumid xp scan-orphans            <span className="text-gray-500"># list-only</span></div>
+          <div className="text-gray-900">lumid xp scan-orphans --register <span className="text-gray-500"># bring them all back into the registry</span></div>
         </div>
 
         {/* 6. Install path. */}
