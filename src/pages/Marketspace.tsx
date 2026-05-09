@@ -57,16 +57,20 @@ export function Marketspace() {
 
   useEffect(() => {
     setLoading(true);
-    // Public marketspace hides forks — they duplicate upstream with no
-    // differentiating content. Forks are still discoverable via the
-    // upstream's header link and the user's own dashboard.
+    // Forks are included — most user apps are forks of a lumid-officials
+    // parent (mbb-ai ← ceba53d6/mbb-ai, auto-quant ← 70f192ce/auto-quant)
+    // and can be substantially diverged (e.g. mbb-ai is 4 patch commits
+    // ahead of upstream with the v0.6.5 audit fixes). Hiding them made
+    // the marketspace landing miss the apps that are actually being
+    // developed against this xpcloud. The fork badge on each card lets a
+    // visitor still walk back to the upstream parent.
     if (tab === "agentic_kg") {
       // Merge kind=agent (memory snapshots) + kind=skill (procedural
       // know-how). Both are flavors of knowledge — surface them
       // together under one tab. Sort the merged list client-side.
       Promise.all([
-        listRepos({ q, kind: "agent", sort: sort as any, limit: 60, include_forks: false }),
-        listRepos({ q, kind: "skill", sort: sort as any, limit: 60, include_forks: false }),
+        listRepos({ q, kind: "agent", sort: sort as any, limit: 60, include_forks: true }),
+        listRepos({ q, kind: "skill", sort: sort as any, limit: 60, include_forks: true }),
       ])
         .then(([a, s]) => {
           const merged = [...a, ...s];
@@ -77,7 +81,7 @@ export function Marketspace() {
         .finally(() => setLoading(false));
     } else {
       listRepos({ q, kind: tab as RepoKind | "", sort: sort as any, limit: 60,
-                  include_forks: false })
+                  include_forks: true })
         .then(setRepos)
         .catch(() => setRepos([]))
         .finally(() => setLoading(false));

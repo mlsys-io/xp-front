@@ -44,7 +44,12 @@ export function KindBrowse({ kind, glyph, title, blurb }: KindBrowseProps) {
 
   useEffect(() => {
     setLoading(true);
-    listRepos({ q, kind, sort: "name", limit: 120, include_forks: false })
+    // Forks are first-class on this landing. Most user apps are forks of
+    // a lumid-officials parent (mbb-ai → ceba53d6/mbb-ai, auto-quant →
+    // 70f192ce/auto-quant). Hiding them stripped /apps to ~1/3 of its
+    // real content (mbb-ai + auto-quant invisible). Profile.tsx has used
+    // include_forks:true since launch — bring kind landings into line.
+    listRepos({ q, kind, sort: "name", limit: 120, include_forks: true })
       .then(setRepos)
       .catch(() => setRepos([]))
       .finally(() => setLoading(false));
