@@ -68,6 +68,7 @@ export function DashboardLayout() {
           <nav className="flex-1 py-4 space-y-0.5">
             {link("/dashboard", "Overview", "◉")}
             {link("/dashboard/repos", "My repos", "◇")}
+            {link("/dashboard/inbox", "Inbox", "◈")}
             <NavLink
               to="/"
               className="group relative flex items-center gap-3 pl-6 pr-4 py-3 text-sm tracking-wide text-gray-700 hover:text-bark-300 transition-colors"

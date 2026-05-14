@@ -5,6 +5,7 @@ import { AuthCallback } from "./pages/AuthCallback";
 import { DashboardLayout } from "./pages/Dashboard";
 import { DashboardRepos } from "./pages/DashboardRepos";
 import { Datasets } from "./pages/Datasets";
+import { InboxPage } from "./pages/Inbox";
 import { Explore } from "./pages/Explore";
 import { Learn } from "./pages/Learn";
 import { Marketspace } from "./pages/Marketspace";
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Overview />} />
           <Route path="repos" element={<DashboardRepos />} />
+          <Route path="inbox" element={<InboxPage />} />
           {/* Legacy aliases — keep links from old docs working. */}
           <Route path="apps" element={<Navigate to="/dashboard/repos" replace />} />
           <Route path="research" element={<Navigate to="/dashboard/repos" replace />} />
