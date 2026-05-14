@@ -17,6 +17,43 @@ type MessagesResp = {
   unread: number;
 };
 
+type MessageGroup = {
+  key: string;
+  app: string;
+  loop: string;
+  latest: InboxMessage;
+  count: number;
+  unreadCount: number;
+  allIds: string[];
+};
+
+function groupMessages(messages: InboxMessage[]): MessageGroup[] {
+  const map = new Map<string, MessageGroup>();
+  for (const msg of messages) {
+    const key = `${msg.app}/${msg.loop}`;
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, {
+        key,
+        app: msg.app,
+        loop: msg.loop,
+        latest: msg,
+        count: 1,
+        unreadCount: msg.seen_at ? 0 : 1,
+        allIds: [msg.id],
+      });
+    } else {
+      existing.count++;
+      if (!msg.seen_at) existing.unreadCount++;
+      existing.allIds.push(msg.id);
+      // messages arrive newest-first; keep latest as the first seen per group
+    }
+  }
+  return Array.from(map.values()).sort(
+    (a, b) => b.latest.posted_at - a.latest.posted_at
+  );
+}
+
 function fmtAge(posted_at: number): string {
   const secs = Math.floor(Date.now() / 1000 - posted_at);
   if (secs < 120) return "just now";
@@ -33,12 +70,12 @@ function appGlyph(app: string): string {
   return "◉";
 }
 
-function appDot(app: string): string {
-  if (app.includes("ops")) return "bg-orange-400";
-  if (app.includes("quant") || app.includes("trading")) return "bg-soul-400";
-  if (app.includes("agent") || app.includes("personal")) return "bg-atokirina-400";
-  if (app.includes("mbb")) return "bg-spirit-400";
-  return "bg-bark-400";
+function appTextColor(app: string): string {
+  if (app.includes("ops")) return "text-orange-400";
+  if (app.includes("quant") || app.includes("trading")) return "text-soul-400";
+  if (app.includes("agent") || app.includes("personal")) return "text-atokirina-400";
+  if (app.includes("mbb")) return "text-spirit-400";
+  return "text-bark-400";
 }
 
 function DecisionBadge({ kind }: { kind: string }) {
@@ -49,9 +86,7 @@ function DecisionBadge({ kind }: { kind: string }) {
       ? "bg-orange-400/15 text-orange-300 border-orange-300/30"
       : "bg-soul-400/15 text-soul-300 border-soul-300/30";
   return (
-    <span
-      className={`inline-block text-[10px] tracking-wider uppercase border rounded px-1.5 py-0.5 ${color}`}
-    >
+    <span className={`inline-block text-[10px] tracking-wider uppercase border rounded px-1.5 py-0.5 ${color}`}>
       {kind}
     </span>
   );
@@ -70,7 +105,6 @@ function PayloadView({ payload, app }: { payload: Record<string, unknown>; app: 
 
   const lines: React.ReactNode[] = [];
 
-  // ops-style cycle summary
   if (typeof decisionsToday === "number") {
     lines.push(
       <div key="dt" className="flex items-center gap-2 text-sm">
@@ -93,9 +127,7 @@ function PayloadView({ payload, app }: { payload: Record<string, unknown>; app: 
     lines.push(
       <div key="cert" className="text-sm text-orange-300">
         ⏰ Certs expiring:{" "}
-        {Object.entries(certExpiring)
-          .map(([d, n]) => `${d} (${n}d)`)
-          .join(", ")}
+        {Object.entries(certExpiring).map(([d, n]) => `${d} (${n}d)`).join(", ")}
       </div>
     );
   }
@@ -104,9 +136,7 @@ function PayloadView({ payload, app }: { payload: Record<string, unknown>; app: 
     lines.push(
       <div key="bk" className="text-sm text-orange-300">
         🔥 Stale backups:{" "}
-        {Object.entries(backupStale)
-          .map(([j, h]) => `${j} (${Math.round(h)}h)`)
-          .join(", ")}
+        {Object.entries(backupStale).map(([j, h]) => `${j} (${Math.round(h)}h)`).join(", ")}
       </div>
     );
   }
@@ -136,9 +166,7 @@ function PayloadView({ payload, app }: { payload: Record<string, unknown>; app: 
     lines.push(
       <ul key="fl" className="mt-1 space-y-0.5">
         {flags.map((f, i) => (
-          <li key={i} className="text-xs text-orange-300">
-            ⚑ {f}
-          </li>
+          <li key={i} className="text-xs text-orange-300">⚑ {f}</li>
         ))}
       </ul>
     );
@@ -152,24 +180,6 @@ function PayloadView({ payload, app }: { payload: Record<string, unknown>; app: 
     );
   }
 
-  if (suggestions && suggestions.length > 0) {
-    lines.push(
-      <details key="sug" className="mt-1">
-        <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-400">
-          {suggestions.length} suggestion{suggestions.length !== 1 ? "s" : ""}
-        </summary>
-        <ul className="mt-1 space-y-0.5 pl-3">
-          {suggestions.map((s, i) => (
-            <li key={i} className="text-xs text-gray-600">
-              → {s}
-            </li>
-          ))}
-        </ul>
-      </details>
-    );
-  }
-
-  // brief / step_recap (personal-agent, auto-quant)
   const stepRecap = payload.step_recap as Array<{ step_id: string; recap: string }> | undefined;
   if (stepRecap && stepRecap.length > 0) {
     lines.push(
@@ -184,13 +194,24 @@ function PayloadView({ payload, app }: { payload: Record<string, unknown>; app: 
     );
   }
 
+  if (suggestions && suggestions.length > 0) {
+    lines.push(
+      <details key="sug" className="mt-1">
+        <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-400">
+          {suggestions.length} suggestion{suggestions.length !== 1 ? "s" : ""}
+        </summary>
+        <ul className="mt-1 space-y-0.5 pl-3">
+          {suggestions.map((s, i) => (
+            <li key={i} className="text-xs text-gray-600">→ {s}</li>
+          ))}
+        </ul>
+      </details>
+    );
+  }
+
   const recap = payload.recap as string | undefined;
   if (recap) {
-    lines.push(
-      <p key="rc" className="text-sm text-gray-600">
-        {recap}
-      </p>
-    );
+    lines.push(<p key="rc" className="text-sm text-gray-600">{recap}</p>);
   }
 
   if (lines.length === 0) {
@@ -204,61 +225,78 @@ function PayloadView({ payload, app }: { payload: Record<string, unknown>; app: 
   return <div className="space-y-1">{lines}</div>;
 }
 
-function MessageCard({
-  msg,
-  onSeen,
-  onDelete,
+function GroupCard({
+  group,
+  onMarkGroupSeen,
+  onDeleteGroup,
 }: {
-  msg: InboxMessage;
-  onSeen: (id: string) => void;
-  onDelete: (id: string) => void;
+  group: MessageGroup;
+  onMarkGroupSeen: (ids: string[]) => void;
+  onDeleteGroup: (ids: string[]) => void;
 }) {
-  const unread = !msg.seen_at;
+  const hasUnread = group.unreadCount > 0;
 
   const handleClick = () => {
-    if (unread) onSeen(msg.id);
+    if (hasUnread) {
+      const unreadIds = group.allIds.filter((id) => {
+        const msg = id === group.latest.id
+          ? group.latest
+          : ({ seen_at: 1 } as InboxMessage); // conservatively mark only tracked
+        return !msg.seen_at;
+      });
+      // Mark all in group (we have all ids)
+      onMarkGroupSeen(group.allIds);
+    }
   };
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onDelete(msg.id);
+    onDeleteGroup(group.allIds);
   };
 
   return (
     <div
       onClick={handleClick}
-      className={`group relative rounded-xl border transition-all cursor-pointer ${
-        unread
+      className={`group/card relative rounded-xl border transition-all cursor-pointer ${
+        hasUnread
           ? "border-soul-400/30 bg-gray-50 hover:border-soul-400/50"
           : "border-gray-200 bg-gray-50/50 hover:border-gray-300"
       }`}
     >
-      {unread && (
+      {hasUnread && (
         <span className="absolute top-3.5 right-4 w-1.5 h-1.5 rounded-full bg-soul-400 animate-pulse-soul" />
       )}
       <button
         onClick={handleDelete}
-        className="absolute top-2.5 right-8 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-400 text-xs px-1"
-        title="Delete"
+        className="absolute top-2.5 right-8 opacity-0 group-hover/card:opacity-100 transition-opacity text-gray-400 hover:text-red-400 text-xs px-1"
+        title="Delete all in this thread"
       >
         ✕
       </button>
       <div className="p-4">
         <div className="flex items-start gap-3">
-          <span className={`mt-0.5 text-lg ${appDot(msg.app).replace("bg-", "text-")}`}>
-            {appGlyph(msg.app)}
+          <span className={`mt-0.5 text-lg ${appTextColor(group.app)}`}>
+            {appGlyph(group.app)}
           </span>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium text-bark-300 text-sm">{msg.app}</span>
+              <span className="font-medium text-bark-300 text-sm">{group.app}</span>
               <span className="text-gray-400 text-xs">/</span>
-              <span className="text-gray-600 text-xs">{msg.loop}</span>
+              <span className="text-gray-600 text-xs">{group.loop}</span>
+              {group.count > 1 && (
+                <span className="text-[10px] text-gray-400 bg-gray-100 rounded px-1.5 py-0.5">
+                  ×{group.count}
+                  {group.unreadCount > 0 && (
+                    <span className="ml-1 text-soul-300">{group.unreadCount} new</span>
+                  )}
+                </span>
+              )}
               <span className="ml-auto text-[10px] text-gray-400 shrink-0">
-                {fmtAge(msg.posted_at)}
+                {fmtAge(group.latest.posted_at)}
               </span>
             </div>
             <div className="mt-2">
-              <PayloadView payload={msg.payload} app={msg.app} />
+              <PayloadView payload={group.latest.payload} app={group.app} />
             </div>
           </div>
         </div>
@@ -272,10 +310,10 @@ export function InboxPage() {
   const [filter, setFilter] = useState<"all" | "unread">("unread");
   const [loading, setLoading] = useState(true);
 
-  const fetch = useCallback(async () => {
+  const fetchMessages = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: "100" });
+      const params = new URLSearchParams({ limit: "200" });
       if (filter === "unread") params.set("unread_only", "true");
       const r = await api.get(`/api/v1/inbox/messages?${params}`);
       setData(r.data);
@@ -286,67 +324,55 @@ export function InboxPage() {
     }
   }, [filter]);
 
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
+  useEffect(() => { fetchMessages(); }, [fetchMessages]);
 
-  const markSeen = useCallback(
-    async (id: string) => {
-      try {
-        await api.post(`/api/v1/inbox/${id}/seen`);
-        setData((prev) =>
-          prev
-            ? {
-                ...prev,
-                messages: prev.messages.map((m) =>
-                  m.id === id ? { ...m, seen_at: Date.now() / 1000 } : m
-                ),
-                unread: Math.max(0, prev.unread - 1),
-              }
-            : prev
-        );
-      } catch {
-        // ignore
-      }
-    },
-    []
-  );
+  const markGroupSeen = useCallback(async (ids: string[]) => {
+    await Promise.all(ids.map((id) => api.post(`/api/v1/inbox/${id}/seen`).catch(() => {})));
+    setData((prev) => {
+      if (!prev) return prev;
+      const idSet = new Set(ids);
+      let freed = 0;
+      const messages = prev.messages.map((m) => {
+        if (idSet.has(m.id) && !m.seen_at) {
+          freed++;
+          return { ...m, seen_at: Date.now() / 1000 };
+        }
+        return m;
+      });
+      return { ...prev, messages, unread: Math.max(0, prev.unread - freed) };
+    });
+  }, []);
 
   const markAllSeen = useCallback(async () => {
     if (!data) return;
-    const unseen = data.messages.filter((m) => !m.seen_at);
-    await Promise.all(unseen.map((m) => api.post(`/api/v1/inbox/${m.id}/seen`).catch(() => {})));
+    const unseen = data.messages.filter((m) => !m.seen_at).map((m) => m.id);
+    await Promise.all(unseen.map((id) => api.post(`/api/v1/inbox/${id}/seen`).catch(() => {})));
     setData((prev) =>
-      prev
-        ? {
-            ...prev,
-            messages: prev.messages.map((m) => ({ ...m, seen_at: m.seen_at ?? Date.now() / 1000 })),
-            unread: 0,
-          }
-        : prev
+      prev ? {
+        ...prev,
+        messages: prev.messages.map((m) => ({ ...m, seen_at: m.seen_at ?? Date.now() / 1000 })),
+        unread: 0,
+      } : prev
     );
   }, [data]);
 
-  const deleteMessage = useCallback(
-    async (id: string) => {
-      try {
-        await api.delete(`/api/v1/inbox/${id}`);
-        setData((prev) => {
-          if (!prev) return prev;
-          const msg = prev.messages.find((m) => m.id === id);
-          return {
-            ...prev,
-            messages: prev.messages.filter((m) => m.id !== id),
-            total: Math.max(0, prev.total - 1),
-            unread: msg && !msg.seen_at ? Math.max(0, prev.unread - 1) : prev.unread,
-          };
-        });
-      } catch {
-        // ignore
-      }
-    },
-    []
-  );
+  const deleteGroup = useCallback(async (ids: string[]) => {
+    await Promise.all(ids.map((id) => api.delete(`/api/v1/inbox/${id}`).catch(() => {})));
+    setData((prev) => {
+      if (!prev) return prev;
+      const idSet = new Set(ids);
+      const removed = prev.messages.filter((m) => idSet.has(m.id));
+      const freed = removed.filter((m) => !m.seen_at).length;
+      return {
+        ...prev,
+        messages: prev.messages.filter((m) => !idSet.has(m.id)),
+        total: Math.max(0, prev.total - ids.length),
+        unread: Math.max(0, prev.unread - freed),
+      };
+    });
+  }, []);
+
+  const groups = data ? groupMessages(data.messages) : [];
 
   return (
     <div>
@@ -384,7 +410,7 @@ export function InboxPage() {
             </button>
           )}
           <button
-            onClick={fetch}
+            onClick={fetchMessages}
             className="text-xs text-gray-500 hover:text-soul-300 transition-colors px-2 py-1.5"
           >
             ↻ refresh
@@ -397,7 +423,7 @@ export function InboxPage() {
           <div className="py-16 text-center text-soul-400/50 font-soft text-sm">
             reading the stream…
           </div>
-        ) : !data || data.messages.length === 0 ? (
+        ) : groups.length === 0 ? (
           <div className="py-16 text-center space-y-2">
             <div className="text-soul-400/40 font-display text-4xl">◉</div>
             <p className="text-sm text-gray-500">
@@ -407,8 +433,13 @@ export function InboxPage() {
             </p>
           </div>
         ) : (
-          data.messages.map((m) => (
-            <MessageCard key={m.id} msg={m} onSeen={markSeen} onDelete={deleteMessage} />
+          groups.map((g) => (
+            <GroupCard
+              key={g.key}
+              group={g}
+              onMarkGroupSeen={markGroupSeen}
+              onDeleteGroup={deleteGroup}
+            />
           ))
         )}
       </div>

@@ -1,14 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { whoami, logout } from "../api/client";
+import { whoami, logout, api } from "../api/client";
 
 export function DashboardLayout() {
   const nav = useNavigate();
   const [me, setMe] = useState<{ email?: string | null; sub: string } | null>(null);
+  const [inboxUnread, setInboxUnread] = useState(0);
+  const inboxTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     whoami().then(setMe).catch(() => nav("/"));
   }, [nav]);
+
+  useEffect(() => {
+    if (!me) return;
+    const fetchUnread = () =>
+      api.get("/api/v1/inbox/messages?limit=1&unread_only=true")
+        .then((r) => setInboxUnread(r.data?.unread ?? 0))
+        .catch(() => {});
+    fetchUnread();
+    inboxTimerRef.current = setInterval(fetchUnread, 60_000);
+    return () => { if (inboxTimerRef.current) clearInterval(inboxTimerRef.current); };
+  }, [me]);
 
   if (!me) {
     return (
@@ -18,7 +31,7 @@ export function DashboardLayout() {
     );
   }
 
-  const link = (to: string, label: string, glyph: string) => (
+  const link = (to: string, label: string, glyph: string, badge?: number) => (
     <NavLink
       to={to}
       end
@@ -44,6 +57,11 @@ export function DashboardLayout() {
             {glyph}
           </span>
           <span>{label}</span>
+          {badge != null && badge > 0 && (
+            <span className="ml-auto min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-soul-400 text-night-900 text-[10px] font-semibold px-1 animate-pulse-soul">
+              {badge > 99 ? "99+" : badge}
+            </span>
+          )}
         </>
       )}
     </NavLink>
@@ -68,7 +86,7 @@ export function DashboardLayout() {
           <nav className="flex-1 py-4 space-y-0.5">
             {link("/dashboard", "Overview", "◉")}
             {link("/dashboard/repos", "My repos", "◇")}
-            {link("/dashboard/inbox", "Inbox", "◈")}
+            {link("/dashboard/inbox", "Inbox", "◈", inboxUnread)}
             <NavLink
               to="/"
               className="group relative flex items-center gap-3 pl-6 pr-4 py-3 text-sm tracking-wide text-gray-700 hover:text-bark-300 transition-colors"
