@@ -207,9 +207,11 @@ function PayloadView({ payload, app }: { payload: Record<string, unknown>; app: 
 function MessageCard({
   msg,
   onSeen,
+  onDelete,
 }: {
   msg: InboxMessage;
   onSeen: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const unread = !msg.seen_at;
 
@@ -217,10 +219,15 @@ function MessageCard({
     if (unread) onSeen(msg.id);
   };
 
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(msg.id);
+  };
+
   return (
     <div
       onClick={handleClick}
-      className={`relative rounded-xl border transition-all cursor-pointer ${
+      className={`group relative rounded-xl border transition-all cursor-pointer ${
         unread
           ? "border-soul-400/30 bg-gray-50 hover:border-soul-400/50"
           : "border-gray-200 bg-gray-50/50 hover:border-gray-300"
@@ -229,6 +236,13 @@ function MessageCard({
       {unread && (
         <span className="absolute top-3.5 right-4 w-1.5 h-1.5 rounded-full bg-soul-400 animate-pulse-soul" />
       )}
+      <button
+        onClick={handleDelete}
+        className="absolute top-2.5 right-8 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-400 text-xs px-1"
+        title="Delete"
+      >
+        ✕
+      </button>
       <div className="p-4">
         <div className="flex items-start gap-3">
           <span className={`mt-0.5 text-lg ${appDot(msg.app).replace("bg-", "text-")}`}>
@@ -313,6 +327,27 @@ export function InboxPage() {
     );
   }, [data]);
 
+  const deleteMessage = useCallback(
+    async (id: string) => {
+      try {
+        await api.delete(`/api/v1/inbox/${id}`);
+        setData((prev) => {
+          if (!prev) return prev;
+          const msg = prev.messages.find((m) => m.id === id);
+          return {
+            ...prev,
+            messages: prev.messages.filter((m) => m.id !== id),
+            total: Math.max(0, prev.total - 1),
+            unread: msg && !msg.seen_at ? Math.max(0, prev.unread - 1) : prev.unread,
+          };
+        });
+      } catch {
+        // ignore
+      }
+    },
+    []
+  );
+
   return (
     <div>
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -373,7 +408,7 @@ export function InboxPage() {
           </div>
         ) : (
           data.messages.map((m) => (
-            <MessageCard key={m.id} msg={m} onSeen={markSeen} />
+            <MessageCard key={m.id} msg={m} onSeen={markSeen} onDelete={deleteMessage} />
           ))
         )}
       </div>
