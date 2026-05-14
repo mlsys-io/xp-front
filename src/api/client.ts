@@ -649,7 +649,7 @@ export async function createIssue(
   const r = await api.post(
     `/api/v1/repos/${enc(owner)}/${enc(name)}/issues`, body,
   );
-  return r.data as Issue;
+  return r.data.issue as Issue;
 }
 
 export async function getIssue(
@@ -663,10 +663,28 @@ export async function getIssue(
 
 export async function patchIssue(
   owner: string, name: string, number: number,
-  patch: { title?: string; body?: string; state?: "open" | "closed" },
+  patch: { title?: string; body?: string; labels?: string[] },
 ): Promise<Issue> {
   const r = await api.patch(
     `/api/v1/repos/${enc(owner)}/${enc(name)}/issues/${number}`, patch,
+  );
+  return r.data as Issue;
+}
+
+export async function closeIssue(
+  owner: string, name: string, number: number,
+): Promise<Issue> {
+  const r = await api.post(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues/${number}/close`,
+  );
+  return r.data as Issue;
+}
+
+export async function reopenIssue(
+  owner: string, name: string, number: number,
+): Promise<Issue> {
+  const r = await api.post(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues/${number}/reopen`,
   );
   return r.data as Issue;
 }
@@ -687,7 +705,7 @@ export async function addIssueComment(
     `/api/v1/repos/${enc(owner)}/${enc(name)}/issues/${number}/comments`,
     { body },
   );
-  return r.data as IssueComment;
+  return r.data.comment as IssueComment;
 }
 
 // ── Trending ──────────────────────────────────────────────────────

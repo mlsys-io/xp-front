@@ -6,6 +6,8 @@ import {
   acceptTransfer,
   addDiscussionComment,
   addIssueComment,
+  closeIssue,
+  reopenIssue,
   addPRComment,
   closeDiscussion,
   closePull,
@@ -1489,9 +1491,8 @@ function IssueDetail({
     setBusy(true);
     setErr("");
     try {
-      const updated = await patchIssue(repo.owner_sub, repo.name, number, {
-        state: issue.state === "open" ? "closed" : "open",
-      });
+      const fn = issue.state === "open" ? closeIssue : reopenIssue;
+      const updated = await fn(repo.owner_sub, repo.name, number);
       setIssue(updated);
     } catch (e: any) {
       setErr(e?.response?.data?.detail || "failed");
