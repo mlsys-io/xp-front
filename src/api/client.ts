@@ -612,6 +612,84 @@ export async function closeDiscussion(
   return r.data as Discussion;
 }
 
+// ── Issues ───────────────────────────────────────────────────────
+
+export type Issue = {
+  number: number;
+  state: "open" | "closed";
+  title: string;
+  body: string;
+  author_sub: string;
+  opened_at: number;
+  closed_at: number | null;
+  comment_count: number;
+  labels: string[];
+};
+
+export type IssueComment = {
+  id: string;
+  author_sub: string;
+  body: string;
+  created_at: number;
+};
+
+export async function listIssues(
+  owner: string, name: string, state: "open" | "closed" | "all" = "open",
+): Promise<Issue[]> {
+  const r = await anonApi.get(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues`, { params: { state } },
+  );
+  return (r.data?.issues || []) as Issue[];
+}
+
+export async function createIssue(
+  owner: string, name: string,
+  body: { title: string; body?: string; labels?: string[] },
+): Promise<Issue> {
+  const r = await api.post(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues`, body,
+  );
+  return r.data as Issue;
+}
+
+export async function getIssue(
+  owner: string, name: string, number: number,
+): Promise<Issue> {
+  const r = await anonApi.get(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues/${number}`,
+  );
+  return r.data as Issue;
+}
+
+export async function patchIssue(
+  owner: string, name: string, number: number,
+  patch: { title?: string; body?: string; state?: "open" | "closed" },
+): Promise<Issue> {
+  const r = await api.patch(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues/${number}`, patch,
+  );
+  return r.data as Issue;
+}
+
+export async function listIssueComments(
+  owner: string, name: string, number: number,
+): Promise<IssueComment[]> {
+  const r = await anonApi.get(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues/${number}/comments`,
+  );
+  return (r.data?.comments || []) as IssueComment[];
+}
+
+export async function addIssueComment(
+  owner: string, name: string, number: number, body: string,
+): Promise<IssueComment> {
+  const r = await api.post(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues/${number}/comments`,
+    { body },
+  );
+  return r.data as IssueComment;
+}
+
 // ── Trending ──────────────────────────────────────────────────────
 
 export async function listTrending(

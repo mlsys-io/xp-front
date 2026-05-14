@@ -64,6 +64,9 @@ export default function App() {
         <Route path="/:owner/:name" element={<Repo />} />
         <Route path="/:owner/:name/branches" element={<Repo />} />
         <Route path="/:owner/:name/settings" element={<Repo />} />
+        <Route path="/:owner/:name/issues" element={<Repo />} />
+        <Route path="/:owner/:name/issues/new" element={<Repo />} />
+        <Route path="/:owner/:name/issues/:number" element={<Repo />} />
         <Route path="/:owner/:name/pulls" element={<Repo />} />
         <Route path="/:owner/:name/pulls/:number" element={<Repo />} />
         <Route path="/:owner/:name/commits" element={<Repo />} />

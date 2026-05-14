@@ -5,14 +5,17 @@ import {
 import {
   acceptTransfer,
   addDiscussionComment,
+  addIssueComment,
   addPRComment,
   closeDiscussion,
   closePull,
   createDiscussion,
+  createIssue,
   deleteRepo,
   forkRepo,
   getBlob,
   getDiscussion,
+  getIssue,
   getPendingTransfer,
   getPull,
   getPullDiff,
@@ -29,10 +32,13 @@ import {
   listContributors,
   listDiscussions,
   listForks,
+  listIssueComments,
+  listIssues,
   listPRComments,
   listPulls,
   mergePull,
   openPull,
+  patchIssue,
   patchRepo,
   pushCommit,
   removeCollaborator,
@@ -49,6 +55,8 @@ import {
   type Contributor,
   type Discussion,
   type DiscussionSummary,
+  type Issue,
+  type IssueComment,
   type Me,
   type PR,
   type PRComment,
@@ -63,7 +71,7 @@ import { AuthorBadge } from "../components/AuthorBadge";
 import { RepoDeprecationBanner } from "../components/DeprecationBanner";
 import { DisagreementMatrixForRepo } from "../components/DisagreementMatrix";
 
-type Tab = "code" | "commits" | "branches" | "pulls" | "community"
+type Tab = "code" | "commits" | "branches" | "issues" | "pulls" | "community"
          | "forks" | "settings";
 
 const KIND_GLYPH: Record<string, string> = { app: "⁂", autoresearch: "⋯", agent: "❋", skill: "⌘" };
@@ -91,29 +99,36 @@ export function Repo() {
   const prefix = `/${owner}/${name}`;
   const mode: "tree" | "blob" | "blob-edit" | "branches" | "pulls"
             | "pull-detail" | "pull-new" | "settings" | "commits"
-            | "community" | "discussion-detail" | "forks" =
+            | "community" | "discussion-detail" | "forks"
+            | "issues" | "issue-new" | "issue-detail" =
     pathname === `${prefix}/branches`
       ? "branches"
       : pathname === `${prefix}/commits` || pathname.startsWith(`${prefix}/commits/`)
         ? "commits"
         : pathname === `${prefix}/forks`
           ? "forks"
-          : pathname === `${prefix}/pulls/new`
-            ? "pull-new"
-            : numberParam
-              ? "pull-detail"
-              : pathname.startsWith(`${prefix}/pulls`)
-                ? "pulls"
-                : pathname.startsWith(`${prefix}/blob/`)
-                  ? (searchParams.get("edit") === "1" ? "blob-edit" : "blob")
-                  : pathname.startsWith(`${prefix}/settings`)
-                    ? "settings"
-                    : pathname.startsWith(`${prefix}/discussions/`)
-                      ? "discussion-detail"
-                      : pathname === `${prefix}/discussions`
-                                || pathname === `${prefix}/community`
-                        ? "community"
-                        : "tree";
+          : pathname === `${prefix}/issues/new`
+            ? "issue-new"
+            : pathname === `${prefix}/pulls/new`
+              ? "pull-new"
+              : pathname.startsWith(`${prefix}/issues/`) && numberParam
+                ? "issue-detail"
+                : pathname === `${prefix}/issues`
+                  ? "issues"
+                  : numberParam
+                    ? "pull-detail"
+                    : pathname.startsWith(`${prefix}/pulls`)
+                      ? "pulls"
+                      : pathname.startsWith(`${prefix}/blob/`)
+                        ? (searchParams.get("edit") === "1" ? "blob-edit" : "blob")
+                        : pathname.startsWith(`${prefix}/settings`)
+                          ? "settings"
+                          : pathname.startsWith(`${prefix}/discussions/`)
+                            ? "discussion-detail"
+                            : pathname === `${prefix}/discussions`
+                                      || pathname === `${prefix}/community`
+                              ? "community"
+                              : "tree";
 
   const tab: Tab = mode === "branches"
     ? "branches"
@@ -121,13 +136,15 @@ export function Repo() {
       ? "commits"
       : mode === "forks"
         ? "forks"
-        : mode.startsWith("pull")
-          ? "pulls"
-          : mode === "settings"
-            ? "settings"
-            : mode === "community" || mode === "discussion-detail"
-              ? "community"
-              : "code";
+        : mode.startsWith("issue")
+          ? "issues"
+          : mode.startsWith("pull")
+            ? "pulls"
+            : mode === "settings"
+              ? "settings"
+              : mode === "community" || mode === "discussion-detail"
+                ? "community"
+                : "code";
   const branch = branchParam || "main";
 
   const [me, setMe] = useState<Me | null>(null);
@@ -176,6 +193,7 @@ export function Repo() {
         <TabLink to={`/${enc(owner)}/${enc(name)}`} active={tab === "code"}>Code</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/commits`} active={tab === "commits"}>Commits</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/branches`} active={tab === "branches"}>Branches</TabLink>
+        <TabLink to={`/${enc(owner)}/${enc(name)}/issues`} active={tab === "issues"}>Issues</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/pulls`} active={tab === "pulls"}>Pull Requests</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/community`} active={tab === "community"}>Community</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/forks`} active={tab === "forks"}>Forks</TabLink>
@@ -196,6 +214,11 @@ export function Repo() {
         {mode === "community" && <CommunityTab repo={repo} me={me} />}
         {mode === "discussion-detail" && (
           <DiscussionDetail repo={repo} me={me} isOwner={isOwner} />
+        )}
+        {mode === "issues" && <IssuesTab repo={repo} me={me} isOwner={isOwner} />}
+        {mode === "issue-new" && <IssueNew repo={repo} me={me} />}
+        {mode === "issue-detail" && numberParam && (
+          <IssueDetail repo={repo} number={Number(numberParam)} me={me} isOwner={isOwner} />
         )}
         {mode === "pulls" && <PullsTab repo={repo} me={me} />}
         {mode === "pull-new" && <NewPullForm repo={repo} me={me} />}
@@ -1239,6 +1262,427 @@ function BlobEditor({ repo, branch, path }: { repo: RepoT; branch: string; path:
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ── Issues tab ───────────────────────────────────────────────────
+
+function IssuesTab({
+  repo, me, isOwner,
+}: { repo: RepoT; me: Me | null; isOwner: boolean }) {
+  const nav = useNavigate();
+  const [issues, setIssues] = useState<Issue[] | null>(null);
+  const [state, setState] = useState<"open" | "closed" | "all">("open");
+
+  useEffect(() => {
+    listIssues(repo.owner_sub, repo.name, state)
+      .then(setIssues)
+      .catch(() => setIssues([]));
+  }, [repo.owner_sub, repo.name, state]);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div className="flex items-center gap-4 text-xs">
+          {(["open", "closed", "all"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setState(s)}
+              className={`pb-1 transition-colors ${
+                state === s ? "text-soul-300 border-b border-soul-400" : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        {(isOwner || !!me) && (
+          <button
+            onClick={() => nav(`/${enc(repo.owner_sub)}/${enc(repo.name)}/issues/new`)}
+            className="px-3 py-1.5 text-xs rounded-full border border-gray-300 text-soul-300 hover:text-soul-400 hover:border-soul-400"
+          >
+            + new issue
+          </button>
+        )}
+      </div>
+      {issues === null ? (
+        <div className="text-sm text-gray-500 py-10 text-center">loading…</div>
+      ) : issues.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-gray-200 py-12 text-center">
+          <div className="text-2xl text-gray-300 mb-2">◉</div>
+          <div className="text-sm text-gray-500">No {state === "all" ? "" : state + " "}issues yet.</div>
+        </div>
+      ) : (
+        <ul className="space-y-1.5">
+          {issues.map((iss) => (
+            <li key={iss.number}>
+              <Link
+                to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/issues/${iss.number}`}
+                className="flex items-start justify-between gap-4 border border-gray-200 rounded-lg px-4 py-3 hover:border-gray-300 transition-colors"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-gray-400 text-xs">#{iss.number}</span>
+                    <span className="text-sm text-gray-900 hover:text-soul-300 truncate">{iss.title}</span>
+                    {iss.labels.map((lbl) => (
+                      <span
+                        key={lbl}
+                        className="text-[10px] tracking-wider uppercase border rounded px-1.5 py-0.5 bg-soul-400/10 text-soul-300 border-soul-300/30"
+                      >
+                        {lbl}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-gray-500">
+                    opened by <span className="font-mono">{iss.author_sub.slice(0, 10)}</span>
+                    {" · "}{relTime(iss.opened_at)}
+                    {iss.comment_count > 0 && (
+                      <span className="ml-2">· {iss.comment_count} comment{iss.comment_count !== 1 ? "s" : ""}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="shrink-0 pt-0.5">
+                  <IssueBadge state={iss.state} />
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ── New issue form ────────────────────────────────────────────────
+
+function IssueNew({ repo, me }: { repo: RepoT; me: Me | null }) {
+  const nav = useNavigate();
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  if (!me) {
+    return (
+      <div className="rounded-xl border border-dashed border-gray-200 p-6 text-sm text-gray-700">
+        Sign in to open an issue.{" "}
+        <button
+          onClick={async () => { const { beginLogin } = await import("../lib/pkce"); beginLogin(); }}
+          className="text-soul-300 hover:text-soul-400"
+        >
+          Sign in →
+        </button>
+      </div>
+    );
+  }
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErr("");
+    setBusy(true);
+    try {
+      const iss = await createIssue(repo.owner_sub, repo.name, { title: title.trim(), body });
+      nav(`/${enc(repo.owner_sub)}/${enc(repo.name)}/issues/${iss.number}`);
+    } catch (e: any) {
+      setErr(e?.response?.data?.detail || "failed to open issue");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="max-w-2xl space-y-4">
+      <div className="text-sm text-gray-700 mb-2">Open a new issue</div>
+
+      <Field label="Title">
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+          placeholder="Short, descriptive title"
+          className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
+        />
+      </Field>
+
+      <Field label="Description">
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={6}
+          placeholder="Describe the issue (markdown)"
+          className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full font-mono"
+        />
+      </Field>
+
+      {err && <div className="text-xs text-atokirina-400">{err}</div>}
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={busy || !title.trim()}
+          className="px-4 py-2 text-xs rounded-full border border-gray-300 text-soul-300 hover:text-soul-400 hover:border-soul-400 disabled:opacity-50"
+        >
+          {busy ? "opening…" : "◉ open issue"}
+        </button>
+        <Link
+          to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/issues`}
+          className="text-xs text-gray-500 hover:text-gray-700"
+        >
+          cancel
+        </Link>
+      </div>
+    </form>
+  );
+}
+
+// ── Issue detail ──────────────────────────────────────────────────
+
+function IssueDetail({
+  repo, number, me, isOwner,
+}: { repo: RepoT; number: number; me: Me | null; isOwner: boolean }) {
+  const [issue, setIssue] = useState<Issue | null | "missing">(null);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const reload = async () => {
+    try {
+      const iss = await getIssue(repo.owner_sub, repo.name, number);
+      setIssue(iss);
+    } catch {
+      setIssue("missing");
+    }
+  };
+  useEffect(() => { reload(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [repo.owner_sub, repo.name, number]);
+
+  if (issue === null) return <div className="text-sm text-gray-500 py-10 text-center">loading…</div>;
+  if (issue === "missing") return <div className="text-sm text-gray-500 py-10 text-center">Issue not found</div>;
+
+  const canAct = isOwner || (!!me && me.sub === issue.author_sub);
+
+  const startEdit = () => {
+    setEditTitle(issue.title);
+    setEditBody(issue.body);
+    setEditing(true);
+  };
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTitle.trim()) return;
+    setBusy(true);
+    setErr("");
+    try {
+      const updated = await patchIssue(repo.owner_sub, repo.name, number, {
+        title: editTitle.trim(), body: editBody,
+      });
+      setIssue(updated);
+      setEditing(false);
+    } catch (e: any) {
+      setErr(e?.response?.data?.detail || "save failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleState = async () => {
+    setBusy(true);
+    setErr("");
+    try {
+      const updated = await patchIssue(repo.owner_sub, repo.name, number, {
+        state: issue.state === "open" ? "closed" : "open",
+      });
+      setIssue(updated);
+    } catch (e: any) {
+      setErr(e?.response?.data?.detail || "failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      {/* Back link */}
+      <div className="text-xs text-gray-500 mb-4">
+        <Link to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/issues`} className="hover:text-soul-300">
+          ← back to issues
+        </Link>
+      </div>
+
+      {editing ? (
+        <form onSubmit={saveEdit} className="max-w-2xl space-y-3 mb-6">
+          <input
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            required
+            className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full font-semibold"
+          />
+          <textarea
+            value={editBody}
+            onChange={(e) => setEditBody(e.target.value)}
+            rows={6}
+            className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full font-mono"
+          />
+          {err && <div className="text-xs text-atokirina-400">{err}</div>}
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={busy || !editTitle.trim()}
+              className="px-3 py-1.5 text-xs rounded-full border border-gray-300 text-soul-300 hover:border-soul-400 disabled:opacity-50"
+            >
+              {busy ? "saving…" : "save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+          <div className="min-w-0">
+            <h2 className="text-xl font-semibold text-bark-300">
+              <span className="text-gray-500 mr-2">#{issue.number}</span>
+              {issue.title}
+            </h2>
+            <div className="mt-1 text-xs text-gray-600 flex items-center gap-3 flex-wrap">
+              <IssueBadge state={issue.state} />
+              <span>
+                opened by{" "}
+                <span className="font-mono text-gray-900">{issue.author_sub.slice(0, 10)}</span>
+              </span>
+              <span>{relTime(issue.opened_at)}</span>
+              {issue.labels.map((lbl) => (
+                <span
+                  key={lbl}
+                  className="text-[10px] tracking-wider uppercase border rounded px-1.5 py-0.5 bg-soul-400/10 text-soul-300 border-soul-300/30"
+                >
+                  {lbl}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            {canAct && (
+              <button
+                onClick={startEdit}
+                className="px-3 py-1.5 text-xs rounded-full border border-gray-300 text-bark-300 hover:border-gray-400"
+              >
+                edit
+              </button>
+            )}
+            {canAct && (
+              <button
+                onClick={toggleState}
+                disabled={busy}
+                className={`px-3 py-1.5 text-xs rounded-full border disabled:opacity-50 ${
+                  issue.state === "open"
+                    ? "border-atokirina-400/40 text-atokirina-400 hover:bg-atokirina-400/10"
+                    : "border-soul-300/40 text-soul-300 hover:bg-soul-400/10"
+                }`}
+              >
+                {busy ? "…" : issue.state === "open" ? "close" : "reopen"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {err && !editing && <div className="mb-3 text-xs text-atokirina-400">{err}</div>}
+
+      {issue.body && !editing && (
+        <div className="rounded-xl border border-gray-200 bg-white p-4 mb-2">
+          <pre className="text-sm text-gray-900/90 whitespace-pre-wrap font-sans leading-relaxed">{issue.body}</pre>
+        </div>
+      )}
+
+      <IssueCommentsBlock repo={repo} number={number} me={me} />
+    </div>
+  );
+}
+
+function IssueBadge({ state }: { state: Issue["state"] }) {
+  const cls = state === "open"
+    ? "bg-soul-400/15 text-soul-300 border-soul-300/30"
+    : "bg-gray-200 text-gray-500 border-gray-300/30";
+  return (
+    <span className={`text-[10px] tracking-wider uppercase border rounded px-1.5 py-0.5 ${cls}`}>
+      {state}
+    </span>
+  );
+}
+
+function IssueCommentsBlock({
+  repo, number, me,
+}: { repo: RepoT; number: number; me: Me | null }) {
+  const [comments, setComments] = useState<IssueComment[] | null>(null);
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const reload = () => {
+    listIssueComments(repo.owner_sub, repo.name, number)
+      .then(setComments)
+      .catch(() => setComments([]));
+  };
+  useEffect(reload, [repo.owner_sub, repo.name, number]);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!me) {
+      const { beginLogin } = await import("../lib/pkce");
+      return beginLogin();
+    }
+    if (!body.trim()) return;
+    setBusy(true);
+    try {
+      await addIssueComment(repo.owner_sub, repo.name, number, body);
+      setBody("");
+      reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-6">
+      <div className="text-xs text-gray-600 mb-3">
+        Comments {comments?.length ? `(${comments.length})` : ""}
+      </div>
+      {!comments ? (
+        <div className="text-sm text-gray-500">loading…</div>
+      ) : comments.length === 0 ? (
+        <div className="text-sm text-gray-500 italic">No comments yet.</div>
+      ) : (
+        <div className="space-y-3">
+          {comments.map((c) => (
+            <div key={c.id} className="rounded-xl border border-gray-200 bg-white p-4">
+              <div className="text-[11px] text-gray-600 mb-2 flex items-center gap-2">
+                <span className="font-mono text-gray-900">{c.author_sub.slice(0, 10)}</span>
+                <span>{relTime(c.created_at)}</span>
+              </div>
+              <pre className="text-sm text-gray-900/90 whitespace-pre-wrap font-sans leading-relaxed">{c.body}</pre>
+            </div>
+          ))}
+        </div>
+      )}
+      <form onSubmit={onSubmit} className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={3}
+          placeholder="leave a comment"
+          className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm text-bark-300 placeholder:text-gray-500 mb-2 font-mono"
+        />
+        <button
+          disabled={busy || !body.trim()}
+          className="px-3 py-1.5 text-[11px] border border-gray-300 rounded text-soul-300 hover:border-soul-400 disabled:opacity-40"
+        >
+          {busy ? "posting…" : "comment"}
+        </button>
+      </form>
     </div>
   );
 }
