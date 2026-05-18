@@ -48,6 +48,17 @@ import {
   starRepo,
   toggleWatch,
   whoami,
+  addSkillToApp,
+  getDatasetSchema,
+  getDatasetPreview,
+  getLineage,
+  getLoopMetrics,
+  listMyApps,
+  type DatasetField,
+  type DatasetPreview,
+  type DatasetSchema,
+  type LineageRecord,
+  type MetricPoint,
   type Attestation,
   type Branch,
   type Collaborator,
@@ -197,7 +208,14 @@ export function Repo() {
         <TabLink to={`/${enc(owner)}/${enc(name)}/branches`} active={tab === "branches"}>Branches</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/issues`} active={tab === "issues"}>Issues</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/pulls`} active={tab === "pulls"}>Pull Requests</TabLink>
-        <TabLink to={`/${enc(owner)}/${enc(name)}/community`} active={tab === "community"}>Community</TabLink>
+        <TabLink to={`/${enc(owner)}/${enc(name)}/community`} active={tab === "community"}>
+          {repo.kind === "skill" ? "Consumers" : "Community"}
+          {repo.kind === "skill" && (repo.consumers_count ?? 0) > 0 && (
+            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-700 tabular-nums">
+              {repo.consumers_count}
+            </span>
+          )}
+        </TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/forks`} active={tab === "forks"}>Forks</TabLink>
         {isOwner && (
           <TabLink to={`/${enc(owner)}/${enc(name)}/settings`} active={tab === "settings"}>
@@ -412,6 +430,9 @@ function RepoHeader({
               <span className="text-soul-400 mr-1">+</span>
               Add skill draft
             </a>
+          )}
+          {repo.kind === "skill" && (
+            <AddToAppButton skillOwner={repo.owner_sub} skillName={repo.name} />
           )}
         </div>
       </div>
@@ -705,9 +726,12 @@ function CodeTab({ repo, branch, path, isOwner }: {
         )}
       </div>
     </div>
+    {isOverview && repo.kind === "skill" && <LineageSection repo={repo} />}
     {isOverview && repo.kind === "skill" && <TestedWithSection repo={repo} />}
     {isOverview && repo.kind === "skill" && <ConsumersSection repo={repo} />}
+    {isOverview && repo.kind === "app" && <LoopMetricsSection repo={repo} />}
     {isOverview && repo.kind === "app" && <DisagreementMatrixForRepo repo={repo} branch={branch} />}
+    {isOverview && repo.kind === "dataset" && <DatasetPreviewSection repo={repo} />}
     </div>
   );
 }
@@ -850,8 +874,338 @@ function StatusPill({ status }: { status: Attestation["status"] }) {
   );
 }
 
+// ── Add to app button (kind=skill only) ─────────────────────────
+
+function AddToAppButton({ skillOwner, skillName }: { skillOwner: string; skillName: string }) {
+  const [apps, setApps] = useState<RepoT[] | null>(null);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+
+  const toggle = () => {
+    if (!open && apps === null) {
+      listMyApps().then(setApps).catch(() => setApps([]));
+    }
+    setOpen((v) => !v);
+  };
+
+  const install = async (app: RepoT) => {
+    setBusy(app.name);
+    try {
+      await addSkillToApp(app.owner_sub, app.name, `${skillOwner}/${skillName}`);
+      setDone(app.name);
+    } catch {
+      setDone(null);
+    } finally {
+      setBusy(null);
+      setOpen(false);
+    }
+  };
+
+  if (done) {
+    return (
+      <span className="px-2.5 py-1 text-xs rounded-md border border-soul-300 text-soul-400 bg-soul-400/5">
+        ✓ Added to {done}
+      </span>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={toggle}
+        className="px-2.5 py-1 text-xs rounded-md border border-soul-300 text-soul-400 hover:bg-soul-400/5 transition-colors font-medium"
+      >
+        + Add to app ▾
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-lg border border-gray-200 bg-white shadow-lg py-1">
+          {apps === null ? (
+            <div className="px-3 py-2 text-xs text-gray-500">Loading your apps…</div>
+          ) : apps.length === 0 ? (
+            <div className="px-3 py-2 text-xs text-gray-500">No published apps found. Run <code>app_publish</code> first.</div>
+          ) : (
+            apps.map((app) => (
+              <button
+                key={app.name}
+                disabled={busy === app.name}
+                onClick={() => install(app)}
+                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 text-gray-800 disabled:opacity-50 transition-colors"
+              >
+                {busy === app.name ? "Adding…" : app.display_name || app.name}
+              </button>
+            ))
+          )}
+          <div className="border-t border-gray-100 px-3 pt-1.5 pb-1">
+            <span className="text-[10px] text-gray-400 font-mono">
+              lumid app_add_skill &lt;app&gt; {skillOwner}/{skillName}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Lineage section (community skills) ──────────────────────────
+
+function LineageSection({ repo }: { repo: RepoT }) {
+  const [lineage, setLineage] = useState<LineageRecord | null | undefined>(undefined);
+
+  useEffect(() => {
+    setLineage(undefined);
+    getLineage(repo.owner_sub, repo.name).then(setLineage);
+  }, [repo.owner_sub, repo.name]);
+
+  if (lineage === undefined) return null;  // loading
+  if (!lineage) return null;               // no lineage record
+
+  const healthColor = {
+    green: "text-emerald-600",
+    yellow: "text-yellow-600",
+    red: "text-red-500",
+    unknown: "text-gray-400",
+  }[lineage.upstream_health ?? "unknown"];
+
+  const healthDot = {
+    green: "🟢", yellow: "🟡", red: "🔴", unknown: "⚪",
+  }[lineage.upstream_health ?? "unknown"];
+
+  const adapterBadge: Record<string, string> = {
+    generated: "bg-blue-50 text-blue-600 border-blue-200",
+    verified: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    broken: "bg-red-50 text-red-600 border-red-200",
+    stale: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    deprecated: "bg-gray-100 text-gray-500 border-gray-200",
+  };
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <h2 className="text-sm font-semibold text-gray-900 mb-3">Lineage</h2>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
+        {lineage.source && (
+          <>
+            <dt className="text-gray-500">Source</dt>
+            <dd className="text-gray-900 font-mono">{lineage.source}</dd>
+          </>
+        )}
+        {lineage.source_url && (
+          <>
+            <dt className="text-gray-500">Upstream</dt>
+            <dd>
+              <a href={lineage.source_url} target="_blank" rel="noreferrer"
+                 className="text-soul-400 hover:underline font-mono truncate block max-w-xs">
+                {lineage.source_url.replace(/^https?:\/\//, "")}
+              </a>
+            </dd>
+          </>
+        )}
+        {lineage.upstream_health && (
+          <>
+            <dt className="text-gray-500">Health</dt>
+            <dd className={`font-medium ${healthColor}`}>{healthDot} {lineage.upstream_health}</dd>
+          </>
+        )}
+        {lineage.adapter_status && (
+          <>
+            <dt className="text-gray-500">Adapter</dt>
+            <dd>
+              <span className={`px-1.5 py-0.5 rounded border text-[10px] uppercase tracking-wide ${adapterBadge[lineage.adapter_status] ?? ""}`}>
+                {lineage.adapter_status}
+              </span>
+            </dd>
+          </>
+        )}
+        {lineage.trust_score != null && (
+          <>
+            <dt className="text-gray-500">Trust score</dt>
+            <dd className="tabular-nums">{(lineage.trust_score * 100).toFixed(0)}%</dd>
+          </>
+        )}
+        {lineage.scraped_at && (
+          <>
+            <dt className="text-gray-500">Scraped</dt>
+            <dd className="text-gray-600">{new Date(lineage.scraped_at * 1000).toLocaleDateString()}</dd>
+          </>
+        )}
+      </dl>
+    </div>
+  );
+}
+
 // ── Consumers section (kind=skill only) ─────────────────────────
 //
+// ── Loop metrics spark lines (kind=app, Stage 2-C) ─────────────────
+
+function LoopMetricsSection({ repo }: { repo: RepoT }) {
+  const [metrics, setMetrics] = useState<MetricPoint[] | null>(null);
+
+  useEffect(() => {
+    setMetrics(null);
+    getLoopMetrics(repo.owner_sub, repo.name)
+      .then((pts) => setMetrics(pts))
+      .catch(() => setMetrics([]));
+  }, [repo.owner_sub, repo.name]);
+
+  if (!metrics || metrics.length === 0) return null;
+
+  // Group by metric name
+  const byMetric = new Map<string, MetricPoint[]>();
+  for (const pt of metrics) {
+    const key = pt.metric;
+    if (!byMetric.has(key)) byMetric.set(key, []);
+    byMetric.get(key)!.push(pt);
+  }
+
+  return (
+    <div className="mb-6 rounded-xl border border-gray-200 bg-white overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-2">
+        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Loop Metrics</span>
+      </div>
+      <div className="px-4 py-3 space-y-3">
+        {Array.from(byMetric.entries()).map(([name, pts]) => {
+          const sorted = [...pts].sort((a, b) => a.ts - b.ts);
+          const values = sorted.map((p) => p.value);
+          const min = Math.min(...values);
+          const max = Math.max(...values);
+          const range = max - min || 1;
+          const latest = values[values.length - 1];
+          const prev = values.length > 1 ? values[values.length - 2] : null;
+          const trend = prev != null ? (latest > prev ? "↑" : latest < prev ? "↓" : "→") : "";
+
+          // SVG spark line
+          const W = 120, H = 28;
+          const pts_svg = values.map((v, i) => {
+            const x = values.length === 1 ? W / 2 : (i / (values.length - 1)) * W;
+            const y = H - ((v - min) / range) * (H - 4) - 2;
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+          }).join(" ");
+
+          return (
+            <div key={name} className="flex items-center gap-3">
+              <div className="text-xs font-mono text-gray-600 w-28 truncate">{name}</div>
+              <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="shrink-0">
+                <polyline
+                  points={pts_svg}
+                  fill="none"
+                  stroke="#8b5cf6"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="text-xs font-mono text-indigo-600 font-medium">
+                {latest.toFixed(3)}{" "}
+                <span className={trend === "↑" ? "text-emerald-500" : trend === "↓" ? "text-red-400" : "text-gray-400"}>
+                  {trend}
+                </span>
+              </div>
+              <div className="text-[10px] text-gray-400">{sorted.length} pts</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Dataset preview panel (kind=dataset, Stage 2-D) ────────────
+//
+// Shows schema fields (name + type) and a scrollable preview table
+// with the first 10 rows from the primary data file. Rendered only
+// in the Overview tab; hidden until data loads, silently empty on
+// errors (dataset repos are optional — not every kind=dataset has
+// committed JSONL files).
+
+function DatasetPreviewSection({ repo }: { repo: RepoT }) {
+  const [schema, setSchema] = useState<DatasetSchema | null>(null);
+  const [preview, setPreview] = useState<DatasetPreview | null>(null);
+
+  useEffect(() => {
+    setSchema(null);
+    setPreview(null);
+    Promise.all([
+      getDatasetSchema(repo.owner_sub, repo.name),
+      getDatasetPreview(repo.owner_sub, repo.name),
+    ]).then(([s, p]) => {
+      setSchema(s);
+      setPreview(p);
+    }).catch(() => {
+      setSchema({ fields: [] });
+      setPreview({ rows: [], columns: [], total_rows: 0 });
+    });
+  }, [repo.owner_sub, repo.name]);
+
+  if (!schema && !preview) return null;
+
+  const hasSchema = schema && schema.fields.length > 0;
+  const hasPreview = preview && preview.rows.length > 0;
+
+  if (!hasSchema && !hasPreview) return null;
+
+  const cols = (preview?.columns?.length ? preview.columns : schema?.fields.map((f) => f.name)) ?? [];
+
+  return (
+    <div className="mb-6 rounded-xl border border-gray-200 bg-white overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
+        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Dataset</span>
+        <div className="flex items-center gap-3 text-[11px] text-gray-500">
+          {schema?.format && <span className="px-1.5 py-0.5 rounded bg-gray-100 font-mono">{schema.format}</span>}
+          {schema?.row_count != null && <span>{schema.row_count.toLocaleString()} rows</span>}
+          {schema?.source_file && <span className="font-mono truncate max-w-[140px]">{schema.source_file}</span>}
+        </div>
+      </div>
+
+      {hasSchema && (
+        <div className="px-4 pt-3 pb-2">
+          <div className="text-[11px] font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Schema</div>
+          <div className="flex flex-wrap gap-1.5">
+            {schema!.fields.map((f: DatasetField) => (
+              <span key={f.name}
+                className="inline-flex items-center gap-1 rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] font-mono">
+                <span className="text-gray-800">{f.name}</span>
+                {f.type && <span className="text-gray-400">{f.type}</span>}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {hasPreview && cols.length > 0 && (
+        <div className="px-4 pb-3 pt-2 overflow-x-auto">
+          <div className="text-[11px] font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
+            Preview — {preview!.rows.length} of {preview!.total_rows.toLocaleString()} rows
+          </div>
+          <table className="min-w-full text-[11px] border-collapse">
+            <thead>
+              <tr className="border-b border-gray-100">
+                {cols.map((c) => (
+                  <th key={c} className="px-2 py-1 text-left font-semibold text-gray-500 whitespace-nowrap">{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {preview!.rows.map((row, i) => (
+                <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                  {cols.map((c) => {
+                    const v = row[c];
+                    const display = v == null ? "" : typeof v === "object" ? JSON.stringify(v) : String(v);
+                    return (
+                      <td key={c} className="px-2 py-1 text-gray-700 font-mono max-w-[200px] truncate" title={display}>
+                        {display}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Reverse-resolves who imports this skill via the public
 // `/repos/{o}/{n}/consumers` endpoint. Hidden silently while loading
 // and on errors; the empty state still renders so authors get
@@ -2746,6 +3100,85 @@ function ForksTab({ repo }: { repo: RepoT }) {
 
 // ── Community tab (discussions list + new thread) ──────────────
 
+// ── Attestations table (kind=skill, Community tab) ───────────────
+
+function AttestationsTable({ repo }: { repo: RepoT }) {
+  type EnrichedAtt = Attestation & { _consumer_name?: string };
+  const [atts, setAtts] = useState<EnrichedAtt[] | null>(null);
+
+  useEffect(() => {
+    setAtts(null);
+    listAttestations(repo.owner_sub, repo.name)
+      .then((raw) => setAtts(raw as EnrichedAtt[]))
+      .catch(() => setAtts([]));
+  }, [repo.owner_sub, repo.name]);
+
+  if (!atts || atts.length === 0) return null;
+
+  // Aggregate by consumer: most recent per consumer
+  const byConsumer = new Map<string, EnrichedAtt>();
+  for (const a of atts) {
+    const key = `${a.consumer_owner}/${a.consumer_name}`;
+    const prev = byConsumer.get(key);
+    if (!prev || (a.attested_at || "") > (prev.attested_at || "")) {
+      byConsumer.set(key, a);
+    }
+  }
+  const rows = [...byConsumer.values()].sort((a, b) =>
+    (b.attested_at || "").localeCompare(a.attested_at || ""));
+
+  const total = rows.length;
+  const passing = rows.filter((r) => r.status === "pass").length;
+  const successRate = total > 0 ? Math.round((passing / total) * 100) : 0;
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white overflow-hidden mb-6">
+      <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
+        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Attestations</span>
+        <span className="text-xs text-gray-500">
+          {passing}/{total} passing · {successRate}% success
+        </span>
+      </div>
+      <table className="min-w-full text-[12px]">
+        <thead>
+          <tr className="border-b border-gray-100 text-gray-500">
+            <th className="px-4 py-2 text-left font-medium">Consumer</th>
+            <th className="px-4 py-2 text-left font-medium">Skill version</th>
+            <th className="px-4 py-2 text-left font-medium">Status</th>
+            <th className="px-4 py-2 text-left font-medium">When</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((a, i) => {
+            const slug = `${a.consumer_owner}/${a.consumer_name}`;
+            return (
+              <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                <td className="px-4 py-2">
+                  <Link to={`/${enc(a.consumer_owner)}/${enc(a.consumer_name)}`}
+                    className="text-soul-500 hover:underline font-mono text-[11px]">
+                    {a.consumer_name || slug}
+                  </Link>
+                </td>
+                <td className="px-4 py-2 text-gray-600 font-mono">{a.skill_version || "—"}</td>
+                <td className="px-4 py-2">
+                  <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                    a.status === "pass"
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : a.status === "fail"
+                        ? "bg-red-50 text-red-700 border border-red-200"
+                        : "bg-gray-50 text-gray-600 border border-gray-200"
+                  }`}>{a.status || "unknown"}</span>
+                </td>
+                <td className="px-4 py-2 text-gray-500">{relTime(a.attested_at || "")}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function CommunityTab({ repo, me }: { repo: RepoT; me: Me | null }) {
   const [discussions, setDiscussions] = useState<DiscussionSummary[] | null>(null);
   const [title, setTitle] = useState("");
@@ -2779,10 +3212,14 @@ function CommunityTab({ repo, me }: { repo: RepoT; me: Me | null }) {
   return (
     <div className="grid lg:grid-cols-[1fr_320px] gap-6">
       <div>
+        {/* Skill-specific: Consumers + Attestations at the top */}
+        {repo.kind === "skill" && <ConsumersSection repo={repo} />}
+        {repo.kind === "skill" && <AttestationsTable repo={repo} />}
+
         {discussions === null ? (
           <div className="py-10 text-center text-gray-500 text-sm">loading…</div>
         ) : discussions.length === 0 ? (
-          <div className="py-10 text-center text-gray-500 text-sm">
+          <div className={`py-10 text-center text-gray-500 text-sm ${repo.kind === "skill" ? "mt-6" : ""}`}>
             No discussions yet. Open the first thread on the right.
           </div>
         ) : (

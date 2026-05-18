@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  listRepos, whoami,
-  type Repo, type RepoKind, type Me,
+  listRepos, listMarketCollections, whoami,
+  type Repo, type RepoKind, type Me, type MarketCollection,
 } from "../api/client";
 import { Header } from "../components/Header";
 import { RepoCard } from "../components/RepoCard";
@@ -26,12 +26,19 @@ const SORTS = [
 ];
 
 export function Marketspace() {
+  const nav = useNavigate();
   const [tab, setTab] = useState<KindTab>("app");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState("updated");
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
   const [me, setMe] = useState<Me | null>(null);
+  const [intentQ, setIntentQ] = useState("");
+  const [collections, setCollections] = useState<MarketCollection[]>([]);
+
+  useEffect(() => {
+    listMarketCollections().then(setCollections).catch(() => setCollections([]));
+  }, []);
 
   useEffect(() => {
     whoami().then(setMe).catch(() => setMe(null));
@@ -88,6 +95,50 @@ export function Marketspace() {
             </div>
           )}
         </header>
+
+        {/* Intent hero — "create a loop" entry point */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (intentQ.trim().length >= 5) {
+                nav(`/new/loop?intent=${encodeURIComponent(intentQ.trim())}`);
+              }
+            }}
+            className="flex gap-2"
+          >
+            <input
+              value={intentQ}
+              onChange={(e) => setIntentQ(e.target.value)}
+              placeholder="What do you want to research or automate? → build a loop"
+              className="flex-1 bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-soul-400/30 focus:border-soul-400 transition-colors"
+            />
+            <button
+              type="submit"
+              disabled={intentQ.trim().length < 5}
+              className="shrink-0 bg-soul-400 hover:bg-soul-500 disabled:opacity-40 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition-colors"
+            >
+              Create loop →
+            </button>
+          </form>
+        </div>
+
+        {/* Collections row */}
+        {collections.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-8">
+            {collections.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setQ(c.tags[0] || c.label.toLowerCase())}
+                title={c.description}
+                className="flex flex-col items-center gap-1 rounded-xl border border-gray-200 bg-white px-2 py-3 text-center hover:border-soul-300 hover:shadow-sm transition-all group"
+              >
+                <span className="text-xl">{c.icon}</span>
+                <span className="text-xs font-medium text-gray-700 group-hover:text-soul-500 transition-colors">{c.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Search */}
         <div className="max-w-xl mx-auto mb-6">

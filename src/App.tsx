@@ -15,6 +15,7 @@ import { Profile } from "./pages/Profile";
 import { Repo } from "./pages/Repo";
 import { SearchResults } from "./pages/SearchResults";
 import { Skills } from "./pages/Skills";
+import { NewLoop } from "./pages/NewLoop";
 
 export default function App() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
 
         {/* Auth + dashboard */}
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/new/loop" element={<NewLoop />} />
         <Route path="/new" element={<NewRepo />} />
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Overview />} />

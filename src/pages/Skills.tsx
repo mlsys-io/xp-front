@@ -13,6 +13,7 @@ export function Skills() {
       glyph="⌘"
       title="Skills"
       blurb="Procedural know-how (SKILL.md plus optional Python implementation) that any application can pull in via skill_imports[]."
+      showSourceFilter
     />
   );
 }
