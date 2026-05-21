@@ -50,51 +50,115 @@ function MbbAiMatrixDemo() {
   );
 }
 
-/**
- * `/learn` — friendly onboarding page for first-time visitors.
- *
- * Walks through what xp.io is, the four kinds you can browse, the
- * trust signals on every repo (author tier, semver enforcement,
- * deprecation banners), the dependency graph between skills and apps,
- * the disagreement-matrix artifact some apps publish, and the one-line
- * install path. Reads as a long-form README rather than a feature
- * dump — newcomers should leave knowing what they're looking at, not
- * memorising checklists.
- *
- * No data fetching beyond `whoami` for the nav block; everything else
- * is static and ships in the bundle so the page is instant on first
- * paint. The AuthorBadge mock row uses the same component the rest of
- * the app uses, with hardcoded owner_subs that fall on each tier — so
- * if the tier classification logic ever changes, this page reflects
- * it for free.
- */
 export function Learn() {
   return (
     <div className="min-h-screen">
       <Header variant="learn" />
 
       <main className="mx-auto max-w-3xl px-8 py-12">
-        {/* Hero — keep it small. The page is for reading, not for signing
-            up. There's a sign-in button in the nav already. */}
-        <header className="mb-12">
+
+        {/* ── Hero ── */}
+        <header className="mb-14">
           <p className="text-[11px] uppercase tracking-[0.3em] text-soul-300 mb-3">
-            ◎ welcome to xp.io
+            ◎ xp.io
           </p>
           <h1 className="text-4xl font-semibold text-gray-900 leading-tight">
-            The open marketspace for Lumid apps, skills, datasets, and
-            agentic knowledge.
+            Become a super individual.
           </h1>
           <p className="mt-5 text-base text-gray-700 leading-relaxed">
-            xp.io is where the Lumid ecosystem publishes its work. Apps
-            install with one CLI line, skills are shared across apps so
-            the same know-how compounds, and every repo carries a
-            history that gets sharper across cycles. This page is the
-            five-minute tour — what you can browse, how to read the
-            trust signals, and how to install.
+            One person. AI-powered. Running an end-to-end operation that
+            used to require a full team. xp.io is the marketplace where
+            you find, install, and share the apps that make it happen —
+            and the platform that keeps them learning.
           </p>
         </header>
 
-        {/* 1. Browse by kind. Four cards, link to the existing landings. */}
+        {/* ── Three stages ── */}
+        <Section
+          eyebrow="how it works"
+          title="Three stages. One platform."
+          body=""
+        />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
+          <StageCard
+            number="1"
+            title="Automate"
+            body="Install any app in one CLI line. It runs your domain on a schedule — calling skills, placing trades, reading emails, watching papers — while you sleep."
+          />
+          <StageCard
+            number="2"
+            title="Auto-Research"
+            body="Every cycle deposits knowledge into a memory bank. The system generates insights you didn't ask for. The curve compounds automatically."
+          />
+          <StageCard
+            number="3"
+            title="Share &amp; Grow"
+            body="Distilled insights — not raw data — flow to xp.io. Other users subscribe. Their loops improve yours. The more people run LumidOS, the smarter everyone gets."
+          />
+        </div>
+
+        {/* ── Five demo apps ── */}
+        <Section
+          eyebrow="demo apps"
+          title="Pick your domain."
+          body="Each of these runs end-to-end today. Install any of them in one line and watch the knowledge bank grow."
+        />
+        <div className="space-y-3 mb-12">
+          <DemoCard
+            glyph="⁂"
+            name="auto-quant"
+            domain="Quantitative trading"
+            body="6 loops running 24/7 — regime detection, signal generation, paper + live trades. Knowledge bank builds alpha patterns across every cycle."
+          />
+          <DemoCard
+            glyph="⁂"
+            name="mbb-ai"
+            domain="Consulting / analysis"
+            body="18-skill parallel case analysis. Nightly regression sweep catches quality drift before you see it. Pattern library grows with each case."
+          />
+          <DemoCard
+            glyph="⁂"
+            name="personal-agent"
+            domain="Personal productivity"
+            body="Morning brief, hourly triage, Gmail + Calendar. Watches your Claude Code sessions to learn how you think. Your raw knowledge stays private forever."
+          />
+          <DemoCard
+            glyph="⁂"
+            name="video-gen"
+            domain="Creative / media"
+            body="Describe it in plain text. FlowMesh bursts to cloud GPU. HALO assigns stages to the right hardware automatically."
+          />
+          <DemoCard
+            glyph="⁂"
+            name="ai-research-loop"
+            domain="Research / knowledge work"
+            body="Reads arxiv + HN overnight. Benchmarks findings. Answers questions from knowledge it gathered before you asked."
+          />
+        </div>
+
+        {/* ── When device isn't enough ── */}
+        <Section
+          eyebrow="cloud"
+          title="When your device isn't enough, we have the rest."
+          body="Heavy compute bursts to cloud GPU automatically. Lumilake's HALO optimizer assigns pipeline stages to the right hardware and learns from execution history. Expert knowledge agents on xp.io let your loops start where someone else's left off. You bring the domain — we bring the compute, the analytics, and the collective knowledge."
+        />
+        <div className="rounded-xl border border-gray-200 bg-night-800 p-5 mb-12 font-mono text-[12.5px] leading-relaxed">
+          <div className="text-gray-500"># install an app — one line, no UUID</div>
+          <div className="text-gray-900">lumid app install auto-quant</div>
+          <div className="mt-3 text-gray-500"># query the knowledge graph</div>
+          <div className="text-gray-900">lumid xp ask "what alpha patterns worked this week?"</div>
+          <div className="mt-3 text-gray-500"># subscribe to a published knowledge delta</div>
+          <div className="text-gray-900">lumid xp subscribe my-trader-agent lumid/auto-quant-trader</div>
+        </div>
+
+        <div className="border-t border-gray-200 my-12" />
+
+        {/* ── Catalog reference (existing sections, below the fold) ── */}
+        <p className="text-[11px] uppercase tracking-[0.25em] text-gray-400 mb-8">
+          catalog reference — for developers and publishers
+        </p>
+
+        {/* 1. Browse by kind */}
         <Section
           eyebrow="browse"
           title="Four kinds, one catalog."
@@ -344,6 +408,9 @@ export function Learn() {
           <div className="text-gray-900">lumid xp fork mbb-ai-judge-imported ceba53d6-…/mbb-ai-judge</div>
           <div className="mt-3 text-gray-500"># inspect quality stats — verified-by counts, max chain depth, source breakdown:</div>
           <div className="text-gray-900">lumid xp signals --agent mbb-ai-judge</div>
+          <div className="mt-3 text-gray-500"># find agent dirs on disk that aren't in the registry (orphans from older SDK versions or docker runs):</div>
+          <div className="text-gray-900">lumid xp scan-orphans            <span className="text-gray-500"># list-only</span></div>
+          <div className="text-gray-900">lumid xp scan-orphans --register <span className="text-gray-500"># bring them all back into the registry</span></div>
         </div>
 
         {/* 6. Install path. */}
@@ -493,6 +560,47 @@ function SearchMock() {
         scan of "apps that mention mbb" is a single section.
       </p>
     </div>
+  );
+}
+
+function StageCard({
+  number, title, body,
+}: {
+  number: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 flex flex-col gap-2">
+      <span className="text-[11px] uppercase tracking-widest text-soul-300">{number}</span>
+      <span className="text-base font-semibold text-gray-900">{title}</span>
+      <span className="text-[13px] text-gray-600 leading-relaxed">{body}</span>
+    </div>
+  );
+}
+
+function DemoCard({
+  glyph, name, domain, body,
+}: {
+  glyph: string;
+  name: string;
+  domain: string;
+  body: string;
+}) {
+  return (
+    <Link
+      to={`/search?q=${name}`}
+      className="rounded-xl border border-gray-200 bg-white px-5 py-4 flex gap-4 hover:border-soul-300 transition-colors"
+    >
+      <span className="text-xl text-soul-300 leading-none w-6 mt-0.5 shrink-0 text-center">{glyph}</span>
+      <span className="flex flex-col gap-1">
+        <span className="flex items-baseline gap-2">
+          <span className="text-sm font-semibold text-gray-900">{name}</span>
+          <span className="text-[11px] text-gray-500 uppercase tracking-widest">{domain}</span>
+        </span>
+        <span className="text-[13px] text-gray-600 leading-relaxed">{body}</span>
+      </span>
+    </Link>
   );
 }
 

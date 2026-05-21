@@ -65,6 +65,11 @@ export type Repo = {
   head_sha: string;
   published_at: number;
   updated_at: number;
+  // Community / lineage fields (optional — populated for community/ skills)
+  source?: string;              // "mcp_registry" | "glama" | "langchain" | "manual"
+  adapter_status?: "generated" | "verified" | "broken" | "stale" | "deprecated";
+  upstream_health?: "green" | "yellow" | "red" | "unknown";
+  consumers_count?: number;     // number of apps that import this skill
 };
 
 export type Branch = {
@@ -103,6 +108,7 @@ export type ListReposParams = {
   sort?: "updated" | "created" | "stars" | "forks" | "name";
   limit?: number;
   include_forks?: boolean;
+  source?: "community" | "first-party" | "";
 };
 
 /** Anonymous — returns only public repos unless the user is signed in. */
@@ -612,6 +618,102 @@ export async function closeDiscussion(
   return r.data as Discussion;
 }
 
+// ── Issues ───────────────────────────────────────────────────────
+
+export type Issue = {
+  number: number;
+  state: "open" | "closed";
+  title: string;
+  body: string;
+  author_sub: string;
+  opened_at: number;
+  closed_at: number | null;
+  comment_count: number;
+  labels: string[];
+};
+
+export type IssueComment = {
+  id: string;
+  author_sub: string;
+  body: string;
+  created_at: number;
+};
+
+export async function listIssues(
+  owner: string, name: string, state: "open" | "closed" | "all" = "open",
+): Promise<Issue[]> {
+  const r = await anonApi.get(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues`, { params: { state } },
+  );
+  return (r.data?.issues || []) as Issue[];
+}
+
+export async function createIssue(
+  owner: string, name: string,
+  body: { title: string; body?: string; labels?: string[] },
+): Promise<Issue> {
+  const r = await api.post(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues`, body,
+  );
+  return r.data.issue as Issue;
+}
+
+export async function getIssue(
+  owner: string, name: string, number: number,
+): Promise<Issue> {
+  const r = await anonApi.get(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues/${number}`,
+  );
+  return r.data as Issue;
+}
+
+export async function patchIssue(
+  owner: string, name: string, number: number,
+  patch: { title?: string; body?: string; labels?: string[] },
+): Promise<Issue> {
+  const r = await api.patch(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues/${number}`, patch,
+  );
+  return r.data as Issue;
+}
+
+export async function closeIssue(
+  owner: string, name: string, number: number,
+): Promise<Issue> {
+  const r = await api.post(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues/${number}/close`,
+  );
+  return r.data as Issue;
+}
+
+export async function reopenIssue(
+  owner: string, name: string, number: number,
+): Promise<Issue> {
+  const r = await api.post(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues/${number}/reopen`,
+  );
+  return r.data as Issue;
+}
+
+export async function listIssueComments(
+  owner: string, name: string, number: number,
+): Promise<IssueComment[]> {
+  const r = await anonApi.get(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues/${number}/comments`,
+  );
+  return (r.data?.comments || []) as IssueComment[];
+}
+
+export async function addIssueComment(
+  owner: string, name: string, number: number, body: string,
+): Promise<IssueComment> {
+  const r = await api.post(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/issues/${number}/comments`,
+    { body },
+  );
+  return r.data.comment as IssueComment;
+}
+
 // ── Trending ──────────────────────────────────────────────────────
 
 export async function listTrending(
@@ -731,6 +833,149 @@ export async function readUserAudit(
 export async function exportUserData(): Promise<unknown> {
   const r = await api.get("/api/v1/user/export");
   return r.data;
+}
+
+// ── Skill install ─────────────────────────────────────────────────
+
+export async function addSkillToApp(
+  appOwner: string,
+  appName: string,
+  skillRepo: string,  // "owner/name"
+  version = "latest",
+): Promise<{ ok: boolean; changed?: boolean; sha?: string; note?: string }> {
+  const r = await api.post(`/api/v1/repos/${enc(appOwner)}/${enc(appName)}/add-skill`, {
+    skill_repo: skillRepo,
+    version,
+  });
+  return r.data;
+}
+
+/** List repos the authenticated user owns. Used to populate "Add to app" dropdown. */
+export async function listMyApps(): Promise<Repo[]> {
+  const me = await getMe().catch(() => null);
+  if (!me) return [];
+  return listRepos({ owner: me.sub, kind: "app" });
+}
+
+// ── Lineage (community skill provenance) ─────────────────────────
+
+export interface LineageRecord {
+  source?: string;
+  source_url?: string;
+  scraped_at?: number;
+  adapter_status?: "generated" | "verified" | "broken" | "stale" | "deprecated";
+  upstream_health?: "green" | "yellow" | "red" | "unknown";
+  description?: string;
+  stars?: number;
+  tags?: string[];
+  trust_score?: number;
+  checked_at?: number;
+  updated_at?: number;
+}
+
+export async function getLineage(owner: string, name: string): Promise<LineageRecord | null> {
+  try {
+    const r = await anonApi.get(`/api/v1/repos/${enc(owner)}/${enc(name)}/lineage`);
+    return r.data?.lineage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Market Collections (curated topic groups) ──────────────────────
+
+export interface MarketCollection {
+  id: string;
+  label: string;
+  icon: string;
+  description: string;
+  tags: string[];
+}
+
+export async function listMarketCollections(): Promise<MarketCollection[]> {
+  try {
+    const r = await anonApi.get("/api/v1/collections");
+    return (r.data?.collections || []) as MarketCollection[];
+  } catch {
+    return [];
+  }
+}
+
+// ── Metrics (loop metric time-series, Stage 2-C) ──────────────────
+
+export interface MetricPoint {
+  ts: number;
+  cycle_ts: string;
+  metric: string;
+  value: number;
+}
+
+export async function getLoopMetrics(
+  owner: string, name: string, loop = "default", metric = "",
+): Promise<MetricPoint[]> {
+  try {
+    const r = await anonApi.get(`/api/v1/repos/${enc(owner)}/${enc(name)}/metrics`, {
+      params: { loop, ...(metric ? { metric } : {}) },
+    });
+    return (r.data?.metrics || []) as MetricPoint[];
+  } catch {
+    return [];
+  }
+}
+
+// ── Dataset marketplace (Stage 2-D) ─────────────────────────────
+
+export interface DatasetField {
+  name: string;
+  type?: string;
+  description?: string;
+}
+
+export interface DatasetSchema {
+  fields: DatasetField[];
+  row_count?: number;
+  format?: string;
+  source_file?: string;
+}
+
+export interface DatasetPreview {
+  rows: Record<string, unknown>[];
+  total_rows: number;
+  columns: string[];
+  source_file?: string;
+}
+
+export async function getDatasetSchema(
+  owner: string,
+  name: string,
+  ref = "main",
+): Promise<DatasetSchema> {
+  try {
+    const r = await anonApi.get(
+      `/api/v1/repos/${enc(owner)}/${enc(name)}/schema`,
+      { params: { ref } },
+    );
+    return r.data as DatasetSchema;
+  } catch {
+    return { fields: [] };
+  }
+}
+
+export async function getDatasetPreview(
+  owner: string,
+  name: string,
+  limit = 10,
+  ref = "main",
+): Promise<DatasetPreview> {
+  try {
+    const r = await anonApi.get(
+      `/api/v1/repos/${enc(owner)}/${enc(name)}/preview`,
+      { params: { ref, limit } },
+    );
+    return r.data as DatasetPreview;
+  } catch {
+    return { rows: [], total_rows: 0, columns: [] };
+  }
 }
 
 // ── helpers ──────────────────────────────────────────────────────

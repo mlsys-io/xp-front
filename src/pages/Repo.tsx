@@ -5,14 +5,19 @@ import {
 import {
   acceptTransfer,
   addDiscussionComment,
+  addIssueComment,
+  closeIssue,
+  reopenIssue,
   addPRComment,
   closeDiscussion,
   closePull,
   createDiscussion,
+  createIssue,
   deleteRepo,
   forkRepo,
   getBlob,
   getDiscussion,
+  getIssue,
   getPendingTransfer,
   getPull,
   getPullDiff,
@@ -29,10 +34,13 @@ import {
   listContributors,
   listDiscussions,
   listForks,
+  listIssueComments,
+  listIssues,
   listPRComments,
   listPulls,
   mergePull,
   openPull,
+  patchIssue,
   patchRepo,
   pushCommit,
   removeCollaborator,
@@ -40,6 +48,17 @@ import {
   starRepo,
   toggleWatch,
   whoami,
+  addSkillToApp,
+  getDatasetSchema,
+  getDatasetPreview,
+  getLineage,
+  getLoopMetrics,
+  listMyApps,
+  type DatasetField,
+  type DatasetPreview,
+  type DatasetSchema,
+  type LineageRecord,
+  type MetricPoint,
   type Attestation,
   type Branch,
   type Collaborator,
@@ -49,6 +68,8 @@ import {
   type Contributor,
   type Discussion,
   type DiscussionSummary,
+  type Issue,
+  type IssueComment,
   type Me,
   type PR,
   type PRComment,
@@ -63,7 +84,7 @@ import { AuthorBadge } from "../components/AuthorBadge";
 import { RepoDeprecationBanner } from "../components/DeprecationBanner";
 import { DisagreementMatrixForRepo } from "../components/DisagreementMatrix";
 
-type Tab = "code" | "commits" | "branches" | "pulls" | "community"
+type Tab = "code" | "commits" | "branches" | "issues" | "pulls" | "community"
          | "forks" | "settings";
 
 const KIND_GLYPH: Record<string, string> = { app: "⁂", autoresearch: "⋯", agent: "❋", skill: "⌘" };
@@ -91,29 +112,36 @@ export function Repo() {
   const prefix = `/${owner}/${name}`;
   const mode: "tree" | "blob" | "blob-edit" | "branches" | "pulls"
             | "pull-detail" | "pull-new" | "settings" | "commits"
-            | "community" | "discussion-detail" | "forks" =
+            | "community" | "discussion-detail" | "forks"
+            | "issues" | "issue-new" | "issue-detail" =
     pathname === `${prefix}/branches`
       ? "branches"
       : pathname === `${prefix}/commits` || pathname.startsWith(`${prefix}/commits/`)
         ? "commits"
         : pathname === `${prefix}/forks`
           ? "forks"
-          : pathname === `${prefix}/pulls/new`
-            ? "pull-new"
-            : numberParam
-              ? "pull-detail"
-              : pathname.startsWith(`${prefix}/pulls`)
-                ? "pulls"
-                : pathname.startsWith(`${prefix}/blob/`)
-                  ? (searchParams.get("edit") === "1" ? "blob-edit" : "blob")
-                  : pathname.startsWith(`${prefix}/settings`)
-                    ? "settings"
-                    : pathname.startsWith(`${prefix}/discussions/`)
-                      ? "discussion-detail"
-                      : pathname === `${prefix}/discussions`
-                                || pathname === `${prefix}/community`
-                        ? "community"
-                        : "tree";
+          : pathname === `${prefix}/issues/new`
+            ? "issue-new"
+            : pathname === `${prefix}/pulls/new`
+              ? "pull-new"
+              : pathname.startsWith(`${prefix}/issues/`) && numberParam
+                ? "issue-detail"
+                : pathname === `${prefix}/issues`
+                  ? "issues"
+                  : numberParam
+                    ? "pull-detail"
+                    : pathname.startsWith(`${prefix}/pulls`)
+                      ? "pulls"
+                      : pathname.startsWith(`${prefix}/blob/`)
+                        ? (searchParams.get("edit") === "1" ? "blob-edit" : "blob")
+                        : pathname.startsWith(`${prefix}/settings`)
+                          ? "settings"
+                          : pathname.startsWith(`${prefix}/discussions/`)
+                            ? "discussion-detail"
+                            : pathname === `${prefix}/discussions`
+                                      || pathname === `${prefix}/community`
+                              ? "community"
+                              : "tree";
 
   const tab: Tab = mode === "branches"
     ? "branches"
@@ -121,13 +149,15 @@ export function Repo() {
       ? "commits"
       : mode === "forks"
         ? "forks"
-        : mode.startsWith("pull")
-          ? "pulls"
-          : mode === "settings"
-            ? "settings"
-            : mode === "community" || mode === "discussion-detail"
-              ? "community"
-              : "code";
+        : mode.startsWith("issue")
+          ? "issues"
+          : mode.startsWith("pull")
+            ? "pulls"
+            : mode === "settings"
+              ? "settings"
+              : mode === "community" || mode === "discussion-detail"
+                ? "community"
+                : "code";
   const branch = branchParam || "main";
 
   const [me, setMe] = useState<Me | null>(null);
@@ -176,8 +206,16 @@ export function Repo() {
         <TabLink to={`/${enc(owner)}/${enc(name)}`} active={tab === "code"}>Code</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/commits`} active={tab === "commits"}>Commits</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/branches`} active={tab === "branches"}>Branches</TabLink>
+        <TabLink to={`/${enc(owner)}/${enc(name)}/issues`} active={tab === "issues"}>Issues</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/pulls`} active={tab === "pulls"}>Pull Requests</TabLink>
-        <TabLink to={`/${enc(owner)}/${enc(name)}/community`} active={tab === "community"}>Community</TabLink>
+        <TabLink to={`/${enc(owner)}/${enc(name)}/community`} active={tab === "community"}>
+          {repo.kind === "skill" ? "Consumers" : "Community"}
+          {repo.kind === "skill" && (repo.consumers_count ?? 0) > 0 && (
+            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-700 tabular-nums">
+              {repo.consumers_count}
+            </span>
+          )}
+        </TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/forks`} active={tab === "forks"}>Forks</TabLink>
         {isOwner && (
           <TabLink to={`/${enc(owner)}/${enc(name)}/settings`} active={tab === "settings"}>
@@ -196,6 +234,11 @@ export function Repo() {
         {mode === "community" && <CommunityTab repo={repo} me={me} />}
         {mode === "discussion-detail" && (
           <DiscussionDetail repo={repo} me={me} isOwner={isOwner} />
+        )}
+        {mode === "issues" && <IssuesTab repo={repo} me={me} isOwner={isOwner} />}
+        {mode === "issue-new" && <IssueNew repo={repo} me={me} />}
+        {mode === "issue-detail" && numberParam && (
+          <IssueDetail repo={repo} number={Number(numberParam)} me={me} isOwner={isOwner} />
         )}
         {mode === "pulls" && <PullsTab repo={repo} me={me} />}
         {mode === "pull-new" && <NewPullForm repo={repo} me={me} />}
@@ -387,6 +430,9 @@ function RepoHeader({
               <span className="text-soul-400 mr-1">+</span>
               Add skill draft
             </a>
+          )}
+          {repo.kind === "skill" && (
+            <AddToAppButton skillOwner={repo.owner_sub} skillName={repo.name} />
           )}
         </div>
       </div>
@@ -680,9 +726,12 @@ function CodeTab({ repo, branch, path, isOwner }: {
         )}
       </div>
     </div>
+    {isOverview && repo.kind === "skill" && <LineageSection repo={repo} />}
     {isOverview && repo.kind === "skill" && <TestedWithSection repo={repo} />}
     {isOverview && repo.kind === "skill" && <ConsumersSection repo={repo} />}
+    {isOverview && repo.kind === "app" && <LoopMetricsSection repo={repo} />}
     {isOverview && repo.kind === "app" && <DisagreementMatrixForRepo repo={repo} branch={branch} />}
+    {isOverview && repo.kind === "dataset" && <DatasetPreviewSection repo={repo} />}
     </div>
   );
 }
@@ -825,8 +874,338 @@ function StatusPill({ status }: { status: Attestation["status"] }) {
   );
 }
 
+// ── Add to app button (kind=skill only) ─────────────────────────
+
+function AddToAppButton({ skillOwner, skillName }: { skillOwner: string; skillName: string }) {
+  const [apps, setApps] = useState<RepoT[] | null>(null);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+
+  const toggle = () => {
+    if (!open && apps === null) {
+      listMyApps().then(setApps).catch(() => setApps([]));
+    }
+    setOpen((v) => !v);
+  };
+
+  const install = async (app: RepoT) => {
+    setBusy(app.name);
+    try {
+      await addSkillToApp(app.owner_sub, app.name, `${skillOwner}/${skillName}`);
+      setDone(app.name);
+    } catch {
+      setDone(null);
+    } finally {
+      setBusy(null);
+      setOpen(false);
+    }
+  };
+
+  if (done) {
+    return (
+      <span className="px-2.5 py-1 text-xs rounded-md border border-soul-300 text-soul-400 bg-soul-400/5">
+        ✓ Added to {done}
+      </span>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={toggle}
+        className="px-2.5 py-1 text-xs rounded-md border border-soul-300 text-soul-400 hover:bg-soul-400/5 transition-colors font-medium"
+      >
+        + Add to app ▾
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-lg border border-gray-200 bg-white shadow-lg py-1">
+          {apps === null ? (
+            <div className="px-3 py-2 text-xs text-gray-500">Loading your apps…</div>
+          ) : apps.length === 0 ? (
+            <div className="px-3 py-2 text-xs text-gray-500">No published apps found. Run <code>app_publish</code> first.</div>
+          ) : (
+            apps.map((app) => (
+              <button
+                key={app.name}
+                disabled={busy === app.name}
+                onClick={() => install(app)}
+                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 text-gray-800 disabled:opacity-50 transition-colors"
+              >
+                {busy === app.name ? "Adding…" : app.display_name || app.name}
+              </button>
+            ))
+          )}
+          <div className="border-t border-gray-100 px-3 pt-1.5 pb-1">
+            <span className="text-[10px] text-gray-400 font-mono">
+              lumid app_add_skill &lt;app&gt; {skillOwner}/{skillName}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Lineage section (community skills) ──────────────────────────
+
+function LineageSection({ repo }: { repo: RepoT }) {
+  const [lineage, setLineage] = useState<LineageRecord | null | undefined>(undefined);
+
+  useEffect(() => {
+    setLineage(undefined);
+    getLineage(repo.owner_sub, repo.name).then(setLineage);
+  }, [repo.owner_sub, repo.name]);
+
+  if (lineage === undefined) return null;  // loading
+  if (!lineage) return null;               // no lineage record
+
+  const healthColor = {
+    green: "text-emerald-600",
+    yellow: "text-yellow-600",
+    red: "text-red-500",
+    unknown: "text-gray-400",
+  }[lineage.upstream_health ?? "unknown"];
+
+  const healthDot = {
+    green: "🟢", yellow: "🟡", red: "🔴", unknown: "⚪",
+  }[lineage.upstream_health ?? "unknown"];
+
+  const adapterBadge: Record<string, string> = {
+    generated: "bg-blue-50 text-blue-600 border-blue-200",
+    verified: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    broken: "bg-red-50 text-red-600 border-red-200",
+    stale: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    deprecated: "bg-gray-100 text-gray-500 border-gray-200",
+  };
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <h2 className="text-sm font-semibold text-gray-900 mb-3">Lineage</h2>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
+        {lineage.source && (
+          <>
+            <dt className="text-gray-500">Source</dt>
+            <dd className="text-gray-900 font-mono">{lineage.source}</dd>
+          </>
+        )}
+        {lineage.source_url && (
+          <>
+            <dt className="text-gray-500">Upstream</dt>
+            <dd>
+              <a href={lineage.source_url} target="_blank" rel="noreferrer"
+                 className="text-soul-400 hover:underline font-mono truncate block max-w-xs">
+                {lineage.source_url.replace(/^https?:\/\//, "")}
+              </a>
+            </dd>
+          </>
+        )}
+        {lineage.upstream_health && (
+          <>
+            <dt className="text-gray-500">Health</dt>
+            <dd className={`font-medium ${healthColor}`}>{healthDot} {lineage.upstream_health}</dd>
+          </>
+        )}
+        {lineage.adapter_status && (
+          <>
+            <dt className="text-gray-500">Adapter</dt>
+            <dd>
+              <span className={`px-1.5 py-0.5 rounded border text-[10px] uppercase tracking-wide ${adapterBadge[lineage.adapter_status] ?? ""}`}>
+                {lineage.adapter_status}
+              </span>
+            </dd>
+          </>
+        )}
+        {lineage.trust_score != null && (
+          <>
+            <dt className="text-gray-500">Trust score</dt>
+            <dd className="tabular-nums">{(lineage.trust_score * 100).toFixed(0)}%</dd>
+          </>
+        )}
+        {lineage.scraped_at && (
+          <>
+            <dt className="text-gray-500">Scraped</dt>
+            <dd className="text-gray-600">{new Date(lineage.scraped_at * 1000).toLocaleDateString()}</dd>
+          </>
+        )}
+      </dl>
+    </div>
+  );
+}
+
 // ── Consumers section (kind=skill only) ─────────────────────────
 //
+// ── Loop metrics spark lines (kind=app, Stage 2-C) ─────────────────
+
+function LoopMetricsSection({ repo }: { repo: RepoT }) {
+  const [metrics, setMetrics] = useState<MetricPoint[] | null>(null);
+
+  useEffect(() => {
+    setMetrics(null);
+    getLoopMetrics(repo.owner_sub, repo.name)
+      .then((pts) => setMetrics(pts))
+      .catch(() => setMetrics([]));
+  }, [repo.owner_sub, repo.name]);
+
+  if (!metrics || metrics.length === 0) return null;
+
+  // Group by metric name
+  const byMetric = new Map<string, MetricPoint[]>();
+  for (const pt of metrics) {
+    const key = pt.metric;
+    if (!byMetric.has(key)) byMetric.set(key, []);
+    byMetric.get(key)!.push(pt);
+  }
+
+  return (
+    <div className="mb-6 rounded-xl border border-gray-200 bg-white overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-2">
+        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Loop Metrics</span>
+      </div>
+      <div className="px-4 py-3 space-y-3">
+        {Array.from(byMetric.entries()).map(([name, pts]) => {
+          const sorted = [...pts].sort((a, b) => a.ts - b.ts);
+          const values = sorted.map((p) => p.value);
+          const min = Math.min(...values);
+          const max = Math.max(...values);
+          const range = max - min || 1;
+          const latest = values[values.length - 1];
+          const prev = values.length > 1 ? values[values.length - 2] : null;
+          const trend = prev != null ? (latest > prev ? "↑" : latest < prev ? "↓" : "→") : "";
+
+          // SVG spark line
+          const W = 120, H = 28;
+          const pts_svg = values.map((v, i) => {
+            const x = values.length === 1 ? W / 2 : (i / (values.length - 1)) * W;
+            const y = H - ((v - min) / range) * (H - 4) - 2;
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+          }).join(" ");
+
+          return (
+            <div key={name} className="flex items-center gap-3">
+              <div className="text-xs font-mono text-gray-600 w-28 truncate">{name}</div>
+              <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="shrink-0">
+                <polyline
+                  points={pts_svg}
+                  fill="none"
+                  stroke="#8b5cf6"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="text-xs font-mono text-indigo-600 font-medium">
+                {latest.toFixed(3)}{" "}
+                <span className={trend === "↑" ? "text-emerald-500" : trend === "↓" ? "text-red-400" : "text-gray-400"}>
+                  {trend}
+                </span>
+              </div>
+              <div className="text-[10px] text-gray-400">{sorted.length} pts</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Dataset preview panel (kind=dataset, Stage 2-D) ────────────
+//
+// Shows schema fields (name + type) and a scrollable preview table
+// with the first 10 rows from the primary data file. Rendered only
+// in the Overview tab; hidden until data loads, silently empty on
+// errors (dataset repos are optional — not every kind=dataset has
+// committed JSONL files).
+
+function DatasetPreviewSection({ repo }: { repo: RepoT }) {
+  const [schema, setSchema] = useState<DatasetSchema | null>(null);
+  const [preview, setPreview] = useState<DatasetPreview | null>(null);
+
+  useEffect(() => {
+    setSchema(null);
+    setPreview(null);
+    Promise.all([
+      getDatasetSchema(repo.owner_sub, repo.name),
+      getDatasetPreview(repo.owner_sub, repo.name),
+    ]).then(([s, p]) => {
+      setSchema(s);
+      setPreview(p);
+    }).catch(() => {
+      setSchema({ fields: [] });
+      setPreview({ rows: [], columns: [], total_rows: 0 });
+    });
+  }, [repo.owner_sub, repo.name]);
+
+  if (!schema && !preview) return null;
+
+  const hasSchema = schema && schema.fields.length > 0;
+  const hasPreview = preview && preview.rows.length > 0;
+
+  if (!hasSchema && !hasPreview) return null;
+
+  const cols = (preview?.columns?.length ? preview.columns : schema?.fields.map((f) => f.name)) ?? [];
+
+  return (
+    <div className="mb-6 rounded-xl border border-gray-200 bg-white overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
+        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Dataset</span>
+        <div className="flex items-center gap-3 text-[11px] text-gray-500">
+          {schema?.format && <span className="px-1.5 py-0.5 rounded bg-gray-100 font-mono">{schema.format}</span>}
+          {schema?.row_count != null && <span>{schema.row_count.toLocaleString()} rows</span>}
+          {schema?.source_file && <span className="font-mono truncate max-w-[140px]">{schema.source_file}</span>}
+        </div>
+      </div>
+
+      {hasSchema && (
+        <div className="px-4 pt-3 pb-2">
+          <div className="text-[11px] font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Schema</div>
+          <div className="flex flex-wrap gap-1.5">
+            {schema!.fields.map((f: DatasetField) => (
+              <span key={f.name}
+                className="inline-flex items-center gap-1 rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] font-mono">
+                <span className="text-gray-800">{f.name}</span>
+                {f.type && <span className="text-gray-400">{f.type}</span>}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {hasPreview && cols.length > 0 && (
+        <div className="px-4 pb-3 pt-2 overflow-x-auto">
+          <div className="text-[11px] font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
+            Preview — {preview!.rows.length} of {preview!.total_rows.toLocaleString()} rows
+          </div>
+          <table className="min-w-full text-[11px] border-collapse">
+            <thead>
+              <tr className="border-b border-gray-100">
+                {cols.map((c) => (
+                  <th key={c} className="px-2 py-1 text-left font-semibold text-gray-500 whitespace-nowrap">{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {preview!.rows.map((row, i) => (
+                <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                  {cols.map((c) => {
+                    const v = row[c];
+                    const display = v == null ? "" : typeof v === "object" ? JSON.stringify(v) : String(v);
+                    return (
+                      <td key={c} className="px-2 py-1 text-gray-700 font-mono max-w-[200px] truncate" title={display}>
+                        {display}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Reverse-resolves who imports this skill via the public
 // `/repos/{o}/{n}/consumers` endpoint. Hidden silently while loading
 // and on errors; the empty state still renders so authors get
@@ -1239,6 +1618,426 @@ function BlobEditor({ repo, branch, path }: { repo: RepoT; branch: string; path:
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ── Issues tab ───────────────────────────────────────────────────
+
+function IssuesTab({
+  repo, me, isOwner,
+}: { repo: RepoT; me: Me | null; isOwner: boolean }) {
+  const nav = useNavigate();
+  const [issues, setIssues] = useState<Issue[] | null>(null);
+  const [state, setState] = useState<"open" | "closed" | "all">("open");
+
+  useEffect(() => {
+    listIssues(repo.owner_sub, repo.name, state)
+      .then(setIssues)
+      .catch(() => setIssues([]));
+  }, [repo.owner_sub, repo.name, state]);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div className="flex items-center gap-4 text-xs">
+          {(["open", "closed", "all"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setState(s)}
+              className={`pb-1 transition-colors ${
+                state === s ? "text-soul-300 border-b border-soul-400" : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        {(isOwner || !!me) && (
+          <button
+            onClick={() => nav(`/${enc(repo.owner_sub)}/${enc(repo.name)}/issues/new`)}
+            className="px-3 py-1.5 text-xs rounded-full border border-gray-300 text-soul-300 hover:text-soul-400 hover:border-soul-400"
+          >
+            + new issue
+          </button>
+        )}
+      </div>
+      {issues === null ? (
+        <div className="text-sm text-gray-500 py-10 text-center">loading…</div>
+      ) : issues.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-gray-200 py-12 text-center">
+          <div className="text-2xl text-gray-300 mb-2">◉</div>
+          <div className="text-sm text-gray-500">No {state === "all" ? "" : state + " "}issues yet.</div>
+        </div>
+      ) : (
+        <ul className="space-y-1.5">
+          {issues.map((iss) => (
+            <li key={iss.number}>
+              <Link
+                to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/issues/${iss.number}`}
+                className="flex items-start justify-between gap-4 border border-gray-200 rounded-lg px-4 py-3 hover:border-gray-300 transition-colors"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-gray-400 text-xs">#{iss.number}</span>
+                    <span className="text-sm text-gray-900 hover:text-soul-300 truncate">{iss.title}</span>
+                    {iss.labels.map((lbl) => (
+                      <span
+                        key={lbl}
+                        className="text-[10px] tracking-wider uppercase border rounded px-1.5 py-0.5 bg-soul-400/10 text-soul-300 border-soul-300/30"
+                      >
+                        {lbl}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-gray-500">
+                    opened by <span className="font-mono">{iss.author_sub.slice(0, 10)}</span>
+                    {" · "}{relTime(iss.opened_at)}
+                    {iss.comment_count > 0 && (
+                      <span className="ml-2">· {iss.comment_count} comment{iss.comment_count !== 1 ? "s" : ""}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="shrink-0 pt-0.5">
+                  <IssueBadge state={iss.state} />
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ── New issue form ────────────────────────────────────────────────
+
+function IssueNew({ repo, me }: { repo: RepoT; me: Me | null }) {
+  const nav = useNavigate();
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  if (!me) {
+    return (
+      <div className="rounded-xl border border-dashed border-gray-200 p-6 text-sm text-gray-700">
+        Sign in to open an issue.{" "}
+        <button
+          onClick={async () => { const { beginLogin } = await import("../lib/pkce"); beginLogin(); }}
+          className="text-soul-300 hover:text-soul-400"
+        >
+          Sign in →
+        </button>
+      </div>
+    );
+  }
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErr("");
+    setBusy(true);
+    try {
+      const iss = await createIssue(repo.owner_sub, repo.name, { title: title.trim(), body });
+      nav(`/${enc(repo.owner_sub)}/${enc(repo.name)}/issues/${iss.number}`);
+    } catch (e: any) {
+      setErr(e?.response?.data?.detail || "failed to open issue");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="max-w-2xl space-y-4">
+      <div className="text-sm text-gray-700 mb-2">Open a new issue</div>
+
+      <Field label="Title">
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+          placeholder="Short, descriptive title"
+          className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full"
+        />
+      </Field>
+
+      <Field label="Description">
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={6}
+          placeholder="Describe the issue (markdown)"
+          className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full font-mono"
+        />
+      </Field>
+
+      {err && <div className="text-xs text-atokirina-400">{err}</div>}
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={busy || !title.trim()}
+          className="px-4 py-2 text-xs rounded-full border border-gray-300 text-soul-300 hover:text-soul-400 hover:border-soul-400 disabled:opacity-50"
+        >
+          {busy ? "opening…" : "◉ open issue"}
+        </button>
+        <Link
+          to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/issues`}
+          className="text-xs text-gray-500 hover:text-gray-700"
+        >
+          cancel
+        </Link>
+      </div>
+    </form>
+  );
+}
+
+// ── Issue detail ──────────────────────────────────────────────────
+
+function IssueDetail({
+  repo, number, me, isOwner,
+}: { repo: RepoT; number: number; me: Me | null; isOwner: boolean }) {
+  const [issue, setIssue] = useState<Issue | null | "missing">(null);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const reload = async () => {
+    try {
+      const iss = await getIssue(repo.owner_sub, repo.name, number);
+      setIssue(iss);
+    } catch {
+      setIssue("missing");
+    }
+  };
+  useEffect(() => { reload(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [repo.owner_sub, repo.name, number]);
+
+  if (issue === null) return <div className="text-sm text-gray-500 py-10 text-center">loading…</div>;
+  if (issue === "missing") return <div className="text-sm text-gray-500 py-10 text-center">Issue not found</div>;
+
+  const canAct = isOwner || (!!me && me.sub === issue.author_sub);
+
+  const startEdit = () => {
+    setEditTitle(issue.title);
+    setEditBody(issue.body);
+    setEditing(true);
+  };
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTitle.trim()) return;
+    setBusy(true);
+    setErr("");
+    try {
+      const updated = await patchIssue(repo.owner_sub, repo.name, number, {
+        title: editTitle.trim(), body: editBody,
+      });
+      setIssue(updated);
+      setEditing(false);
+    } catch (e: any) {
+      setErr(e?.response?.data?.detail || "save failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleState = async () => {
+    setBusy(true);
+    setErr("");
+    try {
+      const fn = issue.state === "open" ? closeIssue : reopenIssue;
+      const updated = await fn(repo.owner_sub, repo.name, number);
+      setIssue(updated);
+    } catch (e: any) {
+      setErr(e?.response?.data?.detail || "failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      {/* Back link */}
+      <div className="text-xs text-gray-500 mb-4">
+        <Link to={`/${enc(repo.owner_sub)}/${enc(repo.name)}/issues`} className="hover:text-soul-300">
+          ← back to issues
+        </Link>
+      </div>
+
+      {editing ? (
+        <form onSubmit={saveEdit} className="max-w-2xl space-y-3 mb-6">
+          <input
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            required
+            className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full font-semibold"
+          />
+          <textarea
+            value={editBody}
+            onChange={(e) => setEditBody(e.target.value)}
+            rows={6}
+            className="bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full font-mono"
+          />
+          {err && <div className="text-xs text-atokirina-400">{err}</div>}
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={busy || !editTitle.trim()}
+              className="px-3 py-1.5 text-xs rounded-full border border-gray-300 text-soul-300 hover:border-soul-400 disabled:opacity-50"
+            >
+              {busy ? "saving…" : "save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+          <div className="min-w-0">
+            <h2 className="text-xl font-semibold text-bark-300">
+              <span className="text-gray-500 mr-2">#{issue.number}</span>
+              {issue.title}
+            </h2>
+            <div className="mt-1 text-xs text-gray-600 flex items-center gap-3 flex-wrap">
+              <IssueBadge state={issue.state} />
+              <span>
+                opened by{" "}
+                <span className="font-mono text-gray-900">{issue.author_sub.slice(0, 10)}</span>
+              </span>
+              <span>{relTime(issue.opened_at)}</span>
+              {issue.labels.map((lbl) => (
+                <span
+                  key={lbl}
+                  className="text-[10px] tracking-wider uppercase border rounded px-1.5 py-0.5 bg-soul-400/10 text-soul-300 border-soul-300/30"
+                >
+                  {lbl}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            {canAct && (
+              <button
+                onClick={startEdit}
+                className="px-3 py-1.5 text-xs rounded-full border border-gray-300 text-bark-300 hover:border-gray-400"
+              >
+                edit
+              </button>
+            )}
+            {canAct && (
+              <button
+                onClick={toggleState}
+                disabled={busy}
+                className={`px-3 py-1.5 text-xs rounded-full border disabled:opacity-50 ${
+                  issue.state === "open"
+                    ? "border-atokirina-400/40 text-atokirina-400 hover:bg-atokirina-400/10"
+                    : "border-soul-300/40 text-soul-300 hover:bg-soul-400/10"
+                }`}
+              >
+                {busy ? "…" : issue.state === "open" ? "close" : "reopen"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {err && !editing && <div className="mb-3 text-xs text-atokirina-400">{err}</div>}
+
+      {issue.body && !editing && (
+        <div className="rounded-xl border border-gray-200 bg-white p-4 mb-2">
+          <pre className="text-sm text-gray-900/90 whitespace-pre-wrap font-sans leading-relaxed">{issue.body}</pre>
+        </div>
+      )}
+
+      <IssueCommentsBlock repo={repo} number={number} me={me} />
+    </div>
+  );
+}
+
+function IssueBadge({ state }: { state: Issue["state"] }) {
+  const cls = state === "open"
+    ? "bg-soul-400/15 text-soul-300 border-soul-300/30"
+    : "bg-gray-200 text-gray-500 border-gray-300/30";
+  return (
+    <span className={`text-[10px] tracking-wider uppercase border rounded px-1.5 py-0.5 ${cls}`}>
+      {state}
+    </span>
+  );
+}
+
+function IssueCommentsBlock({
+  repo, number, me,
+}: { repo: RepoT; number: number; me: Me | null }) {
+  const [comments, setComments] = useState<IssueComment[] | null>(null);
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const reload = () => {
+    listIssueComments(repo.owner_sub, repo.name, number)
+      .then(setComments)
+      .catch(() => setComments([]));
+  };
+  useEffect(reload, [repo.owner_sub, repo.name, number]);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!me) {
+      const { beginLogin } = await import("../lib/pkce");
+      return beginLogin();
+    }
+    if (!body.trim()) return;
+    setBusy(true);
+    try {
+      await addIssueComment(repo.owner_sub, repo.name, number, body);
+      setBody("");
+      reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-6">
+      <div className="text-xs text-gray-600 mb-3">
+        Comments {comments?.length ? `(${comments.length})` : ""}
+      </div>
+      {!comments ? (
+        <div className="text-sm text-gray-500">loading…</div>
+      ) : comments.length === 0 ? (
+        <div className="text-sm text-gray-500 italic">No comments yet.</div>
+      ) : (
+        <div className="space-y-3">
+          {comments.map((c) => (
+            <div key={c.id} className="rounded-xl border border-gray-200 bg-white p-4">
+              <div className="text-[11px] text-gray-600 mb-2 flex items-center gap-2">
+                <span className="font-mono text-gray-900">{c.author_sub.slice(0, 10)}</span>
+                <span>{relTime(c.created_at)}</span>
+              </div>
+              <pre className="text-sm text-gray-900/90 whitespace-pre-wrap font-sans leading-relaxed">{c.body}</pre>
+            </div>
+          ))}
+        </div>
+      )}
+      <form onSubmit={onSubmit} className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={3}
+          placeholder="leave a comment"
+          className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm text-bark-300 placeholder:text-gray-500 mb-2 font-mono"
+        />
+        <button
+          disabled={busy || !body.trim()}
+          className="px-3 py-1.5 text-[11px] border border-gray-300 rounded text-soul-300 hover:border-soul-400 disabled:opacity-40"
+        >
+          {busy ? "posting…" : "comment"}
+        </button>
+      </form>
     </div>
   );
 }
@@ -2301,6 +3100,85 @@ function ForksTab({ repo }: { repo: RepoT }) {
 
 // ── Community tab (discussions list + new thread) ──────────────
 
+// ── Attestations table (kind=skill, Community tab) ───────────────
+
+function AttestationsTable({ repo }: { repo: RepoT }) {
+  type EnrichedAtt = Attestation & { _consumer_name?: string };
+  const [atts, setAtts] = useState<EnrichedAtt[] | null>(null);
+
+  useEffect(() => {
+    setAtts(null);
+    listAttestations(repo.owner_sub, repo.name)
+      .then((raw) => setAtts(raw as EnrichedAtt[]))
+      .catch(() => setAtts([]));
+  }, [repo.owner_sub, repo.name]);
+
+  if (!atts || atts.length === 0) return null;
+
+  // Aggregate by consumer: most recent per consumer
+  const byConsumer = new Map<string, EnrichedAtt>();
+  for (const a of atts) {
+    const key = `${a.consumer_owner}/${a.consumer_name}`;
+    const prev = byConsumer.get(key);
+    if (!prev || (a.attested_at || "") > (prev.attested_at || "")) {
+      byConsumer.set(key, a);
+    }
+  }
+  const rows = [...byConsumer.values()].sort((a, b) =>
+    (b.attested_at || "").localeCompare(a.attested_at || ""));
+
+  const total = rows.length;
+  const passing = rows.filter((r) => r.status === "pass").length;
+  const successRate = total > 0 ? Math.round((passing / total) * 100) : 0;
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white overflow-hidden mb-6">
+      <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
+        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Attestations</span>
+        <span className="text-xs text-gray-500">
+          {passing}/{total} passing · {successRate}% success
+        </span>
+      </div>
+      <table className="min-w-full text-[12px]">
+        <thead>
+          <tr className="border-b border-gray-100 text-gray-500">
+            <th className="px-4 py-2 text-left font-medium">Consumer</th>
+            <th className="px-4 py-2 text-left font-medium">Skill version</th>
+            <th className="px-4 py-2 text-left font-medium">Status</th>
+            <th className="px-4 py-2 text-left font-medium">When</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((a, i) => {
+            const slug = `${a.consumer_owner}/${a.consumer_name}`;
+            return (
+              <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                <td className="px-4 py-2">
+                  <Link to={`/${enc(a.consumer_owner)}/${enc(a.consumer_name)}`}
+                    className="text-soul-500 hover:underline font-mono text-[11px]">
+                    {a.consumer_name || slug}
+                  </Link>
+                </td>
+                <td className="px-4 py-2 text-gray-600 font-mono">{a.skill_version || "—"}</td>
+                <td className="px-4 py-2">
+                  <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                    a.status === "pass"
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : a.status === "fail"
+                        ? "bg-red-50 text-red-700 border border-red-200"
+                        : "bg-gray-50 text-gray-600 border border-gray-200"
+                  }`}>{a.status || "unknown"}</span>
+                </td>
+                <td className="px-4 py-2 text-gray-500">{relTime(a.attested_at || "")}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function CommunityTab({ repo, me }: { repo: RepoT; me: Me | null }) {
   const [discussions, setDiscussions] = useState<DiscussionSummary[] | null>(null);
   const [title, setTitle] = useState("");
@@ -2334,10 +3212,14 @@ function CommunityTab({ repo, me }: { repo: RepoT; me: Me | null }) {
   return (
     <div className="grid lg:grid-cols-[1fr_320px] gap-6">
       <div>
+        {/* Skill-specific: Consumers + Attestations at the top */}
+        {repo.kind === "skill" && <ConsumersSection repo={repo} />}
+        {repo.kind === "skill" && <AttestationsTable repo={repo} />}
+
         {discussions === null ? (
           <div className="py-10 text-center text-gray-500 text-sm">loading…</div>
         ) : discussions.length === 0 ? (
-          <div className="py-10 text-center text-gray-500 text-sm">
+          <div className={`py-10 text-center text-gray-500 text-sm ${repo.kind === "skill" ? "mt-6" : ""}`}>
             No discussions yet. Open the first thread on the right.
           </div>
         ) : (

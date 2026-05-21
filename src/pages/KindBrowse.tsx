@@ -8,6 +8,7 @@ import { Header } from "../components/Header";
 import { RepoCard } from "../components/RepoCard";
 
 type SortKey = "name" | "version" | "updated";
+type SourceFilter = "" | "community" | "first-party";
 
 const SORTS: { id: SortKey; label: string }[] = [
   { id: "name", label: "Name" },
@@ -20,6 +21,7 @@ export type KindBrowseProps = {
   glyph: string;
   title: string;
   blurb: string;
+  showSourceFilter?: boolean;
 };
 
 /**
@@ -32,9 +34,10 @@ export type KindBrowseProps = {
  * we ask the server to sort by name and let the client take over once
  * a different sort is chosen, so chip-toggling never refetches.
  */
-export function KindBrowse({ kind, glyph, title, blurb }: KindBrowseProps) {
+export function KindBrowse({ kind, glyph, title, blurb, showSourceFilter }: KindBrowseProps) {
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<SortKey>("name");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,11 +47,16 @@ export function KindBrowse({ kind, glyph, title, blurb }: KindBrowseProps) {
 
   useEffect(() => {
     setLoading(true);
-    listRepos({ q, kind, sort: "name", limit: 120, include_forks: false })
+    // Forks are first-class on this landing. Most user apps are forks of
+    // a lumid-officials parent (mbb-ai → ceba53d6/mbb-ai, auto-quant →
+    // 70f192ce/auto-quant). Hiding them stripped /apps to ~1/3 of its
+    // real content (mbb-ai + auto-quant invisible). Profile.tsx has used
+    // include_forks:true since launch — bring kind landings into line.
+    listRepos({ q, kind, sort: "name", limit: 120, include_forks: true, source: sourceFilter || undefined })
       .then(setRepos)
       .catch(() => setRepos([]))
       .finally(() => setLoading(false));
-  }, [q, kind]);
+  }, [q, kind, sourceFilter]);
 
   // Drop the active tag if it's no longer present in the loaded set
   // (e.g. after a search that filtered it out).
@@ -108,6 +116,24 @@ export function KindBrowse({ kind, glyph, title, blurb }: KindBrowseProps) {
             className="w-full bg-gray-50 border border-gray-200 rounded-full px-5 py-2.5 text-sm text-bark-300 placeholder:text-gray-500 focus:outline-none focus:border-gray-300 transition-colors"
           />
         </div>
+
+        {showSourceFilter && (
+          <div className="flex items-center gap-1.5 mb-4">
+            {(["", "first-party", "community"] as SourceFilter[]).map((s) => (
+              <button
+                key={s || "all"}
+                onClick={() => setSourceFilter(s)}
+                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                  sourceFilter === s
+                    ? "border-soul-400 bg-soul-400/15 text-soul-700"
+                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                }`}
+              >
+                {s === "" ? "All" : s === "community" ? "🌐 Community" : "⭐ First-party"}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
           <div className="flex items-center gap-1.5 flex-wrap">
