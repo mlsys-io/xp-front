@@ -24,6 +24,11 @@ const Repo            = lazy(() => import("./pages/Repo").then(m => ({ default: 
 const SearchResults   = lazy(() => import("./pages/SearchResults").then(m => ({ default: m.SearchResults })));
 const Skills          = lazy(() => import("./pages/Skills").then(m => ({ default: m.Skills })));
 const NewLoop         = lazy(() => import("./pages/NewLoop").then(m => ({ default: m.NewLoop })));
+// /go — the Phase-A1 composer; the one intentional entrance into the
+// "set up your AI" funnel. Lives alongside the GitHub-shaped marketspace
+// at /, not replacing it. Lazy-loaded like everything else outside the
+// landing.
+const Go              = lazy(() => import("./pages/Go").then(m => ({ default: m.Go })));
 
 // Minimal fallback — most chunks land in <100ms so anything heavier
 // would just flash. The transparent div preserves layout height.
@@ -36,6 +41,10 @@ export default function App() {
         <Routes>
           {/* Landing = public marketspace (anon browse). Sign-in only on actions. */}
           <Route path="/" element={<Marketspace />} />
+          {/* /go — the composer (Phase A1). Anonymous browse; Start
+              redirects to lum.id where the install happens server-side
+              under the user's session cookie. */}
+          <Route path="/go" element={<Go />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/learn" element={<Learn />} />
 
