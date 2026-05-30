@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import type { Repo } from "../api/client";
 import { AuthorBadge } from "./AuthorBadge";
 import { isRepoTaggedDeprecated } from "./DeprecationBanner";
+import { WorkflowNodeFlow } from "./WorkflowNodeBadge";
 
 const KIND_GLYPH: Record<string, string> = {
   app:          "⁂",
@@ -134,6 +135,12 @@ export function RepoCard({ repo }: { repo: Repo }) {
       {summary && (
         <div className="mt-2 text-sm text-gray-700 line-clamp-2">
           {summary}
+        </div>
+      )}
+
+      {(kind === "workflow" || kind === "strategy") && (
+        <div className="mt-2">
+          <WorkflowNodeFlow tags={tags || []} />
         </div>
       )}
 

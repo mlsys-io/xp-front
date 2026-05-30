@@ -52,7 +52,11 @@ export function NewLoop() {
   async function runSearch(q: string) {
     setSearching(true);
     try {
-      const results = await searchRepos({ q, kind: "skill", limit: 8 });
+      const [skillRes, wfRes] = await Promise.all([
+        searchRepos({ q, kind: "skill", limit: 6 }),
+        searchRepos({ q, kind: "workflow", limit: 4 }),
+      ]);
+      const results = [...wfRes, ...skillRes];
       setCandidates(results);
       // Pre-select all results
       setSelected(new Set(results.map((r) => `${r.owner_sub}/${r.name}`)));
@@ -181,7 +185,7 @@ export function NewLoop() {
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm font-mono font-medium text-gray-900 truncate">
-                          ⌘ {r.display_name || r.name}
+                          {r.kind === "workflow" ? "▷" : r.kind === "strategy" ? "◈" : "⌘"} {r.display_name || r.name}
                         </div>
                         {r.summary && (
                           <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">{r.summary}</div>
@@ -269,6 +273,15 @@ export function NewLoop() {
                 </div>
               )}
             </div>
+
+            <details className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
+              <summary className="px-3 py-2 text-xs text-gray-500 cursor-pointer hover:bg-gray-50 select-none bg-white">
+                Preview xpcloud.yaml
+              </summary>
+              <pre className="text-[10px] font-mono bg-gray-50 p-3 overflow-auto max-h-48 text-gray-700 leading-relaxed">
+                {name ? buildYaml(name, intent, schedule, visibility, Array.from(selected)) : "(enter a name above to preview)"}
+              </pre>
+            </details>
 
             {err && <p className="mt-4 text-sm text-red-600">{err}</p>}
 

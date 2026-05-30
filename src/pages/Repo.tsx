@@ -84,7 +84,7 @@ import { AuthorBadge } from "../components/AuthorBadge";
 import { RepoDeprecationBanner } from "../components/DeprecationBanner";
 import { DisagreementMatrixForRepo } from "../components/DisagreementMatrix";
 
-type Tab = "code" | "commits" | "branches" | "issues" | "pulls" | "community"
+type Tab = "code" | "flow" | "commits" | "branches" | "issues" | "pulls" | "community"
          | "forks" | "settings";
 
 const KIND_GLYPH: Record<string, string> = { app: "⁂", autoresearch: "⋯", agent: "❋", skill: "⌘" };
@@ -157,7 +157,9 @@ export function Repo() {
               ? "settings"
               : mode === "community" || mode === "discussion-detail"
                 ? "community"
-                : "code";
+                : pathname.endsWith("/flow")
+                  ? "flow"
+                  : "code";
   const branch = branchParam || "main";
 
   const [me, setMe] = useState<Me | null>(null);
@@ -204,6 +206,9 @@ export function Repo() {
 
       <div className="mt-8 border-b border-gray-200 flex gap-6 overflow-x-auto">
         <TabLink to={`/${enc(owner)}/${enc(name)}`} active={tab === "code"}>Code</TabLink>
+        {(repo?.kind === "workflow" || repo?.kind === "strategy") && (
+          <TabLink to={"/" + enc(owner) + "/" + enc(name) + "/flow"} active={tab === "flow"}>Flow</TabLink>
+        )}
         <TabLink to={`/${enc(owner)}/${enc(name)}/commits`} active={tab === "commits"}>Commits</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/branches`} active={tab === "branches"}>Branches</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/issues`} active={tab === "issues"}>Issues</TabLink>
@@ -226,6 +231,7 @@ export function Repo() {
 
       <div className="mt-6">
         {mode === "tree" && <CodeTab repo={repo} branch={branch} path={branchParam ? splat : ""} isOwner={isOwner} />}
+        {tab === "flow" && repo && <RepoFlowTab repo={repo} />}
         {mode === "blob" && <BlobView repo={repo} branch={branch} path={splat} isOwner={isOwner} />}
         {mode === "blob-edit" && <BlobEditor repo={repo} branch={branch} path={splat} />}
         {mode === "branches" && <BranchesTab repo={repo} me={me} />}
@@ -3348,6 +3354,136 @@ function DiscussionDetail({ repo, me, isOwner }: { repo: RepoT; me: Me | null; i
           </button>
         </form>
       )}
+    </div>
+  );
+}
+
+// ─── RepoFlowTab ─────────────────────────────────────────────────────────────
+
+type NodeKind = "trigger" | "filter" | "agent" | "llm" | "operation";
+
+interface FlowNode {
+  id: string;
+  kind: NodeKind;
+  label: string;
+}
+
+const NODE_META: Record<NodeKind, { icon: string; bg: string; border: string; text: string }> = {
+  trigger:   { icon: "⚡", bg: "bg-amber-50",   border: "border-amber-300",  text: "text-amber-800"  },
+  filter:    { icon: "⊘",  bg: "bg-blue-50",    border: "border-blue-300",   text: "text-blue-800"   },
+  agent:     { icon: "★",  bg: "bg-teal-50",    border: "border-teal-300",   text: "text-teal-800"   },
+  llm:       { icon: "◆",  bg: "bg-purple-50",  border: "border-purple-300", text: "text-purple-800" },
+  operation: { icon: "▲",  bg: "bg-gray-50",    border: "border-gray-300",   text: "text-gray-700"   },
+};
+
+function parseFlowNodes(tags: string[]): FlowNode[] {
+  const nodes: FlowNode[] = [];
+  for (const tag of tags) {
+    if (!tag.startsWith("nodes:")) continue;
+    // tags like "nodes:trigger:on_schedule" or "nodes:agent:market_scan"
+    const parts = tag.slice("nodes:".length).split(":");
+    if (parts.length < 2) continue;
+    const kind = parts[0] as NodeKind;
+    const label = parts.slice(1).join(":").replace(/_/g, " ");
+    if (kind in NODE_META) {
+      nodes.push({ id: tag, kind, label });
+    }
+  }
+  return nodes;
+}
+
+function parseLineageTags(tags: string[]): string[] {
+  return tags
+    .filter((t) => t.startsWith("lineage:"))
+    .map((t) => t.slice("lineage:".length).replace(/_/g, " "));
+}
+
+function FlowNodePill({ node }: { node: FlowNode }) {
+  const meta = NODE_META[node.kind];
+  return (
+    <div
+      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border ${meta.bg} ${meta.border} ${meta.text} text-sm font-medium select-none`}
+    >
+      <span className="text-base leading-none">{meta.icon}</span>
+      <span className="capitalize">{node.label}</span>
+      {node.kind === "filter" && (
+        <span className="ml-1 px-1.5 py-0.5 rounded-full bg-blue-100 border border-blue-200 text-[10px] font-semibold text-blue-700">
+          halt on fail
+        </span>
+      )}
+    </div>
+  );
+}
+
+function RepoFlowTab({ repo }: { repo: RepoT }) {
+  const tags: string[] = repo.tags ?? [];
+  const nodes = parseFlowNodes(tags);
+  const lineage = parseLineageTags(tags);
+
+  const installCmd = `lumid app_install ${repo.owner_sub.slice(0, 8)}/${repo.name}`;
+
+  return (
+    <div className="max-w-2xl mx-auto py-6 space-y-8">
+      {/* Flow diagram */}
+      <div>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+          Node Flow
+        </h3>
+        {nodes.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500">
+            No flow nodes declared.{" "}
+            <span className="text-gray-400">
+              Add <code className="font-mono text-xs bg-gray-100 px-1 rounded">nodes:&lt;kind&gt;:&lt;label&gt;</code> tags to describe the pipeline.
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-col items-start gap-1">
+            {nodes.map((node, i) => (
+              <div key={node.id} className="flex flex-col items-start">
+                <FlowNodePill node={node} />
+                {i < nodes.length - 1 && (
+                  <div className="ml-6 w-px h-5 bg-gray-300" />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Lineage */}
+      {lineage.length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            Lineage
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {lineage.map((l) => (
+              <span
+                key={l}
+                className="px-2.5 py-1 rounded-full bg-gray-100 border border-gray-200 text-xs text-gray-600 capitalize"
+              >
+                {l}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Install command */}
+      <div>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          Install
+        </h3>
+        <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+          <code className="flex-1 text-sm font-mono text-bark-300 break-all">{installCmd}</code>
+          <button
+            onClick={() => navigator.clipboard.writeText(installCmd).catch(() => {})}
+            className="shrink-0 text-xs text-gray-500 hover:text-soul-300 border border-gray-200 rounded px-2 py-1"
+          >
+            copy
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
