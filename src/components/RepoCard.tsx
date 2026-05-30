@@ -69,6 +69,11 @@ export function RepoCard({ repo }: { repo: Repo }) {
                 community
               </span>
             )}
+            {kind === "workflow" && (
+              <span className="inline-flex items-center text-[10px] uppercase tracking-wider rounded-full border border-gray-200 bg-gray-100 text-gray-500 px-1.5 py-0.5">
+                template
+              </span>
+            )}
             {fork_of && (
               <span className="text-spirit-300/70">· fork</span>
             )}
@@ -95,6 +100,23 @@ export function RepoCard({ repo }: { repo: Repo }) {
                 className={`inline-block w-2 h-2 rounded-full ${healthCls}`}
               />
             )}
+            {kind === "strategy" && (
+              summary && summary.includes("UNVERIFIED") ? (
+                <span
+                  title="Backtest proof not verified"
+                  className="inline-flex items-center text-[10px] uppercase tracking-wider rounded-full border border-amber-300 bg-amber-50 text-amber-700 px-1.5 py-0.5"
+                >
+                  unverified
+                </span>
+              ) : (
+                <span
+                  title="Backtest proof verified"
+                  className="inline-flex items-center text-[10px] uppercase tracking-wider rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 px-1.5 py-0.5"
+                >
+                  verified
+                </span>
+              )
+            )}
           </div>
           <div className="mt-0.5 text-base font-semibold text-gray-900 truncate">
             {display_name || name}
@@ -115,20 +137,33 @@ export function RepoCard({ repo }: { repo: Repo }) {
           </div>
         </div>
         <div className="shrink-0 flex items-center gap-3 text-xs text-gray-700">
-          {consumers_count != null && consumers_count > 0 && (
-            <span title="apps using this skill" className="flex items-center gap-1 text-gray-500">
-              <span>⌘</span>
-              {consumers_count}
-            </span>
+          {kind === "workflow" ? (
+            <Link
+              to={`/${encodeURIComponent(owner_sub)}/${encodeURIComponent(name)}/fork`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-[11px] text-soul-400 hover:text-soul-300 transition-colors whitespace-nowrap"
+              title="Fork this template to start using it"
+            >
+              fork to customize →
+            </Link>
+          ) : (
+            <>
+              {consumers_count != null && consumers_count > 0 && (
+                <span title="apps using this skill" className="flex items-center gap-1 text-gray-500">
+                  <span>⌘</span>
+                  {consumers_count}
+                </span>
+              )}
+              <span title="stars" className="flex items-center gap-1">
+                <span className="text-atokirina-400">★</span>
+                {stars}
+              </span>
+              <span title="forks" className="flex items-center gap-1">
+                <span className="text-spirit-400">⑂</span>
+                {forks}
+              </span>
+            </>
           )}
-          <span title="stars" className="flex items-center gap-1">
-            <span className="text-atokirina-400">★</span>
-            {stars}
-          </span>
-          <span title="forks" className="flex items-center gap-1">
-            <span className="text-spirit-400">⑂</span>
-            {forks}
-          </span>
         </div>
       </div>
 

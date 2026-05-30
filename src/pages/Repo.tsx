@@ -3415,6 +3415,110 @@ function FlowNodePill({ node }: { node: FlowNode }) {
   );
 }
 
+interface BacktestProof {
+  status?: string;
+  sharpe?: number;
+  max_dd?: number;
+  total_return?: number;
+  period_start?: string;
+  period_end?: string;
+  [key: string]: unknown;
+}
+
+function BacktestProofSection({ owner, name }: { owner: string; name: string }) {
+  const [proof, setProof] = useState<BacktestProof | null | "unverified" | "error">(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getBlob(owner, name, "main", "backtest_proof.json")
+      .then((b) => {
+        if (cancelled) return;
+        try {
+          const parsed: BacktestProof = JSON.parse(b.content);
+          if (parsed.status === "unverified") {
+            setProof("unverified");
+          } else {
+            setProof(parsed);
+          }
+        } catch {
+          setProof("error");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setProof("unverified");
+      });
+    return () => { cancelled = true; };
+  }, [owner, name]);
+
+  if (proof === null) return null; // still loading — suppress flicker
+
+  if (proof === "unverified" || proof === "error") {
+    return (
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
+        <span className="text-base">⚠</span>
+        <span>Unverified — no backtest run</span>
+      </div>
+    );
+  }
+
+  const sharpeColor =
+    (proof.sharpe ?? 0) >= 1.0
+      ? "text-emerald-700"
+      : (proof.sharpe ?? 0) >= 0
+        ? "text-amber-700"
+        : "text-red-600";
+
+  const maxDdColor =
+    (proof.max_dd ?? 0) < -0.2 ? "text-red-600" : "text-gray-900";
+
+  const returnColor =
+    (proof.total_return ?? 0) > 0 ? "text-emerald-700" : "text-red-600";
+
+  const fmtPct = (v: number | undefined) =>
+    v == null ? "—" : `${(v * 100).toFixed(1)}%`;
+
+  const fmtNum = (v: number | undefined) =>
+    v == null ? "—" : v.toFixed(2);
+
+  const fmtDate = (s: string | undefined) => s?.slice(0, 10) ?? "—";
+
+  return (
+    <div>
+      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+        Backtest Proof
+      </h3>
+      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+          <div className="px-4 py-3">
+            <div className="text-[11px] text-gray-500 uppercase tracking-wide mb-0.5">Sharpe</div>
+            <div className={`text-sm font-semibold tabular-nums ${sharpeColor}`}>
+              {fmtNum(proof.sharpe)}
+            </div>
+          </div>
+          <div className="px-4 py-3">
+            <div className="text-[11px] text-gray-500 uppercase tracking-wide mb-0.5">Max DD</div>
+            <div className={`text-sm font-semibold tabular-nums ${maxDdColor}`}>
+              {fmtPct(proof.max_dd)}
+            </div>
+          </div>
+          <div className="px-4 py-3">
+            <div className="text-[11px] text-gray-500 uppercase tracking-wide mb-0.5">Return</div>
+            <div className={`text-sm font-semibold tabular-nums ${returnColor}`}>
+              {fmtPct(proof.total_return)}
+            </div>
+          </div>
+          <div className="px-4 py-3">
+            <div className="text-[11px] text-gray-500 uppercase tracking-wide mb-0.5">Period</div>
+            <div className="text-sm font-mono text-gray-700 truncate">
+              {fmtDate(proof.period_start)} → {fmtDate(proof.period_end)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RepoFlowTab({ repo }: { repo: RepoT }) {
   const tags: string[] = repo.tags ?? [];
   const nodes = parseFlowNodes(tags);
@@ -3449,6 +3553,11 @@ function RepoFlowTab({ repo }: { repo: RepoT }) {
           </div>
         )}
       </div>
+
+      {/* Backtest proof stats (kind=strategy only) */}
+      {repo.kind === "strategy" && (
+        <BacktestProofSection owner={repo.owner_sub} name={repo.name} />
+      )}
 
       {/* Lineage */}
       {lineage.length > 0 && (
