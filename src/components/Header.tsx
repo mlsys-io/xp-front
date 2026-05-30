@@ -41,6 +41,13 @@ export function Header({ variant }: { variant: HeaderVariant }) {
       </Link>
       <SearchBar />
       <div className="flex items-center gap-4 text-xs">
+        <Link
+          to="/workflows"
+          className="text-gray-700 hover:text-soul-300 transition-colors text-xs"
+          title="Browse community workflows"
+        >
+          ▷ workflows
+        </Link>
         {variant !== "learn" && (
           <Link
             to="/learn"

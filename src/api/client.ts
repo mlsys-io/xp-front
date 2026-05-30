@@ -42,7 +42,12 @@ export async function logout() {
 // inside an app's xpcloud.yaml. The AutoResearch marketspace tab still
 // exists; it aggregates loops from kind=app rather than reading standalone
 // repos.
-export type RepoKind = "app" | "skill" | "agent" | "dataset";
+//
+// `workflow` added as first-tier kind (2026-05-30): a workflow is a
+// sequence of agents / LLMs / operations that a user installs into their
+// app or runs standalone. The intent→workflow UX on the landing generates
+// or browses these.
+export type RepoKind = "app" | "skill" | "agent" | "dataset" | "workflow";
 export type Visibility = "public" | "private";
 
 export type Repo = {

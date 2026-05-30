@@ -4,10 +4,12 @@ import { AuthorBadge } from "./AuthorBadge";
 import { isRepoTaggedDeprecated } from "./DeprecationBanner";
 
 const KIND_GLYPH: Record<string, string> = {
-  app: "⁂",
+  app:          "⁂",
   autoresearch: "↻",
-  agent: "❋",
-  skill: "⌘",
+  agent:        "❋",
+  skill:        "⌘",
+  workflow:     "▷",
+  dataset:      "◫",
 };
 
 const COMMUNITY_OWNER = "00000000-0000-0000-0000-000000000001";

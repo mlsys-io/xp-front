@@ -9,6 +9,7 @@ import { Marketspace } from "./pages/Marketspace";
 // so once a page is fetched it's cached as `public, immutable` per
 // the nginx config in /etc/nginx/conf.d/default.conf.
 const Agents          = lazy(() => import("./pages/Agents").then(m => ({ default: m.Agents })));
+const Workflows       = lazy(() => import("./pages/Workflows").then(m => ({ default: m.Workflows })));
 const Apps            = lazy(() => import("./pages/Apps").then(m => ({ default: m.Apps })));
 const AuthCallback    = lazy(() => import("./pages/AuthCallback").then(m => ({ default: m.AuthCallback })));
 const DashboardLayout = lazy(() => import("./pages/Dashboard").then(m => ({ default: m.DashboardLayout })));
@@ -51,6 +52,7 @@ export default function App() {
           {/* Phase 2 marketspace category landings — kind-scoped browses
               that share the <KindBrowse> shell. /marketspace stays as the
               multi-kind view above. */}
+          <Route path="/workflows" element={<Workflows />} />
           <Route path="/apps" element={<Apps />} />
           <Route path="/skills" element={<Skills />} />
           <Route path="/datasets" element={<Datasets />} />
