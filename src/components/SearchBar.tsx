@@ -5,11 +5,13 @@ import type { RepoKind } from "../api/client";
 type KindFilter = "" | RepoKind;
 
 const KINDS: { id: KindFilter; label: string }[] = [
-  { id: "", label: "all" },
-  { id: "app", label: "app" },
-  { id: "skill", label: "skill" },
-  { id: "dataset", label: "dataset" },
-  { id: "agent", label: "agent" },
+  { id: "",          label: "all"      },
+  { id: "workflow",  label: "workflow" },
+  { id: "strategy",  label: "strategy" },
+  { id: "app",       label: "app"      },
+  { id: "skill",     label: "skill"    },
+  { id: "dataset",   label: "dataset"  },
+  { id: "agent",     label: "agent"    },
 ];
 
 /**

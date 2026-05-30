@@ -146,13 +146,15 @@ export function RepoCard({ repo }: { repo: Repo }) {
 
       {tags && tags.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1">
-          {tags.slice(0, 5).map((t) => (
-            <span
+          {tags.filter(t => !t.startsWith("nodes:")).slice(0, 5).map((t) => (
+            <Link
               key={t}
-              className="text-[11px] text-gray-700 border border-gray-200 bg-gray-50 rounded px-1.5 py-0.5"
+              to={`/search?q=${encodeURIComponent(t)}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-[11px] text-gray-600 border border-gray-200 bg-gray-50 hover:border-soul-400/40 hover:text-soul-300 hover:bg-soul-400/5 rounded px-1.5 py-0.5 transition-colors"
             >
               {t}
-            </span>
+            </Link>
           ))}
         </div>
       )}

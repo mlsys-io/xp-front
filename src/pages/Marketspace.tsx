@@ -175,10 +175,11 @@ export function Marketspace() {
 
             <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-gray-900 leading-tight">
               AutoResearch<br />
-              <span className="text-soul-300">for any domain.</span>
+              <span className="text-soul-300">for X.</span>
             </h1>
 
             <p className="mt-4 text-base text-gray-500 leading-relaxed max-w-lg">
+              X is any domain — finance, healthcare, law, engineering, or yours.
               Describe your research goal. Get a workflow that runs on a schedule,
               adapts to your intent, and compounds knowledge over time.
             </p>
@@ -201,7 +202,14 @@ export function Marketspace() {
 
             <div className="mt-4 flex items-center gap-2 flex-wrap">
               <span className="text-xs text-gray-400">Try:</span>
-              {SCENARIOS.map(s => (
+              {[
+                { icon: "📈", label: "Finance", intent: "research momentum signals and automate trading in US equities" },
+                { icon: "📅", label: "Personal", intent: "automate my morning brief, email triage, and weekly reflection" },
+                { icon: "⚙️", label: "Systems", intent: "continuously benchmark and optimize an NL-to-SQL pipeline" },
+                { icon: "🔬", label: "Research", intent: "monitor arxiv for new papers on a topic and summarise weekly" },
+                { icon: "📊", label: "Analytics", intent: "track KPIs from my database and alert on anomalies daily" },
+                { icon: "🌐", label: "Monitoring", intent: "monitor news and sentiment for a list of companies every hour" },
+              ].map(s => (
                 <button
                   key={s.label}
                   onClick={() => setIntentQ(s.intent)}
@@ -241,8 +249,9 @@ export function Marketspace() {
         <section className="mb-12">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-widest">
-              Explore scenarios
+              Example use cases
             </h2>
+            <span className="text-xs text-gray-400">xp.io works for any domain — these are three starting points</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {SCENARIOS.map(s => {

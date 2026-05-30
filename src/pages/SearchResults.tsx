@@ -18,12 +18,14 @@ import { RepoCard } from "../components/RepoCard";
 // AgenticKG pieces are smaller-grained and read better as a
 // supporting band underneath the apps/skills/datasets that consume
 // them.
-const KIND_ORDER: RepoKind[] = ["app", "skill", "dataset", "agent"];
-const KIND_LABEL: Record<RepoKind, string> = {
-  app: "⁂ Applications",
-  skill: "⌘ Skills",
-  dataset: "▤ Datasets",
-  agent: "❋ Agents",
+const KIND_ORDER: RepoKind[] = ["workflow", "strategy", "app", "skill", "dataset", "agent"];
+const KIND_LABEL: Record<string, string> = {
+  workflow:  "▷ Workflows",
+  strategy:  "◈ Strategies",
+  app:       "⁂ Applications",
+  skill:     "⌘ Skills",
+  dataset:   "◫ Datasets",
+  agent:     "❋ Agents",
 };
 
 /**
@@ -60,12 +62,19 @@ export function SearchResults() {
   }, [q, kind]);
 
   // Group by kind, preserving server-side order within each group.
+  // Any kind not in KIND_ORDER falls into an "other" group at the end.
   const groups = useMemo(() => {
     const by: Record<string, Repo[]> = {};
     for (const r of results) (by[r.kind] = by[r.kind] || []).push(r);
-    return KIND_ORDER
+    const ordered = KIND_ORDER
       .map((k) => ({ kind: k, repos: by[k] || [] }))
       .filter((g) => g.repos.length > 0);
+    // Append any kinds not in KIND_ORDER (future-proof)
+    const seen = new Set(KIND_ORDER as string[]);
+    for (const [k, repos] of Object.entries(by)) {
+      if (!seen.has(k) && repos.length > 0) ordered.push({ kind: k, repos });
+    }
+    return ordered;
   }, [results]);
 
   return (
@@ -121,10 +130,10 @@ function EmptyState() {
         or browse by kind:
       </p>
       <div className="mt-4 flex items-center justify-center gap-4 flex-wrap text-[11px] uppercase tracking-widest text-gray-500">
-        <Link to="/apps" className="hover:text-soul-300 transition-colors">⁂ apps</Link>
-        <Link to="/skills" className="hover:text-soul-300 transition-colors">⌘ skills</Link>
-        <Link to="/datasets" className="hover:text-soul-300 transition-colors">▤ datasets</Link>
-        <Link to="/agents" className="hover:text-soul-300 transition-colors">❋ agents</Link>
+        <Link to="/workflows" className="hover:text-soul-300 transition-colors">▷ workflows</Link>
+        <Link to="/apps"      className="hover:text-soul-300 transition-colors">⁂ apps</Link>
+        <Link to="/skills"    className="hover:text-soul-300 transition-colors">⌘ skills</Link>
+        <Link to="/agents"    className="hover:text-soul-300 transition-colors">❋ agents</Link>
       </div>
     </div>
   );
