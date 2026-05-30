@@ -34,92 +34,50 @@ export function Header({ variant }: { variant: HeaderVariant }) {
   };
 
   return (
-    <nav className="flex items-center justify-between px-8 py-5 border-b border-gray-200 gap-4">
-      <Link to="/" className="text-soul-300 font-display tracking-[0.35em] text-sm shrink-0">
-        <span className="w-1.5 h-1.5 inline-block align-middle rounded-full bg-soul-400 shadow-[0_0_8px_rgba(62,212,193,0.9)] animate-pulse-soul mr-3" />
-        xp.io
+    <nav className="sticky top-0 z-20 flex items-center justify-between px-6 h-12 border-b border-gray-200 bg-white/90 backdrop-blur-sm gap-4">
+      <Link to="/" className="flex items-center gap-2 shrink-0">
+        <span className="w-1.5 h-1.5 rounded-full bg-soul-400 shadow-[0_0_6px_rgba(20,184,166,0.7)] animate-pulse-soul" />
+        <span className="font-display tracking-[0.3em] text-sm text-soul-300">xp.io</span>
       </Link>
-      <SearchBar />
-      <div className="flex items-center gap-4 text-xs">
-        <Link
-          to="/workflows"
-          className="text-gray-700 hover:text-soul-300 transition-colors text-xs"
-          title="Browse community workflows"
-        >
-          ▷ workflows
+      <div className="flex-1 max-w-sm hidden sm:block">
+        <SearchBar />
+      </div>
+      <div className="flex items-center gap-4 text-xs shrink-0">
+        <Link to="/workflows" className="text-gray-600 hover:text-soul-300 transition-colors flex items-center gap-1">
+          <span className="text-[11px]">▷</span> Workflows
         </Link>
         {variant !== "learn" && (
-          <Link
-            to="/learn"
-            className="text-gray-700 hover:text-soul-300 transition-colors uppercase tracking-widest text-[11px]"
-            title="What is xp.io? Five-minute tour."
-          >
-            learn
+          <Link to="/learn" className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">
+            Learn
           </Link>
         )}
-        {variant === "marketspace" ? (
-          <a
-            href="https://lum.id"
-            className="text-gray-500 hover:text-soul-300 transition-colors"
-            title="The Lumid ecosystem — xp.io is the marketspace tier"
-          >
-            ← lum.id
-          </a>
-        ) : (
-          <Link to="/" className="text-gray-500 hover:text-soul-300 transition-colors">
-            ← marketspace
+        {variant !== "marketspace" && (
+          <Link to="/" className="text-gray-400 hover:text-soul-300 transition-colors hidden sm:block">
+            ← marketplace
           </Link>
         )}
         {me ? (
           <>
-            <Link to="/new" className="text-soul-300 hover:text-soul-400 transition-colors">
-              + new
-            </Link>
-            <Link
-              to={`/${encodeURIComponent(me.sub)}`}
-              className="text-gray-700 hover:text-soul-300 transition-colors"
-            >
-              profile
-            </Link>
-            <Link to="/dashboard" className="text-gray-700 hover:text-soul-300 transition-colors">
-              dashboard
-            </Link>
-            <button
-              onClick={signOut}
-              className="text-gray-700 hover:text-atokirina-400 transition-colors uppercase tracking-widest text-[11px]"
-            >
-              sign out
-            </button>
+            <Link to="/new" className="text-soul-300 hover:text-soul-400 transition-colors">+ new</Link>
+            <Link to="/dashboard" className="text-gray-600 hover:text-soul-300 transition-colors">dashboard</Link>
+            <button onClick={signOut} className="text-gray-500 hover:text-red-400 transition-colors">sign out</button>
           </>
         ) : (
-          <SignInLink variant={variant === "marketspace" ? "primary" : "nav"} />
+          <SignInLink />
         )}
       </div>
     </nav>
   );
 }
 
-function SignInLink({ variant }: { variant: "nav" | "primary" }) {
+function SignInLink() {
   const onClick = async () => {
     const { beginLogin } = await import("../lib/pkce");
     await beginLogin();
   };
-  if (variant === "primary") {
-    return (
-      <button
-        onClick={onClick}
-        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-soul-400/15 border border-gray-300 text-soul-300 hover:bg-soul-400/25 hover:border-soul-400 transition-colors uppercase tracking-widest text-[11px]"
-      >
-        sign up · sign in
-      </button>
-    );
-  }
   return (
-    <button
-      onClick={onClick}
-      className="text-gray-700 hover:text-soul-300 transition-colors uppercase tracking-widest text-[11px]"
-    >
-      sign in
+    <button onClick={onClick} className="text-gray-600 hover:text-soul-300 transition-colors">
+      Sign in
     </button>
   );
 }
