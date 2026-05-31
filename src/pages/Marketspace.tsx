@@ -1,23 +1,15 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   listRepos, whoami,
   type Repo, type RepoKind, type Me,
 } from "../api/client";
 import { RepoCard } from "../components/RepoCard";
-import { WorkflowNodeFlow } from "../components/WorkflowNodeBadge";
+import { KIND_META, type KindId } from "../components/kindMeta";
 
-type KindTab = "" | RepoKind | "agentic_kg";
+const STUDIO_URL = "https://lum.id/studio/intents";
 
-const TABS: { id: KindTab; label: string; icon: string }[] = [
-  { id: "workflow",   label: "Workflows", icon: "▷" },
-  { id: "app",        label: "Apps",      icon: "⁂" },
-  { id: "strategy",   label: "Strategies","icon": "◈" },
-  { id: "skill",      label: "Skills",    icon: "⌘" },
-  { id: "agentic_kg", label: "Knowledge", icon: "❋" },
-  { id: "dataset",    label: "Datasets",  icon: "◫" },
-  { id: "",           label: "All",       icon: "" },
-];
+type KindTab = "" | RepoKind;
 
 const SORTS = [
   { id: "updated", label: "Recently updated" },
@@ -26,135 +18,112 @@ const SORTS = [
   { id: "created", label: "Newest" },
 ];
 
-const SCENARIOS = [
-  {
-    icon: "📈",
-    label: "Finance",
-    color: "border-amber-100 bg-gradient-to-br from-amber-50 to-white hover:border-amber-200",
-    accent: "text-amber-700",
-    desc: "Quant signals, factor mining, live trading bots",
-    intent: "research momentum signals and automate trading in US equities and crypto",
-    q: "quant",
-    examples: ["trading-agents", "llm-factor-miner", "crypto-momentum-regime"],
-  },
-  {
-    icon: "📅",
-    label: "Personal",
-    color: "border-teal-100 bg-gradient-to-br from-teal-50 to-white hover:border-teal-200",
-    accent: "text-teal-700",
-    desc: "Email triage, morning briefs, weekly reflection",
-    intent: "automate my morning brief, email triage, and weekly reflection",
-    q: "personal",
-    examples: ["morning-brief", "email-triage", "weekly-reflection"],
-  },
-  {
-    icon: "⚙️",
-    label: "Systems",
-    color: "border-purple-100 bg-gradient-to-br from-purple-50 to-white hover:border-purple-200",
-    accent: "text-purple-700",
-    desc: "Benchmark and optimize any AI pipeline",
-    intent: "continuously benchmark and optimize an AI pipeline configuration",
-    q: "systems",
-    examples: ["nl2sql-optimizer", "dspy-prompt-optimizer", "autoresearch-ml"],
-  },
-];
+// Internal ops loops — operational plumbing, not marketplace content.
+// Hidden from no-query browse; still reachable by explicit search.
+const INTERNAL_APPS = new Set(["ops", "xpio-ops"]);
+
+// Example discovery queries (NOT generation intents — they search the
+// catalog). Generation lives in Studio.
+const EXAMPLE_QUERIES = ["quant trading", "personal assistant", "consulting", "data labeling", "optimization"];
+
+// Sidebar kind order. Agents appended dynamically only when non-empty.
+const SIDEBAR_KINDS: KindTab[] = ["", "app", "workflow", "skill", "dataset"];
 
 export function Marketspace() {
-  const nav = useNavigate();
-  const searchRef = useRef<HTMLInputElement>(null);
 
-  const [tab, setTab]         = useState<KindTab>("workflow");
+  const [tab, setTab]         = useState<KindTab>("");   // default: All
   const [q, setQ]             = useState("");
   const [sort, setSort]       = useState("updated");
   const [repos, setRepos]     = useState<Repo[]>([]);
   const [counts, setCounts]   = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [me, setMe]           = useState<Me | null>(null);
-  const [intentQ, setIntentQ] = useState("");
-  const [featured, setFeatured] = useState<Record<string, Repo[]>>({});
+  const [featured, setFeatured] = useState<Repo[]>([]);
 
   useEffect(() => { whoami().then(setMe).catch(() => setMe(null)); }, []);
 
-  // Load per-kind counts for tab badges
+  // Per-kind counts for the sidebar + to decide whether to show Agents.
   useEffect(() => {
-    const kinds: Array<KindTab> = ["workflow", "app", "strategy", "skill", "dataset"];
+    const kinds: RepoKind[] = ["workflow", "app", "skill", "dataset", "agent", "strategy"];
     Promise.all(
       kinds.map(k =>
-        listRepos({ kind: k as RepoKind, limit: 100, include_forks: true })
+        listRepos({ kind: k, limit: 200, include_forks: true })
           .then(r => [k, r.length] as [string, number])
           .catch(() => [k, 0] as [string, number])
       )
     ).then(pairs => setCounts(Object.fromEntries(pairs)));
   }, []);
 
-  // Load featured workflows for each scenario
+  // Featured apps — the headline assets, shown as a band on the All view.
   useEffect(() => {
-    Promise.all(
-      SCENARIOS.map(s =>
-        listRepos({ q: s.q, kind: "workflow" as RepoKind, limit: 3, include_forks: true })
-          .then(r => [s.label, r] as [string, Repo[]])
-          .catch(() => [s.label, []] as [string, Repo[]])
-      )
-    ).then(pairs => setFeatured(Object.fromEntries(pairs)));
+    listRepos({ kind: "app", sort: "updated", limit: 12, include_forks: true })
+      .then(rs => setFeatured(rs.filter(r => !INTERNAL_APPS.has(r.name)).slice(0, 3)))
+      .catch(() => setFeatured([]));
   }, []);
 
   useEffect(() => {
     setLoading(true);
-    if (tab === "agentic_kg") {
+    const hideInternal = (rs: Repo[]) =>
+      q.trim() ? rs : rs.filter(r => !INTERNAL_APPS.has(r.name));
+
+    if (tab === "workflow") {
+      // Strategies fold into Workflows — fetch both, merge by recency.
       Promise.all([
-        listRepos({ q, kind: "agent", sort: sort as any, limit: 60, include_forks: true }),
-        listRepos({ q, kind: "skill", sort: sort as any, limit: 60, include_forks: true }),
-      ]).then(([a, s]) => {
-        const merged = [...a, ...s];
+        listRepos({ q, kind: "workflow" as RepoKind, sort: sort as any, limit: 90, include_forks: true }),
+        listRepos({ q, kind: "strategy" as RepoKind, sort: sort as any, limit: 90, include_forks: true }),
+      ]).then(([w, s]) => {
+        const merged = [...w, ...s];
         merged.sort((x, y) => (y.updated_at || 0) - (x.updated_at || 0));
-        setRepos(merged.slice(0, 60));
+        setRepos(merged.slice(0, 90));
       }).catch(() => setRepos([])).finally(() => setLoading(false));
     } else {
-      listRepos({ q, kind: tab as RepoKind | "", sort: sort as any, limit: 60, include_forks: true })
-        .then(setRepos).catch(() => setRepos([])).finally(() => setLoading(false));
+      listRepos({ q, kind: tab as RepoKind | "", sort: sort as any, limit: 90, include_forks: true })
+        .then(rs => setRepos(hideInternal(rs)))
+        .catch(() => setRepos([])).finally(() => setLoading(false));
     }
   }, [q, tab, sort]);
 
-  const handleGenerate = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (intentQ.trim().length >= 5) nav(`/new/loop?intent=${encodeURIComponent(intentQ.trim())}`);
-  };
+  // Popular domains/tags computed from what's loaded (HF-style facets).
+  const popularTags = useMemo(() => {
+    const c = new Map<string, number>();
+    for (const r of repos) for (const t of (r.tags || [])) {
+      if (t.startsWith("nodes:")) continue;
+      c.set(t, (c.get(t) || 0) + 1);
+    }
+    return [...c.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 14).map(([t]) => t);
+  }, [repos]);
 
-  const totalWorkflows = counts["workflow"] || 0;
-  const totalApps      = counts["app"] || 0;
-  const totalSkills    = counts["skill"] || 0;
+  const sidebarKinds = counts["agent"] > 0 ? [...SIDEBAR_KINDS, "agent" as KindTab] : SIDEBAR_KINDS;
+  const browse = (k: KindTab, query = "") => { setTab(k); setQ(query); };
+  const showFeatured = tab === "" && !q.trim() && featured.length > 0;
+  // Don't repeat the featured apps in the grid below.
+  const featuredKeys = new Set(featured.map(r => `${r.owner_sub}/${r.name}`));
+  const gridRepos = showFeatured ? repos.filter(r => !featuredKeys.has(`${r.owner_sub}/${r.name}`)) : repos;
+  const totalAll = (counts["app"] || 0) + (counts["workflow"] || 0) + (counts["strategy"] || 0)
+                 + (counts["skill"] || 0) + (counts["dataset"] || 0) + (counts["agent"] || 0);
+
+  const kindCount = (k: KindTab) =>
+    k === "" ? totalAll
+    : k === "workflow" ? (counts["workflow"] || 0) + (counts["strategy"] || 0)
+    : (counts[k as string] || 0);
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
 
       {/* ── Top nav ──────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-20 border-b border-gray-200 bg-white/90 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-6 h-12 flex items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2 shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-soul-400 shadow-[0_0_6px_rgba(20,184,166,0.7)] animate-pulse-soul" />
             <span className="font-display tracking-[0.3em] text-sm text-soul-300">xp.io</span>
           </Link>
 
-          {/* Inline search */}
-          <form className="flex-1 max-w-sm hidden sm:block" onSubmit={e => { e.preventDefault(); searchRef.current?.blur(); }}>
-            <input
-              ref={searchRef}
-              value={q}
-              onChange={e => { setQ(e.target.value); setTab(""); }}
-              placeholder="Search workflows, skills, apps…"
-              className="w-full bg-gray-50 border border-gray-200 rounded-full px-4 py-1.5 text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-gray-300 focus:bg-white transition-colors"
-            />
-          </form>
-
           <div className="flex items-center gap-4 text-xs shrink-0">
-            <Link to="/workflows" className="text-gray-600 hover:text-soul-300 transition-colors flex items-center gap-1">
-              <span className="text-[11px]">▷</span> Workflows
-            </Link>
-            <Link to="/learn" className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">Learn</Link>
-            <a href="https://lum.id" className="text-gray-400 hover:text-soul-300 transition-colors hidden sm:block">← lum.id</a>
+            <Link to="/learn" className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">How it works</Link>
+            <a href={STUDIO_URL} className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">Studio ↗</a>
             {me ? (
               <>
-                <Link to="/new" className="text-soul-300 hover:text-soul-400">+ new</Link>
+                <Link to="/new" className="text-soul-300 hover:text-soul-400">+ publish</Link>
                 <Link to="/dashboard" className="text-gray-600 hover:text-soul-300">dashboard</Link>
               </>
             ) : (
@@ -164,212 +133,174 @@ export function Marketspace() {
         </div>
       </nav>
 
-      {/* ── Hero ────────────────────────────────────────────────────*/}
+      {/* ── Hero — pitch (left) + discovery filling the width (right) ── */}
       <section className="bg-white border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-6 py-14 md:py-20">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 text-xs text-soul-300 border border-soul-400/30 bg-soul-400/8 rounded-full px-3 py-1 mb-5 font-medium tracking-wide">
-              <span className="w-1.5 h-1.5 rounded-full bg-soul-400 animate-pulse-soul" />
-              Open AutoResearch Marketplace
-            </div>
-
-            <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-gray-900 leading-tight">
-              AutoResearch<br />
-              <span className="text-soul-300">for X.</span>
+        <div className="max-w-6xl mx-auto px-6 py-7 flex flex-col lg:flex-row lg:items-center gap-5 lg:gap-12">
+          {/* Left: pitch */}
+          <div className="lg:w-[28rem] shrink-0">
+            <h1 className="text-3xl font-semibold tracking-tight text-gray-900 leading-[1.1] lg:whitespace-nowrap">
+              All about <span className="text-soul-300">AI workforce.</span>
             </h1>
-
-            <p className="mt-4 text-base text-gray-500 leading-relaxed max-w-lg">
-              X is any domain — finance, healthcare, law, engineering, or yours.
-              Describe your research goal. Get a workflow that runs on a schedule,
-              adapts to your intent, and compounds knowledge over time.
+            <p className="mt-2.5 text-sm text-gray-600 leading-relaxed">
+              A marketspace for your AI — <span className="text-gray-900 font-medium">experiments, experience, expertise</span>.{" "}
+              <Link to="/learn" className="text-soul-300 hover:text-soul-400 whitespace-nowrap">See how it works →</Link>
             </p>
+          </div>
 
-            <form onSubmit={handleGenerate} className="mt-7 flex gap-0 max-w-xl shadow-sm">
-              <input
-                value={intentQ}
-                onChange={e => setIntentQ(e.target.value)}
-                placeholder="e.g. research momentum signals in US equities every 12 hours"
-                className="flex-1 bg-white border border-gray-300 border-r-0 rounded-l-xl px-5 py-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-soul-400/20 focus:border-soul-400 transition-colors"
-              />
-              <button
-                type="submit"
-                disabled={intentQ.trim().length < 5}
-                className="shrink-0 bg-soul-400 hover:bg-soul-500 active:bg-soul-600 disabled:opacity-40 text-white text-sm font-medium rounded-r-xl px-6 py-3.5 transition-colors whitespace-nowrap"
-              >
-                Generate →
-              </button>
-            </form>
-
-            <div className="mt-4 flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-gray-400">Try:</span>
-              {[
-                { icon: "📈", label: "Finance", intent: "research momentum signals and automate trading in US equities" },
-                { icon: "📅", label: "Personal", intent: "automate my morning brief, email triage, and weekly reflection" },
-                { icon: "⚙️", label: "Systems", intent: "continuously benchmark and optimize an NL-to-SQL pipeline" },
-                { icon: "🔬", label: "Research", intent: "monitor arxiv for new papers on a topic and summarise weekly" },
-                { icon: "📊", label: "Analytics", intent: "track KPIs from my database and alert on anomalies daily" },
-                { icon: "🌐", label: "Monitoring", intent: "monitor news and sentiment for a list of companies every hour" },
-              ].map(s => (
+          {/* Right: search — fills the remaining width */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-end gap-1.5 mb-2 flex-wrap">
+              <span className="text-xs text-gray-400 mr-1">Try:</span>
+              {EXAMPLE_QUERIES.slice(0, 3).map(s => (
                 <button
-                  key={s.label}
-                  onClick={() => setIntentQ(s.intent)}
-                  className="inline-flex items-center gap-1.5 text-xs border border-gray-200 rounded-full px-3 py-1 text-gray-600 hover:border-soul-400/50 hover:text-soul-400 transition-colors bg-white"
+                  key={s}
+                  onClick={() => browse("", s)}
+                  className="text-xs border border-gray-200 rounded-full px-2.5 py-0.5 text-gray-500 hover:border-soul-400/50 hover:text-soul-400 transition-colors bg-white"
                 >
-                  <span>{s.icon}</span> {s.label}
+                  {s}
                 </button>
               ))}
             </div>
-
-            {!me && (
-              <div className="mt-6 flex items-center gap-3">
-                <SignInBtn variant="pill" />
-                <span className="text-xs text-gray-400">or browse anonymously below</span>
+            <form onSubmit={(e) => e.preventDefault()}>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">⌕</span>
+                <input
+                  value={q}
+                  onChange={e => { setQ(e.target.value); setTab(""); }}
+                  placeholder="What do you want to run? e.g. quant trading, morning brief, data labeling"
+                  className="w-full bg-white border border-gray-300 rounded-xl pl-11 pr-10 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-soul-400/20 focus:border-soul-400 transition-colors shadow-sm"
+                />
+                {q && (
+                  <button type="button" onClick={() => setQ("")}
+                    aria-label="Clear" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">✕</button>
+                )}
               </div>
-            )}
+            </form>
           </div>
         </div>
       </section>
 
-      {/* ── Stats bar ───────────────────────────────────────────────*/}
-      {(totalWorkflows + totalApps + totalSkills) > 0 && (
-        <div className="bg-white border-b border-gray-100">
-          <div className="max-w-5xl mx-auto px-6 py-2.5 flex items-center gap-5 text-xs text-gray-500 overflow-x-auto">
-            {totalWorkflows > 0 && <span><b className="text-gray-700">{totalWorkflows}</b> workflows</span>}
-            {totalApps > 0      && <span><b className="text-gray-700">{totalApps}</b> apps</span>}
-            {totalSkills > 0    && <span><b className="text-gray-700">{totalSkills}</b> skills</span>}
-            <span className="text-gray-300">·</span>
-            <span className="text-gray-400">community-built · MIT / Apache-2.0 · fully forkable</span>
-          </div>
-        </div>
-      )}
+      {/* ── Catalog: sidebar facets + main grid ────────────────────── */}
+      <main className="max-w-6xl mx-auto px-6 py-8 flex gap-8">
 
-      <main className="max-w-5xl mx-auto px-6 py-10">
-
-        {/* ── Scenario showcase ───────────────────────────────────── */}
-        <section className="mb-12">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-widest">
-              Example use cases
-            </h2>
-            <span className="text-xs text-gray-400">xp.io works for any domain — these are three starting points</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {SCENARIOS.map(s => {
-              const wfs = featured[s.label] || [];
+        {/* Sidebar */}
+        <aside className="w-48 shrink-0 hidden md:block">
+          <div className="text-[11px] uppercase tracking-widest text-gray-400 mb-2">Browse</div>
+          <nav className="space-y-0.5 mb-6">
+            {sidebarKinds.map(k => {
+              const m = k ? KIND_META[k as KindId] : null;
+              const active = tab === k;
               return (
-                <div
-                  key={s.label}
-                  className={`rounded-xl border p-5 transition-all cursor-pointer ${s.color}`}
-                  onClick={() => { setQ(s.q); setTab("workflow"); }}
+                <button
+                  key={k || "all"}
+                  onClick={() => browse(k)}
+                  className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors ${
+                    active ? "bg-gray-100 text-gray-900 font-medium" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  }`}
                 >
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <span className="text-2xl">{s.icon}</span>
-                    <div>
-                      <div className={`text-sm font-semibold ${s.accent}`}>{s.label}</div>
-                      <div className="text-[11px] text-gray-500">{s.desc}</div>
-                    </div>
-                  </div>
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className={m ? m.text : "text-gray-400"}>{m ? m.glyph : "✦"}</span>
+                    <span className="truncate">{m ? m.label : "All"}</span>
+                  </span>
+                  <span className="text-[11px] text-gray-400 tabular-nums">{kindCount(k)}</span>
+                </button>
+              );
+            })}
+          </nav>
 
-                  {/* Example workflows */}
-                  <div className="space-y-1.5">
-                    {wfs.length > 0 ? wfs.map(r => (
-                      <Link
-                        key={r.name}
-                        to={`/${encodeURIComponent(r.owner_sub)}/${r.name}`}
-                        onClick={e => e.stopPropagation()}
-                        className="flex items-center gap-1.5 group"
-                      >
-                        <span className="text-[11px] text-gray-400">▷</span>
-                        <span className="text-xs text-gray-700 group-hover:text-soul-300 transition-colors truncate">
-                          {r.display_name || r.name}
-                        </span>
-                      </Link>
-                    )) : s.examples.map(name => (
-                      <div key={name} className="flex items-center gap-1.5">
-                        <span className="text-[11px] text-gray-300">▷</span>
-                        <span className="text-xs text-gray-400 font-mono">{name}</span>
-                      </div>
-                    ))}
-                  </div>
+          {popularTags.length > 0 && (
+            <>
+              <div className="text-[11px] uppercase tracking-widest text-gray-400 mb-2">Popular</div>
+              <div className="flex flex-wrap gap-1.5">
+                {popularTags.map(t => (
+                  <button
+                    key={t}
+                    onClick={() => browse("", t)}
+                    className="text-[11px] text-gray-600 border border-gray-200 bg-white hover:border-soul-400/40 hover:text-soul-300 rounded-full px-2 py-0.5 transition-colors"
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </aside>
 
-                  <div className={`mt-4 text-[11px] font-medium ${s.accent} flex items-center gap-1`}>
-                    Browse {s.label} workflows →
-                  </div>
-                </div>
+        {/* Main column */}
+        <section className="flex-1 min-w-0">
+          {/* Mobile kind chips (sidebar hidden on mobile) */}
+          <div className="md:hidden flex items-center gap-1 flex-wrap mb-4">
+            {sidebarKinds.map(k => {
+              const m = k ? KIND_META[k as KindId] : null;
+              return (
+                <button
+                  key={k || "all"}
+                  onClick={() => browse(k)}
+                  className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                    tab === k ? "bg-soul-400 text-white border-soul-400 font-medium" : "bg-white text-gray-600 border-gray-200"
+                  }`}
+                >
+                  {m ? m.label : "All"} {kindCount(k) > 0 && <span className="opacity-70">{kindCount(k)}</span>}
+                </button>
               );
             })}
           </div>
-        </section>
 
-        {/* ── Browse ──────────────────────────────────────────────── */}
-        <section>
-          {/* Tabs row */}
-          <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-            <div className="flex items-center gap-1 flex-wrap">
-              {TABS.map(t => {
-                const count = t.id === "agentic_kg"
-                  ? (counts["agent"] || 0) + (counts["skill"] || 0)
-                  : t.id ? (counts[t.id as string] || 0) : 0;
-                return (
-                  <button
-                    key={t.id || "all"}
-                    onClick={() => setTab(t.id)}
-                    className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border transition-all ${
-                      tab === t.id
-                        ? "bg-soul-400 text-white border-soul-400 font-medium shadow-sm"
-                        : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:text-gray-900"
-                    }`}
-                  >
-                    {t.icon && <span className="opacity-80">{t.icon}</span>}
-                    {t.label}
-                    {count > 0 && (
-                      <span className={`text-[10px] rounded-full px-1 min-w-[1rem] text-center ${
-                        tab === t.id ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"
-                      }`}>
-                        {count}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+          {/* Controls */}
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="text-sm text-gray-500">
+              {q.trim()
+                ? <>Results for <span className="text-gray-900 font-medium">“{q.trim()}”</span> · {repos.length}</>
+                : <span className="text-gray-700 font-medium">{tab ? KIND_META[tab as KindId]?.label : "Everything"}</span>}
             </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                value={q}
-                onChange={e => setQ(e.target.value)}
-                placeholder="Search…"
-                className="w-40 bg-white border border-gray-200 rounded-full px-3 py-1.5 text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-gray-300 focus:w-56 transition-all"
-              />
-              <select
-                value={sort}
-                onChange={e => setSort(e.target.value)}
-                className="appearance-none bg-white border border-gray-200 rounded-full pl-3 pr-6 py-1.5 text-xs text-gray-700 focus:outline-none focus:border-gray-300 bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20fill%3D%22%23374151%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20d%3D%22M5.5%208l4.5%204.5L14.5%208z%22/%3E%3C/svg%3E')] bg-no-repeat bg-right bg-[length:1rem]"
-              >
-                {SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-              </select>
-            </div>
+            <select
+              value={sort}
+              onChange={e => setSort(e.target.value)}
+              className="appearance-none bg-white border border-gray-200 rounded-full pl-3 pr-6 py-1.5 text-xs text-gray-700 focus:outline-none focus:border-gray-300 bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20fill%3D%22%23374151%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20d%3D%22M5.5%208l4.5%204.5L14.5%208z%22/%3E%3C/svg%3E')] bg-no-repeat bg-right bg-[length:1rem]"
+            >
+              {SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
           </div>
 
+          {/* Featured apps band (All view, no query) */}
+          {showFeatured && (
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-3">
+                <span className={KIND_META.app.text}>{KIND_META.app.glyph}</span>
+                <h2 className="text-sm font-semibold text-gray-900">Featured apps</h2>
+                <span className="text-xs text-gray-400">— install in one line, runs your domain on a schedule</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {featured.map(r => <RepoCard key={`f-${r.owner_sub}/${r.name}`} repo={r} />)}
+              </div>
+            </div>
+          )}
+
           {/* Grid */}
+          {showFeatured && gridRepos.length > 0 && (
+            <h2 className="text-sm font-semibold text-gray-900 mb-3">Recently updated</h2>
+          )}
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {[...Array(6)].map((_, i) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[...Array(9)].map((_, i) => (
                 <div key={i} className="h-32 rounded-lg bg-gray-100 animate-pulse" />
               ))}
             </div>
-          ) : repos.length === 0 ? (
-            <EmptyBrowse tab={tab} me={me} intentQ={intentQ} onGenerate={() => nav(`/new/loop?intent=${encodeURIComponent(intentQ || "")}`)} />
+          ) : gridRepos.length === 0 ? (
+            !showFeatured && <EmptyBrowse q={q} me={me} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {repos.map(r => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {gridRepos.map(r => (
                 <RepoCard key={`${r.owner_sub}/${r.name}`} repo={r} />
               ))}
             </div>
           )}
-        </section>
 
-        <VersionPill />
+          <div className="mt-10 text-xs text-gray-400">
+            open source · MIT / Apache-2.0 · fork any of them
+          </div>
+          <VersionPill />
+        </section>
       </main>
     </div>
   );
@@ -377,22 +308,11 @@ export function Marketspace() {
 
 // ── Sub-components ────────────────────────────────────────────────────────
 
-function SignInBtn({ variant = "nav" }: { variant?: "nav" | "pill" }) {
+function SignInBtn() {
   const onClick = async () => {
     const { beginLogin } = await import("../lib/pkce");
     await beginLogin();
   };
-  if (variant === "pill") {
-    return (
-      <button
-        onClick={onClick}
-        className="soul-ring inline-flex items-center gap-2 px-5 py-2 rounded-full bg-soul-400/10 border border-soul-400/50 text-soul-300 hover:bg-soul-400/20 transition-colors text-xs font-medium"
-      >
-        <span className="w-1.5 h-1.5 rounded-full bg-soul-400 animate-pulse-soul" />
-        Sign in with lum.id
-      </button>
-    );
-  }
   return (
     <button onClick={onClick} className="text-gray-600 hover:text-soul-300 transition-colors text-xs">
       Sign in
@@ -400,37 +320,20 @@ function SignInBtn({ variant = "nav" }: { variant?: "nav" | "pill" }) {
   );
 }
 
-function EmptyBrowse({ tab, me, intentQ, onGenerate }: {
-  tab: KindTab; me: Me | null; intentQ: string; onGenerate: () => void;
-}) {
-  const isWorkflow = tab === "workflow";
+function EmptyBrowse({ q, me }: { q: string; me: Me | null }) {
   return (
     <div className="rounded-xl border border-dashed border-gray-200 py-16 text-center">
-      {isWorkflow ? (
-        <>
-          <div className="text-3xl mb-3">▷</div>
-          <div className="text-sm font-medium text-gray-700">No workflows found.</div>
-          <div className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
-            Try a broader search, or generate a new workflow from your intent.
-          </div>
-          <button
-            onClick={onGenerate}
-            className="mt-4 text-sm text-soul-300 hover:text-soul-400 transition-colors"
-          >
-            Generate a workflow →
-          </button>
-        </>
-      ) : (
-        <>
-          <div className="text-sm text-gray-500">Nothing here yet.</div>
-          {me ? (
-            <Link to="/new" className="mt-3 inline-block text-sm text-soul-300 hover:text-soul-400">
-              Publish the first →
-            </Link>
-          ) : (
-            <div className="mt-3 text-[11px] text-gray-400 uppercase tracking-widest">sign in to publish</div>
-          )}
-        </>
+      <div className="text-sm font-medium text-gray-700">
+        {q.trim() ? <>No matches for “{q.trim()}”.</> : <>Nothing here yet.</>}
+      </div>
+      <div className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
+        Try a broader search, or build a new one in{" "}
+        <a href={STUDIO_URL} className="text-soul-300 hover:text-soul-400">Studio ↗</a>.
+      </div>
+      {me && (
+        <Link to="/new" className="mt-4 inline-block text-sm text-soul-300 hover:text-soul-400">
+          Publish a repo →
+        </Link>
       )}
     </div>
   );
@@ -444,5 +347,5 @@ function VersionPill() {
     });
   }, []);
   if (!ver) return null;
-  return <div className="mt-16 text-center text-[11px] text-gray-300">xpcloud v{ver}</div>;
+  return <div className="mt-2 text-[11px] text-gray-300">xpcloud v{ver}</div>;
 }

@@ -47,7 +47,7 @@ export async function logout() {
 // sequence of agents / LLMs / operations that a user installs into their
 // app or runs standalone. The intent→workflow UX on the landing generates
 // or browses these.
-export type RepoKind = "app" | "skill" | "agent" | "dataset" | "workflow";
+export type RepoKind = "app" | "skill" | "agent" | "dataset" | "workflow" | "strategy";
 export type Visibility = "public" | "private";
 
 export type Repo = {
@@ -857,7 +857,7 @@ export async function addSkillToApp(
 
 /** List repos the authenticated user owns. Used to populate "Add to app" dropdown. */
 export async function listMyApps(): Promise<Repo[]> {
-  const me = await getMe().catch(() => null);
+  const me = await whoami().catch(() => null);
   if (!me) return [];
   return listRepos({ owner: me.sub, kind: "app" });
 }

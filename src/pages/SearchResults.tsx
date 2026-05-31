@@ -72,7 +72,7 @@ export function SearchResults() {
     // Append any kinds not in KIND_ORDER (future-proof)
     const seen = new Set(KIND_ORDER as string[]);
     for (const [k, repos] of Object.entries(by)) {
-      if (!seen.has(k) && repos.length > 0) ordered.push({ kind: k, repos });
+      if (!seen.has(k) && repos.length > 0) ordered.push({ kind: k as RepoKind, repos });
     }
     return ordered;
   }, [results]);

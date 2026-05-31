@@ -106,7 +106,7 @@ export function Profile() {
                 repo{repos?.length === 1 ? "" : "s"}
               </span>
               <span className="flex items-center gap-1">
-                <span className="text-atokirina-400">★</span>
+                <span className="text-gray-400">★</span>
                 {totalStars}
               </span>
             </div>

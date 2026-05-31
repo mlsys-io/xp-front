@@ -83,6 +83,7 @@ import { Markdown } from "../components/Markdown";
 import { AuthorBadge } from "../components/AuthorBadge";
 import { RepoDeprecationBanner } from "../components/DeprecationBanner";
 import { DisagreementMatrixForRepo } from "../components/DisagreementMatrix";
+import { timeAgo } from "../lib/time";
 
 type Tab = "code" | "flow" | "commits" | "branches" | "issues" | "pulls" | "community"
          | "forks" | "settings";
@@ -204,15 +205,13 @@ export function Repo() {
       />
       <RepoHeader repo={repo} me={me} isOwner={isOwner} onChange={setRepo} />
 
+      {/* Content + collaboration lead; Git plumbing (commits/branches) is
+          demoted to the right, Settings pinned far-right. */}
       <div className="mt-8 border-b border-gray-200 flex gap-6 overflow-x-auto">
         <TabLink to={`/${enc(owner)}/${enc(name)}`} active={tab === "code"}>Code</TabLink>
         {(repo?.kind === "workflow" || repo?.kind === "strategy") && (
           <TabLink to={"/" + enc(owner) + "/" + enc(name) + "/flow"} active={tab === "flow"}>Flow</TabLink>
         )}
-        <TabLink to={`/${enc(owner)}/${enc(name)}/commits`} active={tab === "commits"}>Commits</TabLink>
-        <TabLink to={`/${enc(owner)}/${enc(name)}/branches`} active={tab === "branches"}>Branches</TabLink>
-        <TabLink to={`/${enc(owner)}/${enc(name)}/issues`} active={tab === "issues"}>Issues</TabLink>
-        <TabLink to={`/${enc(owner)}/${enc(name)}/pulls`} active={tab === "pulls"}>Pull Requests</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/community`} active={tab === "community"}>
           {repo.kind === "skill" ? "Consumers" : "Community"}
           {repo.kind === "skill" && (repo.consumers_count ?? 0) > 0 && (
@@ -221,12 +220,18 @@ export function Repo() {
             </span>
           )}
         </TabLink>
+        <TabLink to={`/${enc(owner)}/${enc(name)}/issues`} active={tab === "issues"}>Issues</TabLink>
+        <TabLink to={`/${enc(owner)}/${enc(name)}/pulls`} active={tab === "pulls"}>PRs</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/forks`} active={tab === "forks"}>Forks</TabLink>
-        {isOwner && (
-          <TabLink to={`/${enc(owner)}/${enc(name)}/settings`} active={tab === "settings"}>
-            Settings
-          </TabLink>
-        )}
+        <span className="ml-auto flex gap-6">
+          <TabLink to={`/${enc(owner)}/${enc(name)}/commits`} active={tab === "commits"}>Commits</TabLink>
+          <TabLink to={`/${enc(owner)}/${enc(name)}/branches`} active={tab === "branches"}>Branches</TabLink>
+          {isOwner && (
+            <TabLink to={`/${enc(owner)}/${enc(name)}/settings`} active={tab === "settings"}>
+              Settings
+            </TabLink>
+          )}
+        </span>
       </div>
 
       <div className="mt-6">
@@ -346,7 +351,7 @@ function RepoHeader({
           <span className="ml-2 text-[10px] uppercase tracking-wider text-atokirina-400">private</span>
         )}
       </div>
-      <div className="mt-1 flex items-end justify-between gap-4 flex-wrap">
+      <div className="mt-1 flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
           <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
             <span className="text-soul-400/50 text-base">{KIND_GLYPH[repo.kind]}</span>
@@ -364,49 +369,38 @@ function RepoHeader({
           {repo.summary && (
             <p className="mt-2 text-sm text-gray-700 max-w-2xl">{repo.summary}</p>
           )}
+          {/* Freshness-first stat line; metrics appear only when > 0 (audit). */}
+          <div className="mt-2 flex items-center gap-3 text-[11px] text-gray-500 flex-wrap">
+            {repo.version && <span className="font-mono">v{repo.version}</span>}
+            {repo.updated_at != null && <span>updated {timeAgo(repo.updated_at)}</span>}
+            {repo.stars > 0 && <span><span className="text-gray-400">★</span> {repo.stars}</span>}
+            {repo.forks > 0 && <span>⑂ {repo.forks}</span>}
+            {(repo.downloads ?? 0) > 0 && <span>↓ {repo.downloads} installs</span>}
+            {watch.watchers > 0 && <span>👁 {watch.watchers}</span>}
+          </div>
         </div>
+
+        {/* Primary actions — ≤3: Star, Fork (or Edit for owners). */}
         <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            onClick={onWatch}
-            className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
-              watch.watching
-                ? "border-spirit-400/40 text-spirit-300 bg-spirit-400/5"
-                : "border-gray-300 text-bark-300 hover:border-gray-400 hover:bg-gray-50"
-            }`}
-          >
-            {watch.watching ? "Watching" : "Watch"}{" "}
-            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-700 tabular-nums">
-              {watch.watchers}
-            </span>
-          </button>
           <button
             onClick={onStar}
             className="px-2.5 py-1 text-xs rounded-md border border-gray-300 text-bark-300 hover:border-gray-400 hover:bg-gray-50 transition-colors"
           >
-            <span className="text-atokirina-400 mr-1">★</span>
-            Star{" "}
-            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-700 tabular-nums">
-              {repo.stars}
-            </span>
+            <span className="text-gray-400 mr-1">★</span>
+            Star{repo.stars > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-700 tabular-nums">
+                {repo.stars}
+              </span>
+            )}
           </button>
-          <span
-            title="Total installs (incremented by `/lumid app install`)"
-            className="px-2.5 py-1 text-xs rounded-md border border-gray-200 text-bark-300 inline-flex items-center"
-          >
-            <span className="text-soul-400 mr-1">↓</span>
-            Installs{" "}
-            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-700 tabular-nums">
-              {repo.downloads ?? 0}
-            </span>
-          </span>
           {!isOwner && (
             <button
               disabled={busy}
               onClick={onFork}
               className="px-2.5 py-1 text-xs rounded-md border border-gray-300 text-bark-300 hover:border-gray-400 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
-              {busy ? "Forking…" : "Fork"}{" "}
-              {!busy && (
+              {busy ? "Forking…" : "Fork"}
+              {!busy && repo.forks > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-700 tabular-nums">
                   {repo.forks}
                 </span>
@@ -418,30 +412,38 @@ function RepoHeader({
               href={`https://lum.id/auth/account/dashboard?app=${encodeURIComponent(repo.name)}`}
               target="_blank"
               rel="noreferrer"
-              title="Open the lum.id authoring dashboard for this app (Phase 3 will swap in an in-place editor)"
+              title="Open the lum.id authoring dashboard for this app"
               className="px-2.5 py-1 text-xs rounded-md border border-gray-300 text-bark-300 hover:border-soul-400 hover:bg-gray-50 transition-colors"
             >
               <span className="text-soul-400 mr-1">✎</span>
               Edit
             </a>
           )}
-          {repo.kind === "app" && (
-            <a
-              href={`https://lum.id/dashboard/skills/new?app=${encodeURIComponent(repo.name)}`}
-              target="_blank"
-              rel="noreferrer"
-              title="Draft a new skill prefilled to import into this app (sign in to lum.id required)"
-              className="px-2.5 py-1 text-xs rounded-md border border-gray-300 text-bark-300 hover:border-soul-400 hover:bg-gray-50 transition-colors"
-            >
-              <span className="text-soul-400 mr-1">+</span>
-              Add skill draft
-            </a>
-          )}
-          {repo.kind === "skill" && (
-            <AddToAppButton skillOwner={repo.owner_sub} skillName={repo.name} />
-          )}
         </div>
       </div>
+
+      {/* Headline action — how you actually get this (apps/skills/agents). */}
+      <InstallCta repo={repo} />
+
+      {/* Secondary, muted: watch + authoring shortcuts. */}
+      <div className="mt-3 flex items-center gap-4 text-[11px] text-gray-500 flex-wrap">
+        <button onClick={onWatch} className="hover:text-soul-300 transition-colors">
+          {watch.watching ? "✓ Watching" : "Watch"}
+        </button>
+        {repo.kind === "app" && (
+          <a
+            href={`https://lum.id/dashboard/skills/new?app=${encodeURIComponent(repo.name)}`}
+            target="_blank" rel="noreferrer"
+            className="hover:text-soul-300 transition-colors"
+          >
+            + Add skill draft
+          </a>
+        )}
+        {repo.kind === "skill" && (
+          <AddToAppButton skillOwner={repo.owner_sub} skillName={repo.name} />
+        )}
+      </div>
+
       {repo.tags.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {repo.tags.map((t) => (
@@ -452,6 +454,48 @@ function RepoHeader({
         </div>
       )}
       <KindCard repo={repo} />
+    </div>
+  );
+}
+
+// Headline "how to get this" action. Apps install by bare slug; agents
+// subscribe; skills are imported via skill_imports[]. Workflows/strategies/
+// datasets use the fork / loop-pin flows, so they get no command block here.
+function InstallCta({ repo }: { repo: RepoT }) {
+  const [copied, setCopied] = useState(false);
+  let label = "";
+  let cmd = "";
+  if (repo.kind === "app") {
+    label = "Install";
+    cmd = `lumid app install ${repo.name}`;
+  } else if (repo.kind === "agent") {
+    label = "Subscribe to this knowledge";
+    cmd = `lumid xp subscribe my-agent ${repo.owner_sub}/${repo.name}`;
+  } else if (repo.kind === "skill") {
+    label = "Import into an app (xpcloud.yaml)";
+    cmd = `skill_imports:\n  - ${repo.owner_sub}/${repo.name}`;
+  } else {
+    return null;
+  }
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(cmd);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* clipboard unavailable */ }
+  };
+  return (
+    <div className="mt-4 rounded-lg border border-gray-200 bg-night-800 overflow-hidden max-w-2xl">
+      <div className="px-4 py-2 flex items-center justify-between gap-3 border-b border-gray-100">
+        <span className="text-[11px] uppercase tracking-widest text-gray-500">{label}</span>
+        <button
+          onClick={onCopy}
+          className="text-[11px] text-soul-300 hover:text-soul-400 transition-colors"
+        >
+          {copied ? "copied ✓" : "copy"}
+        </button>
+      </div>
+      <pre className="px-4 py-3 font-mono text-[12.5px] text-gray-900 whitespace-pre-wrap leading-relaxed m-0">{cmd}</pre>
     </div>
   );
 }
@@ -3109,29 +3153,28 @@ function ForksTab({ repo }: { repo: RepoT }) {
 // ── Attestations table (kind=skill, Community tab) ───────────────
 
 function AttestationsTable({ repo }: { repo: RepoT }) {
-  type EnrichedAtt = Attestation & { _consumer_name?: string };
-  const [atts, setAtts] = useState<EnrichedAtt[] | null>(null);
+  const [atts, setAtts] = useState<Attestation[] | null>(null);
 
   useEffect(() => {
     setAtts(null);
     listAttestations(repo.owner_sub, repo.name)
-      .then((raw) => setAtts(raw as EnrichedAtt[]))
+      .then(setAtts)
       .catch(() => setAtts([]));
   }, [repo.owner_sub, repo.name]);
 
   if (!atts || atts.length === 0) return null;
 
-  // Aggregate by consumer: most recent per consumer
-  const byConsumer = new Map<string, EnrichedAtt>();
+  // Aggregate by consumer repo (Attestation.repo = "owner_sub/name"),
+  // keeping the most recent run per consumer.
+  const byConsumer = new Map<string, Attestation>();
   for (const a of atts) {
-    const key = `${a.consumer_owner}/${a.consumer_name}`;
-    const prev = byConsumer.get(key);
-    if (!prev || (a.attested_at || "") > (prev.attested_at || "")) {
-      byConsumer.set(key, a);
+    const prev = byConsumer.get(a.repo);
+    if (!prev || (a.last_run || "") > (prev.last_run || "")) {
+      byConsumer.set(a.repo, a);
     }
   }
   const rows = [...byConsumer.values()].sort((a, b) =>
-    (b.attested_at || "").localeCompare(a.attested_at || ""));
+    (b.last_run || "").localeCompare(a.last_run || ""));
 
   const total = rows.length;
   const passing = rows.filter((r) => r.status === "pass").length;
@@ -3149,23 +3192,23 @@ function AttestationsTable({ repo }: { repo: RepoT }) {
         <thead>
           <tr className="border-b border-gray-100 text-gray-500">
             <th className="px-4 py-2 text-left font-medium">Consumer</th>
-            <th className="px-4 py-2 text-left font-medium">Skill version</th>
+            <th className="px-4 py-2 text-left font-medium">Pinned version</th>
             <th className="px-4 py-2 text-left font-medium">Status</th>
             <th className="px-4 py-2 text-left font-medium">When</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((a, i) => {
-            const slug = `${a.consumer_owner}/${a.consumer_name}`;
+            const [cOwner, cName] = a.repo.split("/");
             return (
               <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
                 <td className="px-4 py-2">
-                  <Link to={`/${enc(a.consumer_owner)}/${enc(a.consumer_name)}`}
+                  <Link to={`/${enc(cOwner || "")}/${enc(cName || "")}`}
                     className="text-soul-500 hover:underline font-mono text-[11px]">
-                    {a.consumer_name || slug}
+                    {cName || a.repo}
                   </Link>
                 </td>
-                <td className="px-4 py-2 text-gray-600 font-mono">{a.skill_version || "—"}</td>
+                <td className="px-4 py-2 text-gray-600 font-mono">{a.current_version || "—"}</td>
                 <td className="px-4 py-2">
                   <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
                     a.status === "pass"
@@ -3175,7 +3218,9 @@ function AttestationsTable({ repo }: { repo: RepoT }) {
                         : "bg-gray-50 text-gray-600 border border-gray-200"
                   }`}>{a.status || "unknown"}</span>
                 </td>
-                <td className="px-4 py-2 text-gray-500">{relTime(a.attested_at || "")}</td>
+                <td className="px-4 py-2 text-gray-500">
+                  {a.last_run ? relTime(Math.floor(new Date(a.last_run).getTime() / 1000)) : "—"}
+                </td>
               </tr>
             );
           })}

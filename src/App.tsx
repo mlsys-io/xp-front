@@ -18,13 +18,13 @@ const Datasets        = lazy(() => import("./pages/Datasets").then(m => ({ defau
 const InboxPage       = lazy(() => import("./pages/Inbox").then(m => ({ default: m.InboxPage })));
 const Explore         = lazy(() => import("./pages/Explore").then(m => ({ default: m.Explore })));
 const Learn           = lazy(() => import("./pages/Learn").then(m => ({ default: m.Learn })));
+const LearnCatalog    = lazy(() => import("./pages/LearnCatalog").then(m => ({ default: m.LearnCatalog })));
 const NewRepo         = lazy(() => import("./pages/NewRepo").then(m => ({ default: m.NewRepo })));
 const Overview        = lazy(() => import("./pages/Overview").then(m => ({ default: m.Overview })));
 const Profile         = lazy(() => import("./pages/Profile").then(m => ({ default: m.Profile })));
 const Repo            = lazy(() => import("./pages/Repo").then(m => ({ default: m.Repo })));
 const SearchResults   = lazy(() => import("./pages/SearchResults").then(m => ({ default: m.SearchResults })));
 const Skills          = lazy(() => import("./pages/Skills").then(m => ({ default: m.Skills })));
-const NewLoop         = lazy(() => import("./pages/NewLoop").then(m => ({ default: m.NewLoop })));
 // /go — the Phase-A1 composer; the one intentional entrance into the
 // "set up your AI" funnel. Lives alongside the GitHub-shaped marketspace
 // at /, not replacing it. Lazy-loaded like everything else outside the
@@ -48,6 +48,7 @@ export default function App() {
           <Route path="/go" element={<Go />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/learn" element={<Learn />} />
+          <Route path="/learn/catalog" element={<LearnCatalog />} />
 
           {/* Phase 2 marketspace category landings — kind-scoped browses
               that share the <KindBrowse> shell. /marketspace stays as the
@@ -65,7 +66,6 @@ export default function App() {
 
           {/* Auth + dashboard */}
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/new/loop" element={<NewLoop />} />
           <Route path="/new" element={<NewRepo />} />
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Overview />} />

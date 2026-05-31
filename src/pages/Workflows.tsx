@@ -4,12 +4,13 @@
 // A workflow is a sequence of agents / LLMs / operations that the user
 // installs into their app or runs standalone. Editing happens in
 // LumidOS / Claude Code — NOT here. xp.io is browse + install only.
+// Generation (intent → workflow) lives in Studio (lum.id/studio/intents).
 //
-// Top of page: intent input → AI generates workflow (→ /new/loop?intent=).
-// Below: the full community workflow catalog with tag/sort filters.
+// This page is discovery: the full community workflow catalog with
+// tag/sort filters.
 
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   listRepos, whoami,
   type Me, type Repo,
@@ -25,25 +26,13 @@ const SORTS: { id: SortKey; label: string }[] = [
   { id: "name",    label: "Name" },
 ];
 
-// Scenario starters — pre-fill intent input.
-const STARTERS = [
-  { icon: "📈", label: "Quant signals",    intent: "research momentum signals in US equities and crypto every 12 hours" },
-  { icon: "📅", label: "Morning brief",    intent: "summarise my email and calendar each morning and suggest priorities" },
-  { icon: "⚙️", label: "Pipeline opt.",   intent: "continuously benchmark and improve an NL-to-SQL pipeline" },
-  { icon: "📰", label: "News digest",      intent: "track news and sentiment for a list of companies every hour" },
-  { icon: "🔬", label: "Literature watch", intent: "monitor arxiv for new papers on a topic and summarise weekly" },
-  { icon: "📊", label: "Data quality",     intent: "monitor a database for schema drift and data anomalies daily" },
-];
-
 export function Workflows() {
-  const nav = useNavigate();
   const [q, setQ]             = useState("");
   const [sort, setSort]       = useState<SortKey>("updated");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [repos, setRepos]     = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
   const [me, setMe]           = useState<Me | null>(null);
-  const [intentQ, setIntentQ] = useState("");
 
   useEffect(() => { whoami().then(setMe).catch(() => setMe(null)); }, []);
 
@@ -84,13 +73,6 @@ export function Workflows() {
     return out;
   }, [repos, activeTag, sort]);
 
-  const handleGenerate = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (intentQ.trim().length >= 5) {
-      nav(`/new/loop?intent=${encodeURIComponent(intentQ.trim())}`);
-    }
-  };
-
   const chip = (active: boolean) =>
     `text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
       active
@@ -121,38 +103,6 @@ export function Workflows() {
           </p>
         </div>
 
-        {/* ── Intent → generate ───────────────────────────────────── */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5 mb-6">
-          <div className="text-xs font-medium text-gray-700 mb-3 uppercase tracking-wider">
-            Generate a workflow from your intent
-          </div>
-          <form onSubmit={handleGenerate} className="flex gap-2">
-            <input
-              value={intentQ}
-              onChange={(e) => setIntentQ(e.target.value)}
-              placeholder="What do you want to research or automate?"
-              className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-soul-400/20 focus:border-soul-400 transition-colors"
-            />
-            <button
-              type="submit"
-              disabled={intentQ.trim().length < 5}
-              className="shrink-0 bg-soul-400 hover:bg-soul-500 disabled:opacity-40 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition-colors whitespace-nowrap"
-            >
-              Generate →
-            </button>
-          </form>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {STARTERS.map((s) => (
-              <button
-                key={s.label}
-                onClick={() => setIntentQ(s.intent)}
-                className="inline-flex items-center gap-1.5 text-[11px] border border-gray-200 rounded-full px-2.5 py-1 text-gray-600 hover:border-soul-400/50 hover:text-soul-400 transition-colors bg-white"
-              >
-                <span>{s.icon}</span> {s.label}
-              </button>
-            ))}
-          </div>
-        </div>
 
         {/* ── Search ──────────────────────────────────────────────── */}
         <div className="mb-4">

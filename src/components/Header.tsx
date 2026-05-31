@@ -48,12 +48,12 @@ export function Header({ variant }: { variant: HeaderVariant }) {
         </Link>
         {variant !== "learn" && (
           <Link to="/learn" className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">
-            Learn
+            How it works
           </Link>
         )}
         {variant !== "marketspace" && (
           <Link to="/" className="text-gray-400 hover:text-soul-300 transition-colors hidden sm:block">
-            ← marketplace
+            ← marketspace
           </Link>
         )}
         {me ? (
