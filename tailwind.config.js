@@ -1,6 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  safelist: [
+    // WorkflowNodeBadge — node type colors are dynamically composed via NODE_META
+    "bg-amber-50",  "border-amber-200", "text-amber-700",   // trigger
+    "bg-blue-50",   "border-blue-200",  "text-blue-700",    // filter
+    "bg-teal-50",   "border-teal-200",  "text-teal-700",    // agent
+    "bg-purple-50", "border-purple-200","text-purple-700",  // llm
+  ],
   theme: {
     extend: {
       colors: {

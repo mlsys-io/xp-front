@@ -9,6 +9,7 @@ import { Marketspace } from "./pages/Marketspace";
 // so once a page is fetched it's cached as `public, immutable` per
 // the nginx config in /etc/nginx/conf.d/default.conf.
 const Agents          = lazy(() => import("./pages/Agents").then(m => ({ default: m.Agents })));
+const Workflows       = lazy(() => import("./pages/Workflows").then(m => ({ default: m.Workflows })));
 const Apps            = lazy(() => import("./pages/Apps").then(m => ({ default: m.Apps })));
 const AuthCallback    = lazy(() => import("./pages/AuthCallback").then(m => ({ default: m.AuthCallback })));
 const DashboardLayout = lazy(() => import("./pages/Dashboard").then(m => ({ default: m.DashboardLayout })));
@@ -17,17 +18,18 @@ const Datasets        = lazy(() => import("./pages/Datasets").then(m => ({ defau
 const InboxPage       = lazy(() => import("./pages/Inbox").then(m => ({ default: m.InboxPage })));
 const Explore         = lazy(() => import("./pages/Explore").then(m => ({ default: m.Explore })));
 const Learn           = lazy(() => import("./pages/Learn").then(m => ({ default: m.Learn })));
+const LearnCatalog    = lazy(() => import("./pages/LearnCatalog").then(m => ({ default: m.LearnCatalog })));
 const NewRepo         = lazy(() => import("./pages/NewRepo").then(m => ({ default: m.NewRepo })));
 const Overview        = lazy(() => import("./pages/Overview").then(m => ({ default: m.Overview })));
 const Profile         = lazy(() => import("./pages/Profile").then(m => ({ default: m.Profile })));
 const Repo            = lazy(() => import("./pages/Repo").then(m => ({ default: m.Repo })));
 const SearchResults   = lazy(() => import("./pages/SearchResults").then(m => ({ default: m.SearchResults })));
 const Skills          = lazy(() => import("./pages/Skills").then(m => ({ default: m.Skills })));
-const NewLoop         = lazy(() => import("./pages/NewLoop").then(m => ({ default: m.NewLoop })));
 // /go — the Phase-A1 composer; the one intentional entrance into the
 // "set up your AI" funnel. Lives alongside the GitHub-shaped marketspace
 // at /, not replacing it. Lazy-loaded like everything else outside the
 // landing.
+const Git             = lazy(() => import("./pages/Git").then(m => ({ default: m.Git })));
 const Go              = lazy(() => import("./pages/Go").then(m => ({ default: m.Go })));
 
 // Minimal fallback — most chunks land in <100ms so anything heavier
@@ -47,10 +49,13 @@ export default function App() {
           <Route path="/go" element={<Go />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/learn" element={<Learn />} />
+          <Route path="/learn/catalog" element={<LearnCatalog />} />
+          <Route path="/git" element={<Git />} />
 
           {/* Phase 2 marketspace category landings — kind-scoped browses
               that share the <KindBrowse> shell. /marketspace stays as the
               multi-kind view above. */}
+          <Route path="/workflows" element={<Workflows />} />
           <Route path="/apps" element={<Apps />} />
           <Route path="/skills" element={<Skills />} />
           <Route path="/datasets" element={<Datasets />} />
@@ -63,7 +68,6 @@ export default function App() {
 
           {/* Auth + dashboard */}
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/new/loop" element={<NewLoop />} />
           <Route path="/new" element={<NewRepo />} />
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Overview />} />
@@ -88,6 +92,7 @@ export default function App() {
           <Route path="/:owner/:name" element={<Repo />} />
           <Route path="/:owner/:name/branches" element={<Repo />} />
           <Route path="/:owner/:name/settings" element={<Repo />} />
+          <Route path="/:owner/:name/flow" element={<Repo />} />
           <Route path="/:owner/:name/issues" element={<Repo />} />
           <Route path="/:owner/:name/issues/new" element={<Repo />} />
           <Route path="/:owner/:name/issues/:number" element={<Repo />} />
@@ -96,6 +101,7 @@ export default function App() {
           <Route path="/:owner/:name/commits" element={<Repo />} />
           <Route path="/:owner/:name/commits/*" element={<Repo />} />
           <Route path="/:owner/:name/forks" element={<Repo />} />
+          <Route path="/:owner/:name/ci" element={<Repo />} />
           <Route path="/:owner/:name/community" element={<Repo />} />
           <Route path="/:owner/:name/discussions" element={<Repo />} />
           <Route path="/:owner/:name/discussions/*" element={<Repo />} />

@@ -1,152 +1,88 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import type { Repo } from "../api/client";
 import { AuthorBadge } from "./AuthorBadge";
 import { isRepoTaggedDeprecated } from "./DeprecationBanner";
-
-const KIND_GLYPH: Record<string, string> = {
-  app: "⁂",
-  autoresearch: "↻",
-  agent: "❋",
-  skill: "⌘",
-};
+import { kindMetaOf } from "./kindMeta";
+import { timeAgo } from "../lib/time";
 
 const COMMUNITY_OWNER = "00000000-0000-0000-0000-000000000001";
 
-const HEALTH_DOT: Record<string, string> = {
-  green: "bg-emerald-400",
-  yellow: "bg-amber-400",
-  red: "bg-red-400",
-  unknown: "bg-gray-300",
-};
-
-const ADAPTER_BADGE: Record<string, { label: string; cls: string }> = {
-  verified: { label: "✓", cls: "text-emerald-600 border-emerald-200 bg-emerald-50" },
-  generated: { label: "~", cls: "text-gray-500 border-gray-200 bg-gray-50" },
-  broken:    { label: "✗", cls: "text-red-600 border-red-200 bg-red-50" },
-  stale:     { label: "!", cls: "text-amber-700 border-amber-200 bg-amber-50" },
-  deprecated:{ label: "–", cls: "text-gray-400 border-gray-200 bg-gray-50" },
-};
-
+// Compact, scannable card: a kind-colored icon tile anchors each row,
+// with title + author meta, a 2-line summary, and a tiny freshness/metrics
+// footer. Metrics render ONLY when > 0 (catalog stars/forks are mostly 0),
+// so a quiet repo shows just "updated · vX". Tags / adapter-status /
+// upstream-health moved to the detail page — noise at grid scale.
 export function RepoCard({ repo }: { repo: Repo }) {
   const nav = useNavigate();
   const {
     owner_sub, name, display_name, summary, tags, stars, forks, kind, fork_of,
-    adapter_status, upstream_health, consumers_count,
+    consumers_count, downloads, version, updated_at, ci_status,
   } = repo;
-  const ownerShort = owner_sub.slice(0, 8);
   const deprecated = isRepoTaggedDeprecated(tags);
   const isCommunity = owner_sub === COMMUNITY_OWNER;
+  const m = kindMetaOf(kind);
+  const updated = timeAgo(updated_at);
 
   const openRepo = () =>
     nav(`/${encodeURIComponent(owner_sub)}/${encodeURIComponent(name)}`);
-
-  const adapterBadge = adapter_status ? ADAPTER_BADGE[adapter_status] : null;
-  const healthCls = upstream_health ? HEALTH_DOT[upstream_health] : null;
 
   return (
     <div
       onClick={openRepo}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          openRepo();
-        }
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openRepo(); }
       }}
       role="link"
       tabIndex={0}
-      className="group block rounded-lg border border-gray-200 bg-white px-4 py-3.5 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer focus:outline-none focus:border-soul-400"
+      className={`group rounded-lg border border-gray-200 border-l-2 ${m.accent} bg-white px-3.5 py-3 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer focus:outline-none focus:border-soul-400`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap text-xs text-gray-700">
-            <span>{KIND_GLYPH[kind] || "◇"}</span>
-            <span className="font-mono lowercase">{kind}</span>
-            {isCommunity && (
-              <span className="inline-flex items-center text-[10px] uppercase tracking-wider rounded-full border border-sky-200 bg-sky-50 text-sky-700 px-1.5 py-0.5">
-                community
-              </span>
-            )}
-            {fork_of && (
-              <span className="text-spirit-300/70">· fork</span>
-            )}
-            {!isCommunity && <AuthorBadge owner_sub={owner_sub} />}
-            {deprecated && (
+      <div className="flex items-start gap-3">
+        <span className={`shrink-0 w-8 h-8 rounded-md grid place-items-center text-sm ${m.tile} ${m.text}`}>
+          {m.glyph}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <h3 className="truncate font-semibold text-[15px] leading-tight text-gray-900">
+              {display_name || name}
+            </h3>
+            {fork_of && <span title="fork" className="shrink-0 text-gray-300 text-xs">⑂</span>}
+            {ci_status && (
               <span
-                title="This repo is deprecated"
-                className="inline-flex items-center text-[10px] uppercase tracking-wider rounded-full border border-amber-300 bg-amber-50 text-amber-800 px-1.5 py-0.5"
-              >
-                deprecated
-              </span>
-            )}
-            {adapterBadge && (
-              <span
-                title={`Adapter: ${adapter_status}`}
-                className={`inline-flex items-center text-[10px] font-mono rounded border px-1.5 py-0.5 ${adapterBadge.cls}`}
-              >
-                {adapterBadge.label}
-              </span>
-            )}
-            {healthCls && (
-              <span
-                title={`Upstream health: ${upstream_health}`}
-                className={`inline-block w-2 h-2 rounded-full ${healthCls}`}
+                title={`CI: ${ci_status.status}`}
+                className={`shrink-0 w-1.5 h-1.5 rounded-full inline-block ${
+                  ci_status.status === "passed" ? "bg-green-400" :
+                  ci_status.status === "failed" ? "bg-red-400" :
+                  ci_status.status === "running" ? "bg-amber-400 animate-pulse" :
+                  "bg-gray-300"
+                }`}
               />
             )}
-          </div>
-          <div className="mt-0.5 text-base font-semibold text-gray-900 truncate">
-            {display_name || name}
-          </div>
-          <div className="text-[12px] text-gray-600 truncate font-mono">
-            {isCommunity ? (
-              <span className="text-sky-600">community</span>
-            ) : (
-              <Link
-                to={`/${encodeURIComponent(owner_sub)}`}
-                onClick={(e) => e.stopPropagation()}
-                className="hover:text-soul-300 transition-colors"
-              >
-                {ownerShort}…
-              </Link>
+            {deprecated && (
+              <span title="deprecated" className="shrink-0 text-[9px] uppercase tracking-wide rounded border border-amber-300 bg-amber-50 text-amber-700 px-1">
+                dep
+              </span>
             )}
-            /{name}
           </div>
-        </div>
-        <div className="shrink-0 flex items-center gap-3 text-xs text-gray-700">
-          {consumers_count != null && consumers_count > 0 && (
-            <span title="apps using this skill" className="flex items-center gap-1 text-gray-500">
-              <span>⌘</span>
-              {consumers_count}
-            </span>
-          )}
-          <span title="stars" className="flex items-center gap-1">
-            <span className="text-atokirina-400">★</span>
-            {stars}
-          </span>
-          <span title="forks" className="flex items-center gap-1">
-            <span className="text-spirit-400">⑂</span>
-            {forks}
-          </span>
+          <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
+            <span className="font-mono">{kind}</span>
+            <span>·</span>
+            {isCommunity ? <span className="text-sky-600">community</span> : <AuthorBadge owner_sub={owner_sub} />}
+          </div>
         </div>
       </div>
 
       {summary && (
-        <div className="mt-2 text-sm text-gray-700 line-clamp-2">
-          {summary}
-        </div>
+        <p className="mt-2 text-[12.5px] text-gray-600 leading-snug line-clamp-2">{summary}</p>
       )}
 
-      {tags && tags.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1">
-          {tags.slice(0, 5).map((t) => (
-            <span
-              key={t}
-              className="text-[11px] text-gray-700 border border-gray-200 bg-gray-50 rounded px-1.5 py-0.5"
-            >
-              {t}
-            </span>
-          ))}
-        </div>
-      )}
+      <div className="mt-2 flex items-center gap-2.5 text-[11px] text-gray-400">
+        {updated && <span>{updated}</span>}
+        {version && <span className="font-mono">v{version}</span>}
+        {(consumers_count ?? 0) > 0 && <span title="apps using this skill">⌘ {consumers_count}</span>}
+        {stars > 0 && <span title="stars">★ {stars}</span>}
+        {forks > 0 && <span title="forks">⑂ {forks}</span>}
+        {(downloads ?? 0) > 0 && <span title="installs">↓ {downloads}</span>}
+      </div>
     </div>
   );
 }
