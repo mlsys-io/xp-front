@@ -29,6 +29,7 @@ const Skills          = lazy(() => import("./pages/Skills").then(m => ({ default
 // "set up your AI" funnel. Lives alongside the GitHub-shaped marketspace
 // at /, not replacing it. Lazy-loaded like everything else outside the
 // landing.
+const Git             = lazy(() => import("./pages/Git").then(m => ({ default: m.Git })));
 const Go              = lazy(() => import("./pages/Go").then(m => ({ default: m.Go })));
 
 // Minimal fallback — most chunks land in <100ms so anything heavier
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="/explore" element={<Explore />} />
           <Route path="/learn" element={<Learn />} />
           <Route path="/learn/catalog" element={<LearnCatalog />} />
+          <Route path="/git" element={<Git />} />
 
           {/* Phase 2 marketspace category landings — kind-scoped browses
               that share the <KindBrowse> shell. /marketspace stays as the
@@ -99,6 +101,7 @@ export default function App() {
           <Route path="/:owner/:name/commits" element={<Repo />} />
           <Route path="/:owner/:name/commits/*" element={<Repo />} />
           <Route path="/:owner/:name/forks" element={<Repo />} />
+          <Route path="/:owner/:name/ci" element={<Repo />} />
           <Route path="/:owner/:name/community" element={<Repo />} />
           <Route path="/:owner/:name/discussions" element={<Repo />} />
           <Route path="/:owner/:name/discussions/*" element={<Repo />} />

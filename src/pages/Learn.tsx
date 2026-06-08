@@ -118,6 +118,12 @@ export function Learn() {
           >
             For developers &amp; publishers — how the catalog works →
           </Link>
+          <Link
+            to="/git"
+            className="text-sm text-soul-300 hover:text-soul-400 underline-offset-2 hover:underline"
+          >
+            Use xp.io with Git — clone, push, pull →
+          </Link>
           <p className="text-sm text-gray-600">
             Or just{" "}
             <Link to="/" className="text-soul-300 hover:text-soul-400 underline-offset-2 hover:underline">

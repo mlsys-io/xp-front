@@ -16,7 +16,7 @@ export function RepoCard({ repo }: { repo: Repo }) {
   const nav = useNavigate();
   const {
     owner_sub, name, display_name, summary, tags, stars, forks, kind, fork_of,
-    consumers_count, downloads, version, updated_at,
+    consumers_count, downloads, version, updated_at, ci_status,
   } = repo;
   const deprecated = isRepoTaggedDeprecated(tags);
   const isCommunity = owner_sub === COMMUNITY_OWNER;
@@ -46,6 +46,17 @@ export function RepoCard({ repo }: { repo: Repo }) {
               {display_name || name}
             </h3>
             {fork_of && <span title="fork" className="shrink-0 text-gray-300 text-xs">⑂</span>}
+            {ci_status && (
+              <span
+                title={`CI: ${ci_status.status}`}
+                className={`shrink-0 w-1.5 h-1.5 rounded-full inline-block ${
+                  ci_status.status === "passed" ? "bg-green-400" :
+                  ci_status.status === "failed" ? "bg-red-400" :
+                  ci_status.status === "running" ? "bg-amber-400 animate-pulse" :
+                  "bg-gray-300"
+                }`}
+              />
+            )}
             {deprecated && (
               <span title="deprecated" className="shrink-0 text-[9px] uppercase tracking-wide rounded border border-amber-300 bg-amber-50 text-amber-700 px-1">
                 dep

@@ -25,6 +25,9 @@ import {
   getTree,
   getWatchers,
   initiateTransfer,
+  getCIRuns,
+  triggerCI,
+  getCILogs,
   isUnauthorized,
   listAttestations,
   listBranches,
@@ -75,6 +78,7 @@ import {
   type PRComment,
   type PRDiff,
   type Repo as RepoT,
+  type CIRun,
   type Transfer,
   type TreeEntry,
   type Visibility,
@@ -86,7 +90,7 @@ import { DisagreementMatrixForRepo } from "../components/DisagreementMatrix";
 import { timeAgo } from "../lib/time";
 
 type Tab = "code" | "flow" | "commits" | "branches" | "issues" | "pulls" | "community"
-         | "forks" | "settings";
+         | "forks" | "settings" | "ci";
 
 const KIND_GLYPH: Record<string, string> = { app: "⁂", autoresearch: "⋯", agent: "❋", skill: "⌘" };
 const KIND_LABEL: Record<string, string> = {
@@ -114,8 +118,10 @@ export function Repo() {
   const mode: "tree" | "blob" | "blob-edit" | "branches" | "pulls"
             | "pull-detail" | "pull-new" | "settings" | "commits"
             | "community" | "discussion-detail" | "forks"
-            | "issues" | "issue-new" | "issue-detail" =
-    pathname === `${prefix}/branches`
+            | "issues" | "issue-new" | "issue-detail" | "ci" =
+    pathname === `${prefix}/ci`
+      ? "ci"
+      : pathname === `${prefix}/branches`
       ? "branches"
       : pathname === `${prefix}/commits` || pathname.startsWith(`${prefix}/commits/`)
         ? "commits"
@@ -144,7 +150,9 @@ export function Repo() {
                               ? "community"
                               : "tree";
 
-  const tab: Tab = mode === "branches"
+  const tab: Tab = mode === "ci"
+    ? "ci"
+    : mode === "branches"
     ? "branches"
     : mode === "commits"
       ? "commits"
@@ -222,6 +230,17 @@ export function Repo() {
         </TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/issues`} active={tab === "issues"}>Issues</TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/pulls`} active={tab === "pulls"}>PRs</TabLink>
+        <TabLink to={`/${enc(owner)}/${enc(name)}/ci`} active={tab === "ci"}>
+          CI
+          {repo.ci_status && (
+            <span className={`ml-1.5 w-1.5 h-1.5 rounded-full inline-block ${
+              repo.ci_status.status === "passed" ? "bg-green-400" :
+              repo.ci_status.status === "failed" ? "bg-red-400" :
+              repo.ci_status.status === "running" ? "bg-amber-400 animate-pulse" :
+              "bg-gray-300"
+            }`} />
+          )}
+        </TabLink>
         <TabLink to={`/${enc(owner)}/${enc(name)}/forks`} active={tab === "forks"}>Forks</TabLink>
         <span className="ml-auto flex gap-6">
           <TabLink to={`/${enc(owner)}/${enc(name)}/commits`} active={tab === "commits"}>Commits</TabLink>
@@ -259,8 +278,35 @@ export function Repo() {
         {mode === "settings" && isOwner && (
           <SettingsTab repo={repo} onChange={setRepo} onDeleted={() => nav("/")} />
         )}
+        {mode === "ci" && <CITab repo={repo} isOwner={isOwner} />}
       </div>
     </Shell>
+  );
+}
+
+function CloneUrl({ ownerSub, name }: { ownerSub: string; name: string }) {
+  const [copied, setCopied] = useState(false);
+  const url = `https://xp.io/${ownerSub}/${name}.git`;
+  const copy = () => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <div className="mt-2 flex items-center gap-1.5">
+      <span className="text-[10px] text-gray-400 uppercase tracking-wider">Clone</span>
+      <code className="text-[11px] font-mono text-gray-600 bg-gray-50 border border-gray-200 rounded px-2 py-0.5 select-all">
+        {url}
+      </code>
+      <button
+        onClick={copy}
+        title="Copy clone URL"
+        className="text-[10px] text-gray-400 hover:text-soul-300 transition-colors"
+      >
+        {copied ? "✓" : "⎘"}
+      </button>
+    </div>
   );
 }
 
@@ -378,6 +424,7 @@ function RepoHeader({
             {(repo.downloads ?? 0) > 0 && <span>↓ {repo.downloads} installs</span>}
             {watch.watchers > 0 && <span>👁 {watch.watchers}</span>}
           </div>
+          <CloneUrl ownerSub={repo.owner_sub} name={repo.name} />
         </div>
 
         {/* Primary actions — ≤3: Star, Fork (or Edit for owners). */}
@@ -3637,6 +3684,171 @@ function RepoFlowTab({ repo }: { repo: RepoT }) {
             copy
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── CI tab ──────────────────────────────────────────────────────────────────
+
+function ciStatusDot(status: string) {
+  if (status === "passed") return <span className="w-2 h-2 rounded-full bg-green-400 inline-block shrink-0" />;
+  if (status === "failed") return <span className="w-2 h-2 rounded-full bg-red-400 inline-block shrink-0" />;
+  if (status === "running") return <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block shrink-0" />;
+  if (status === "cancelled") return <span className="w-2 h-2 rounded-full bg-gray-300 inline-block shrink-0" />;
+  return <span className="w-2 h-2 rounded-full bg-gray-200 inline-block shrink-0" />;
+}
+
+function CITab({ repo, isOwner }: { repo: RepoT; isOwner: boolean }) {
+  const [runs, setRuns] = useState<CIRun[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [logs, setLogs] = useState<Record<string, string>>({});
+  const [triggering, setTriggering] = useState(false);
+  const [triggerMsg, setTriggerMsg] = useState<string | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    getCIRuns(repo.owner_sub, repo.name)
+      .then(setRuns)
+      .catch(() => setRuns([]))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, [repo.owner_sub, repo.name]);
+
+  const expandRun = (runId: string) => {
+    if (expanded === runId) { setExpanded(null); return; }
+    setExpanded(runId);
+    if (!logs[runId]) {
+      getCILogs(repo.owner_sub, repo.name, runId)
+        .then(text => setLogs(prev => ({ ...prev, [runId]: text })))
+        .catch(() => setLogs(prev => ({ ...prev, [runId]: "(logs unavailable)" })));
+    }
+  };
+
+  const trigger = async () => {
+    setTriggering(true);
+    setTriggerMsg(null);
+    try {
+      const r = await triggerCI(repo.owner_sub, repo.name);
+      setTriggerMsg(`Run ${r.run_id} queued.`);
+      setTimeout(() => { load(); setTriggerMsg(null); }, 2000);
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setTriggerMsg(msg || "Failed to trigger CI.");
+    } finally {
+      setTriggering(false);
+    }
+  };
+
+  return (
+    <div className="max-w-3xl">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-base font-semibold text-gray-900">CI Runs</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Triggered automatically on push when{" "}
+            <code className="font-mono bg-gray-100 px-1 rounded">.xpio/ci.yml</code> is present.
+          </p>
+        </div>
+        {isOwner && (
+          <button
+            onClick={trigger}
+            disabled={triggering}
+            className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:border-soul-300 hover:text-soul-400 transition-colors disabled:opacity-50"
+          >
+            {triggering ? "Queuing…" : "Run CI"}
+          </button>
+        )}
+      </div>
+      {triggerMsg && (
+        <div className="mb-4 text-xs text-soul-300 rounded-lg border border-soul-300/30 bg-soul-400/5 px-3 py-2">
+          {triggerMsg}
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-sm text-gray-400">Loading…</p>
+      ) : runs.length === 0 ? (
+        <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-8 text-center">
+          <p className="text-sm text-gray-600">No CI runs yet.</p>
+          <p className="text-xs text-gray-400 mt-1">
+            Add{" "}
+            <code className="font-mono bg-white border border-gray-200 rounded px-1">.xpio/ci.yml</code>{" "}
+            to this repo and push.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {runs.map(run => (
+            <div key={run.run_id} className="rounded-xl border border-gray-200 overflow-hidden">
+              <button
+                onClick={() => expandRun(run.run_id)}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+              >
+                {ciStatusDot(run.status)}
+                <span className="flex-1 min-w-0">
+                  <span className="text-sm font-medium text-gray-900 capitalize">{run.status}</span>
+                  <span className="ml-2 text-xs text-gray-400 font-mono">{run.sha.slice(0, 8)}</span>
+                  <span className="ml-2 text-xs text-gray-400">{run.branch}</span>
+                </span>
+                <span className="text-xs text-gray-400 shrink-0">
+                  {run.triggered_by === "manual" ? "manual · " : "push · "}
+                  {timeAgo(run.created_at)}
+                  {run.finished_at && run.started_at && (
+                    <span className="ml-1">
+                      · {Math.round(run.finished_at - run.started_at)}s
+                    </span>
+                  )}
+                </span>
+                <span className="text-[10px] text-gray-400 ml-2">{expanded === run.run_id ? "▲" : "▼"}</span>
+              </button>
+
+              {expanded === run.run_id && (
+                <div className="border-t border-gray-100 px-4 py-3 bg-gray-50">
+                  {run.steps && run.steps.length > 0 && (
+                    <div className="mb-3 space-y-1">
+                      {run.steps.map((step, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs">
+                          {ciStatusDot(step.status)}
+                          <span className="text-gray-700 font-medium">{step.name}</span>
+                          <span className="text-gray-400">{step.duration_s}s</span>
+                          {step.exit_code !== 0 && (
+                            <span className="text-red-500">exit {step.exit_code}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {logs[run.run_id] ? (
+                    <pre className="text-[11px] font-mono text-gray-700 bg-night-800 rounded-lg border border-gray-200 p-3 max-h-64 overflow-auto whitespace-pre-wrap">
+                      {logs[run.run_id]}
+                    </pre>
+                  ) : (
+                    <p className="text-xs text-gray-400">Loading logs…</p>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+        <p className="text-xs font-semibold text-gray-600 mb-1">Example <code className="font-mono">.xpio/ci.yml</code></p>
+        <pre className="text-[11px] font-mono text-gray-600 whitespace-pre">
+{`on: [push, manual]
+
+jobs:
+  test:
+    image: python:3.12-slim
+    steps:
+      - name: Install
+        run: pip install -e ".[dev]" -q
+      - name: Test
+        run: pytest tests/ -v --tb=short`}
+        </pre>
       </div>
     </div>
   );

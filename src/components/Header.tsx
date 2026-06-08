@@ -39,8 +39,11 @@ export function Header({ variant }: { variant: HeaderVariant }) {
         <span className="w-1.5 h-1.5 rounded-full bg-soul-400 shadow-[0_0_6px_rgba(20,184,166,0.7)] animate-pulse-soul" />
         <span className="font-display tracking-[0.3em] text-sm text-soul-300">xp.io</span>
       </Link>
+      {/* kindBrowse pages (/apps, /workflows, …) have their own in-page
+          filter, so the global search bar here would be a second box at the
+          top. Hide it there; keep it on searchResults / learn. */}
       <div className="flex-1 max-w-sm hidden sm:block">
-        <SearchBar />
+        {variant !== "kindBrowse" && <SearchBar />}
       </div>
       <div className="flex items-center gap-4 text-xs shrink-0">
         <Link to="/workflows" className="text-gray-600 hover:text-soul-300 transition-colors flex items-center gap-1">
@@ -51,6 +54,9 @@ export function Header({ variant }: { variant: HeaderVariant }) {
             How it works
           </Link>
         )}
+        <Link to="/git" className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">
+          Git
+        </Link>
         {variant !== "marketspace" && (
           <Link to="/" className="text-gray-400 hover:text-soul-300 transition-colors hidden sm:block">
             ← marketspace

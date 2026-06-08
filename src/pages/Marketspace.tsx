@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   listRepos, whoami,
@@ -8,6 +8,7 @@ import { RepoCard } from "../components/RepoCard";
 import { KIND_META, type KindId } from "../components/kindMeta";
 
 const STUDIO_URL = "https://lum.id/studio/intents";
+const PAGE_SIZE  = 24;
 
 type KindTab = "" | RepoKind;
 
@@ -39,6 +40,7 @@ export function Marketspace() {
   const [loading, setLoading] = useState(true);
   const [me, setMe]           = useState<Me | null>(null);
   const [featured, setFeatured] = useState<Repo[]>([]);
+  const [page, setPage]       = useState(0);
 
   useEffect(() => { whoami().then(setMe).catch(() => setMe(null)); }, []);
 
@@ -62,6 +64,7 @@ export function Marketspace() {
   }, []);
 
   useEffect(() => {
+    setPage(0);
     setLoading(true);
     const hideInternal = (rs: Repo[]) =>
       q.trim() ? rs : rs.filter(r => !INTERNAL_APPS.has(r.name));
@@ -69,15 +72,15 @@ export function Marketspace() {
     if (tab === "workflow") {
       // Strategies fold into Workflows — fetch both, merge by recency.
       Promise.all([
-        listRepos({ q, kind: "workflow" as RepoKind, sort: sort as any, limit: 90, include_forks: true }),
-        listRepos({ q, kind: "strategy" as RepoKind, sort: sort as any, limit: 90, include_forks: true }),
+        listRepos({ q, kind: "workflow" as RepoKind, sort: sort as any, limit: 200, include_forks: true }),
+        listRepos({ q, kind: "strategy" as RepoKind, sort: sort as any, limit: 200, include_forks: true }),
       ]).then(([w, s]) => {
         const merged = [...w, ...s];
         merged.sort((x, y) => (y.updated_at || 0) - (x.updated_at || 0));
-        setRepos(merged.slice(0, 90));
+        setRepos(merged);
       }).catch(() => setRepos([])).finally(() => setLoading(false));
     } else {
-      listRepos({ q, kind: tab as RepoKind | "", sort: sort as any, limit: 90, include_forks: true })
+      listRepos({ q, kind: tab as RepoKind | "", sort: sort as any, limit: 200, include_forks: true })
         .then(rs => setRepos(hideInternal(rs)))
         .catch(() => setRepos([])).finally(() => setLoading(false));
     }
@@ -94,11 +97,13 @@ export function Marketspace() {
   }, [repos]);
 
   const sidebarKinds = counts["agent"] > 0 ? [...SIDEBAR_KINDS, "agent" as KindTab] : SIDEBAR_KINDS;
-  const browse = (k: KindTab, query = "") => { setTab(k); setQ(query); };
+  const browse = (k: KindTab, query = "") => { setTab(k); setQ(query); setPage(0); };
   const showFeatured = tab === "" && !q.trim() && featured.length > 0;
   // Don't repeat the featured apps in the grid below.
   const featuredKeys = new Set(featured.map(r => `${r.owner_sub}/${r.name}`));
   const gridRepos = showFeatured ? repos.filter(r => !featuredKeys.has(`${r.owner_sub}/${r.name}`)) : repos;
+  const totalPages = Math.ceil(gridRepos.length / PAGE_SIZE);
+  const pagedRepos = gridRepos.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const totalAll = (counts["app"] || 0) + (counts["workflow"] || 0) + (counts["strategy"] || 0)
                  + (counts["skill"] || 0) + (counts["dataset"] || 0) + (counts["agent"] || 0);
 
@@ -120,6 +125,7 @@ export function Marketspace() {
 
           <div className="flex items-center gap-4 text-xs shrink-0">
             <Link to="/learn" className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">How it works</Link>
+            <Link to="/git" className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">Git</Link>
             <a href={STUDIO_URL} className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">Studio ↗</a>
             {me ? (
               <>
@@ -249,9 +255,20 @@ export function Marketspace() {
           {/* Controls */}
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="text-sm text-gray-500">
-              {q.trim()
-                ? <>Results for <span className="text-gray-900 font-medium">“{q.trim()}”</span> · {repos.length}</>
-                : <span className="text-gray-700 font-medium">{tab ? KIND_META[tab as KindId]?.label : "Everything"}</span>}
+              {q.trim() ? (
+                <>Results for <span className="text-gray-900 font-medium">&quot;{q.trim()}&quot;</span>
+                  {repos.length > 0 && <span className="ml-1 text-gray-400">· {repos.length}</span>}
+                </>
+              ) : (
+                <span className="text-gray-700 font-medium">
+                  {tab ? KIND_META[tab as KindId]?.label : "Everything"}
+                  {repos.length > 0 && !loading && (
+                    <span className="ml-2 text-xs text-gray-400 font-normal tabular-nums">
+                      {gridRepos.length} {totalPages > 1 && `· page ${page + 1} of ${totalPages}`}
+                    </span>
+                  )}
+                </span>
+              )}
             </div>
             <select
               value={sort}
@@ -290,13 +307,17 @@ export function Marketspace() {
             !showFeatured && <EmptyBrowse q={q} me={me} />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {gridRepos.map(r => (
+              {pagedRepos.map(r => (
                 <RepoCard key={`${r.owner_sub}/${r.name}`} repo={r} />
               ))}
             </div>
           )}
 
-          <div className="mt-10 text-xs text-gray-400">
+          {!loading && totalPages > 1 && (
+            <Pagination page={page} totalPages={totalPages} onChange={p => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+          )}
+
+          <div className="mt-6 text-xs text-gray-400">
             open source · MIT / Apache-2.0 · fork any of them
           </div>
           <VersionPill />
@@ -324,7 +345,7 @@ function EmptyBrowse({ q, me }: { q: string; me: Me | null }) {
   return (
     <div className="rounded-xl border border-dashed border-gray-200 py-16 text-center">
       <div className="text-sm font-medium text-gray-700">
-        {q.trim() ? <>No matches for “{q.trim()}”.</> : <>Nothing here yet.</>}
+        {q.trim() ? <>No matches for "{q.trim()}".</> : <>Nothing here yet.</>}
       </div>
       <div className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
         Try a broader search, or build a new one in{" "}
@@ -335,6 +356,55 @@ function EmptyBrowse({ q, me }: { q: string; me: Me | null }) {
           Publish a repo →
         </Link>
       )}
+    </div>
+  );
+}
+
+function Pagination({ page, totalPages, onChange }: {
+  page: number;
+  totalPages: number;
+  onChange: (p: number) => void;
+}) {
+  // Build visible page numbers with ellipsis: always show first, last, and
+  // a window of 2 around the current page.
+  const pages: (number | "…")[] = [];
+  for (let i = 0; i < totalPages; i++) {
+    const near = Math.abs(i - page) <= 1;
+    const edge = i === 0 || i === totalPages - 1;
+    if (near || edge) {
+      if (pages.length && pages[pages.length - 1] !== "…" && (i as number) - (pages[pages.length - 1] as number) > 1) {
+        pages.push("…");
+      }
+      pages.push(i);
+    }
+  }
+
+  const btn = (label: React.ReactNode, target: number, disabled: boolean, active = false) => (
+    <button
+      key={String(label)}
+      disabled={disabled}
+      onClick={() => !disabled && onChange(target)}
+      className={`min-w-[2rem] h-8 px-2 rounded-md text-xs transition-colors ${
+        active
+          ? "bg-soul-400 text-white font-medium"
+          : disabled
+          ? "text-gray-300 cursor-default"
+          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+      }`}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="mt-8 flex items-center justify-center gap-1">
+      {btn("← Prev", page - 1, page === 0)}
+      {pages.map((p, i) =>
+        p === "…"
+          ? <span key={`e${i}`} className="px-1 text-gray-400 text-xs select-none">…</span>
+          : btn(p + 1, p as number, false, p === page)
+      )}
+      {btn("Next →", page + 1, page === totalPages - 1)}
     </div>
   );
 }

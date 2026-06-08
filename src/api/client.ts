@@ -75,6 +75,13 @@ export type Repo = {
   adapter_status?: "generated" | "verified" | "broken" | "stale" | "deprecated";
   upstream_health?: "green" | "yellow" | "red" | "unknown";
   consumers_count?: number;     // number of apps that import this skill
+  ci_status?: {
+    status: "pending" | "running" | "passed" | "failed" | "cancelled";
+    sha: string;
+    run_id: string;
+    branch: string;
+    updated_at: number;
+  } | null;
 };
 
 export type Branch = {
@@ -1000,4 +1007,70 @@ function is404(e: unknown): boolean {
 
 export function isUnauthorized(e: unknown): boolean {
   return (e as AxiosError)?.response?.status === 401;
+}
+
+// ── CI ────────────────────────────────────────────────────────────────────────
+
+export type CIStepResult = {
+  name: string;
+  status: "passed" | "failed";
+  exit_code: number;
+  duration_s: number;
+};
+
+export type CIRun = {
+  run_id: string;
+  owner_sub: string;
+  repo_name: string;
+  sha: string;
+  branch: string;
+  status: "pending" | "running" | "passed" | "failed" | "cancelled";
+  created_at: number;
+  started_at: number | null;
+  finished_at: number | null;
+  steps: CIStepResult[];
+  triggered_by: "push" | "manual";
+};
+
+export async function getCIRuns(
+  owner: string, name: string, limit = 20,
+): Promise<CIRun[]> {
+  const r = await anonApi.get(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/ci/runs`,
+    { params: { limit } },
+  );
+  return r.data.runs ?? [];
+}
+
+export async function getCIRun(
+  owner: string, name: string, runId: string,
+): Promise<CIRun | null> {
+  try {
+    const r = await anonApi.get(
+      `/api/v1/repos/${enc(owner)}/${enc(name)}/ci/runs/${enc(runId)}`,
+    );
+    return r.data;
+  } catch (e) {
+    if (is404(e)) return null;
+    throw e;
+  }
+}
+
+export async function getCILogs(
+  owner: string, name: string, runId: string,
+): Promise<string> {
+  const r = await anonApi.get(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/ci/runs/${enc(runId)}/logs`,
+    { responseType: "text" },
+  );
+  return r.data as string;
+}
+
+export async function triggerCI(
+  owner: string, name: string,
+): Promise<{ run_id: string; status: string }> {
+  const r = await api.post(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/ci/runs`,
+  );
+  return r.data;
 }
