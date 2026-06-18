@@ -2,7 +2,7 @@
 // accent color used to give the catalog visual rhythm (HF/GitHub-style).
 // Used by the marketspace sidebar + RepoCard so a kind looks the same
 // everywhere. "strategy" intentionally folds into the workflow identity.
-export type KindId = "app" | "workflow" | "skill" | "dataset" | "agent" | "strategy";
+export type KindId = "app" | "workflow" | "skill" | "dataset" | "memory" | "agent" | "strategy";
 
 export type KindMeta = {
   glyph: string;
@@ -19,7 +19,8 @@ export const KIND_META: Record<KindId, KindMeta> = {
   strategy: { glyph: "◈", label: "Strategies", text: "text-blue-500",   dot: "bg-blue-500",   accent: "border-l-blue-400",   tile: "bg-blue-500/10" },
   skill:    { glyph: "⌘", label: "Skills",     text: "text-violet-500", dot: "bg-violet-500", accent: "border-l-violet-400", tile: "bg-violet-500/10" },
   dataset:  { glyph: "◫", label: "Datasets",    text: "text-amber-500",  dot: "bg-amber-500",  accent: "border-l-amber-400",  tile: "bg-amber-500/10" },
-  agent:    { glyph: "❋", label: "Agents",     text: "text-pink-500",   dot: "bg-pink-500",   accent: "border-l-pink-400",   tile: "bg-pink-500/10" },
+  memory:   { glyph: "❋", label: "Memories",   text: "text-pink-500",   dot: "bg-pink-500",   accent: "border-l-pink-400",   tile: "bg-pink-500/10" },
+  agent:    { glyph: "❋", label: "Memories",   text: "text-pink-500",   dot: "bg-pink-500",   accent: "border-l-pink-400",   tile: "bg-pink-500/10" },
 };
 
 export function kindMetaOf(kind: string): KindMeta {
