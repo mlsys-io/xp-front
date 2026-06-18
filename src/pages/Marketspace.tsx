@@ -23,6 +23,14 @@ const SORTS = [
 // Hidden from no-query browse; still reachable by explicit search.
 const INTERNAL_APPS = new Set(["ops", "xpio-ops"]);
 
+// Cycle-output datasets (tagged "cycles") are per-run autoresearch telemetry —
+// every app's loops auto-publish one per tenant, so the marketspace fills with
+// near-duplicate "<app>-cycles" cards (e.g. 8× auto-quant-cycles). They aren't
+// browsable/installable assets; they belong on each app's own page. They are
+// "dataset"-kind repos, so they were cluttering the Datasets sidebar tab. Drop
+// from browse + counts; genuine datasets (e.g. mbb-casebook) stay.
+const hideCycles = (rs: Repo[]) => rs.filter(r => !(r.tags || []).includes("cycles"));
+
 // Example discovery queries (NOT generation intents — they search the
 // catalog). Generation lives in Studio.
 const EXAMPLE_QUERIES = ["quant trading", "personal assistant", "consulting", "data labeling", "optimization"];
@@ -50,7 +58,7 @@ export function Marketspace() {
     Promise.all(
       kinds.map(k =>
         listRepos({ kind: k, limit: 200, include_forks: true })
-          .then(r => [k, r.length] as [string, number])
+          .then(r => [k, hideCycles(r).length] as [string, number])
           .catch(() => [k, 0] as [string, number])
       )
     ).then(pairs => setCounts(Object.fromEntries(pairs)));
@@ -67,7 +75,7 @@ export function Marketspace() {
     setPage(0);
     setLoading(true);
     const hideInternal = (rs: Repo[]) =>
-      q.trim() ? rs : rs.filter(r => !INTERNAL_APPS.has(r.name));
+      hideCycles(q.trim() ? rs : rs.filter(r => !INTERNAL_APPS.has(r.name)));
 
     if (tab === "workflow") {
       // Strategies fold into Workflows — fetch both, merge by recency.
