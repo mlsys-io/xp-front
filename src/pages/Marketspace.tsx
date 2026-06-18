@@ -26,10 +26,9 @@ const INTERNAL_APPS = new Set(["ops", "xpio-ops"]);
 // Cycle-output datasets (tagged "cycles") are per-run autoresearch telemetry —
 // every app's loops auto-publish one per tenant, so the marketspace fills with
 // near-duplicate "<app>-cycles" cards (e.g. 8× auto-quant-cycles). They aren't
-// browsable/installable assets; they belong on each app's own page. The
-// "dataset" kind is labelled "Experiments" in the sidebar (kindMeta), so these
-// were showing as ~19 same/similar-titled "experiments". Drop from browse +
-// counts; genuine datasets (e.g. mbb-casebook) stay.
+// browsable/installable assets; they belong on each app's own page. They are
+// "dataset"-kind repos, so they were cluttering the Datasets sidebar tab. Drop
+// from browse + counts; genuine datasets (e.g. mbb-casebook) stay.
 const hideCycles = (rs: Repo[]) => rs.filter(r => !(r.tags || []).includes("cycles"));
 
 // Example discovery queries (NOT generation intents — they search the

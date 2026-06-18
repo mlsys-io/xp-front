@@ -18,7 +18,7 @@ export const KIND_META: Record<KindId, KindMeta> = {
   workflow: { glyph: "▷", label: "Workflows",  text: "text-blue-500",   dot: "bg-blue-500",   accent: "border-l-blue-400",   tile: "bg-blue-500/10" },
   strategy: { glyph: "◈", label: "Strategies", text: "text-blue-500",   dot: "bg-blue-500",   accent: "border-l-blue-400",   tile: "bg-blue-500/10" },
   skill:    { glyph: "⌘", label: "Skills",     text: "text-violet-500", dot: "bg-violet-500", accent: "border-l-violet-400", tile: "bg-violet-500/10" },
-  dataset:  { glyph: "◫", label: "Experiments", text: "text-amber-500",  dot: "bg-amber-500",  accent: "border-l-amber-400",  tile: "bg-amber-500/10" },
+  dataset:  { glyph: "◫", label: "Datasets",    text: "text-amber-500",  dot: "bg-amber-500",  accent: "border-l-amber-400",  tile: "bg-amber-500/10" },
   agent:    { glyph: "❋", label: "Agents",     text: "text-pink-500",   dot: "bg-pink-500",   accent: "border-l-pink-400",   tile: "bg-pink-500/10" },
 };
 
