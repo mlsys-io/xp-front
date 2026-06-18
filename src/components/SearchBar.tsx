@@ -4,14 +4,16 @@ import type { RepoKind } from "../api/client";
 
 type KindFilter = "" | RepoKind;
 
+// Phase 4 (app→agent): labels are canonical (actor = "agent", knowledge bank =
+// "memory"); the `id`s stay the wire kind values (server normalizes on read).
 const KINDS: { id: KindFilter; label: string }[] = [
   { id: "",          label: "all"      },
   { id: "workflow",  label: "workflow" },
   { id: "strategy",  label: "strategy" },
-  { id: "app",       label: "app"      },
+  { id: "app",       label: "agent"    },
   { id: "skill",     label: "skill"    },
   { id: "dataset",   label: "dataset"  },
-  { id: "agent",     label: "agent"    },
+  { id: "agent",     label: "memory"   },
 ];
 
 /**

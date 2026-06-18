@@ -9,10 +9,13 @@ import { RepoCard } from "../components/RepoCard";
 // Two top-level peers (Application + Agentic KG). AutoResearch and
 // Datasets nest under an application's anatomy; not separate browse
 // modes here.
+// Phase 4 (app→agent): the actor kind query is "app" (server normalizes to
+// agent); we label it "Agents". The "agent" wire kind here is the legacy
+// knowledge bank → labeled "Memory". Ids stay the wire values (API contract).
 const KIND_TABS: { id: "" | RepoKind; label: string }[] = [
   { id: "", label: "All" },
-  { id: "app", label: "Apps" },
-  { id: "agent", label: "Agentic KG" },
+  { id: "app", label: "Agents" },
+  { id: "agent", label: "Memory" },
 ];
 
 const WINDOWS: { id: "day" | "week" | "month"; label: string }[] = [

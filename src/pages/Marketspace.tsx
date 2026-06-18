@@ -287,12 +287,12 @@ export function Marketspace() {
             </select>
           </div>
 
-          {/* Featured apps band (All view, no query) */}
+          {/* Featured agents band (All view, no query) */}
           {showFeatured && (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-3">
-                <span className={KIND_META.app.text}>{KIND_META.app.glyph}</span>
-                <h2 className="text-sm font-semibold text-gray-900">Featured apps</h2>
+                <span className={KIND_META.agent.text}>{KIND_META.agent.glyph}</span>
+                <h2 className="text-sm font-semibold text-gray-900">Featured agents</h2>
                 <span className="text-xs text-gray-400">— install in one line, runs your domain on a schedule</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

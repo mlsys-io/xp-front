@@ -47,7 +47,10 @@ export async function logout() {
 // sequence of agents / LLMs / operations that a user installs into their
 // app or runs standalone. The intent→workflow UX on the landing generates
 // or browses these.
-export type RepoKind = "app" | "skill" | "agent" | "dataset" | "workflow" | "strategy";
+// Phase 4 (app→agent): canonical kinds are `agent` (the actor, was `app`) and
+// `memory` (the knowledge bank, was the old `agent` kind). `app` and `agent`
+// are retained as dual-read aliases so legacy/un-normalized cards still type.
+export type RepoKind = "agent" | "app" | "skill" | "memory" | "dataset" | "workflow" | "strategy";
 export type Visibility = "public" | "private";
 
 export type Repo = {
@@ -216,7 +219,7 @@ export type MarketspaceLoop = {
   source: "in_app";
   repo_owner: string;
   repo_name: string;
-  repo_kind: "app";
+  repo_kind: "agent" | "app";   // actor; dual-read (server normalizes app→agent)
   loop_name: string;
   display_name: string;
   summary: string;
