@@ -36,7 +36,10 @@ const hideCycles = (rs: Repo[]) => rs.filter(r => !(r.tags || []).includes("cycl
 const EXAMPLE_QUERIES = ["quant trading", "personal assistant", "consulting", "data labeling", "optimization"];
 
 // Sidebar kind order. Agents appended dynamically only when non-empty.
-const SIDEBAR_KINDS: KindTab[] = ["", "app", "workflow", "skill", "dataset"];
+// Canonical actor tab is "agent" (was "app"; the server normalizes app→agent
+// before cards reach the UI). Listing "app" here AND appending "agent" below
+// produced two "Agents" tabs — fixed by using "agent" once.
+const SIDEBAR_KINDS: KindTab[] = ["", "agent", "workflow", "skill", "dataset"];
 
 export function Marketspace() {
 
@@ -104,7 +107,9 @@ export function Marketspace() {
     return [...c.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 14).map(([t]) => t);
   }, [repos]);
 
-  const sidebarKinds = counts["agent"] > 0 ? [...SIDEBAR_KINDS, "agent" as KindTab] : SIDEBAR_KINDS;
+  // "agent" is already in SIDEBAR_KINDS; surface the knowledge tab ("memory")
+  // only when such repos exist (mirrors the old conditional, now for memory).
+  const sidebarKinds = counts["memory"] > 0 ? [...SIDEBAR_KINDS, "memory" as KindTab] : SIDEBAR_KINDS;
   const browse = (k: KindTab, query = "") => { setTab(k); setQ(query); setPage(0); };
   const showFeatured = tab === "" && !q.trim() && featured.length > 0;
   // Don't repeat the featured apps in the grid below.
@@ -132,7 +137,6 @@ export function Marketspace() {
           </Link>
 
           <div className="flex items-center gap-4 text-xs shrink-0">
-            <Link to="/learn" className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">How it works</Link>
             <Link to="/git" className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">Git</Link>
             <a href={STUDIO_URL} className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">Studio ↗</a>
             {me ? (
@@ -156,8 +160,7 @@ export function Marketspace() {
               All about <span className="text-soul-300">AI workforce.</span>
             </h1>
             <p className="mt-2.5 text-sm text-gray-600 leading-relaxed">
-              A marketspace for your AI — <span className="text-gray-900 font-medium">experiments, experience, expertise</span>.{" "}
-              <Link to="/learn" className="text-soul-300 hover:text-soul-400 whitespace-nowrap">See how it works →</Link>
+              A marketspace for your AI — <span className="text-gray-900 font-medium">experiments, experience, expertise</span>.
             </p>
           </div>
 
@@ -287,12 +290,12 @@ export function Marketspace() {
             </select>
           </div>
 
-          {/* Featured apps band (All view, no query) */}
+          {/* Featured agents band (All view, no query) */}
           {showFeatured && (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-3">
-                <span className={KIND_META.app.text}>{KIND_META.app.glyph}</span>
-                <h2 className="text-sm font-semibold text-gray-900">Featured apps</h2>
+                <span className={KIND_META.agent.text}>{KIND_META.agent.glyph}</span>
+                <h2 className="text-sm font-semibold text-gray-900">Featured agents</h2>
                 <span className="text-xs text-gray-400">— install in one line, runs your domain on a schedule</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

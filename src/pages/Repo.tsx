@@ -92,9 +92,11 @@ import { timeAgo } from "../lib/time";
 type Tab = "code" | "flow" | "commits" | "branches" | "issues" | "pulls" | "community"
          | "forks" | "settings" | "ci";
 
-const KIND_GLYPH: Record<string, string> = { app: "⁂", autoresearch: "⋯", agent: "❋", skill: "⌘" };
+// Phase 4 (app→agent): actor = "Agent" (was "app"/"Application"); knowledge
+// bank = "Memory" (was the old "agent" kind). `app` kept as a dual-read alias.
+const KIND_GLYPH: Record<string, string> = { agent: "⁂", app: "⁂", autoresearch: "⋯", memory: "❋", skill: "⌘" };
 const KIND_LABEL: Record<string, string> = {
-  app: "Application", autoresearch: "AutoResearch", agent: "Agentic KG", skill: "Skill",
+  agent: "Agent", app: "Agent", autoresearch: "AutoResearch", memory: "Memory", skill: "Skill",
 };
 
 /**
@@ -477,7 +479,7 @@ function RepoHeader({
         <button onClick={onWatch} className="hover:text-soul-300 transition-colors">
           {watch.watching ? "✓ Watching" : "Watch"}
         </button>
-        {repo.kind === "app" && (
+        {(repo.kind === "agent" || repo.kind === "app") && (
           <a
             href={`https://lum.id/dashboard/skills/new?app=${encodeURIComponent(repo.name)}`}
             target="_blank" rel="noreferrer"
@@ -512,10 +514,10 @@ function InstallCta({ repo }: { repo: RepoT }) {
   const [copied, setCopied] = useState(false);
   let label = "";
   let cmd = "";
-  if (repo.kind === "app") {
+  if (repo.kind === "agent" || repo.kind === "app") {
     label = "Install";
     cmd = `lumid app install ${repo.name}`;
-  } else if (repo.kind === "agent") {
+  } else if (repo.kind === "memory") {
     label = "Subscribe to this knowledge";
     cmd = `lumid xp subscribe my-agent ${repo.owner_sub}/${repo.name}`;
   } else if (repo.kind === "skill") {
@@ -589,7 +591,7 @@ function KindCard({ repo }: { repo: RepoT }) {
   // takes users to the marketspace's kind=agent + kind=skill view.
   const refLinks: Array<{ label: string; repo: string; version?: string; glyph: string }> = [];
   const memAgents: string[] = [];
-  if (repo.kind === "app") {
+  if (repo.kind === "agent" || repo.kind === "app") {
     for (const d of (manifest.datasets || []) as any[]) {
       if (d?.repo) refLinks.push({
         label: d.id || d.repo, repo: d.repo, version: d.version, glyph: "▤",
@@ -610,7 +612,7 @@ function KindCard({ repo }: { repo: RepoT }) {
   }
 
   const pills: Array<[string, string]> = [];
-  if (repo.kind === "app") {
+  if (repo.kind === "agent" || repo.kind === "app") {
     if (Array.isArray(manifest.skills_required)) {
       pills.push(["skills", manifest.skills_required.join(" · ")]);
     }
@@ -635,7 +637,7 @@ function KindCard({ repo }: { repo: RepoT }) {
         ? String((manifest.loops[0] as any)?.name || 1)
         : `${manifest.loops.length} loops`]);
     }
-  } else if (repo.kind === "agent") {
+  } else if (repo.kind === "memory") {
     pills.push(["kind", "knowledge bundle"]);
     if (manifest.agent_id) pills.push(["agent", String(manifest.agent_id)]);
     if (manifest.domain) pills.push(["domain", String(manifest.domain)]);
@@ -701,7 +703,7 @@ function KindCard({ repo }: { repo: RepoT }) {
               <span
                 key={a}
                 className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-gray-200 bg-gray-50 text-[12px]"
-                title={`Local KG agent — accumulated as cycles run. Browse all published Agentic KG with the link below.`}
+                title={`Local memory bank — accumulated as cycles run. Browse all published memory with the link below.`}
               >
                 <span>❋</span>
                 <span className="font-mono text-gray-900">{a}</span>
@@ -714,9 +716,9 @@ function KindCard({ repo }: { repo: RepoT }) {
                 to="/?kind=agent"
                 className="text-soul-300 hover:text-soul-400 underline-offset-2 hover:underline"
               >
-                Browse Agentic KG →
+                Browse Memory →
               </Link>{" "}
-              to seed these with someone else's accumulated wisdom (kind=agent snapshots).
+              to seed these with someone else's accumulated wisdom (memory snapshots).
             </div>
           )}
         </div>
@@ -826,8 +828,8 @@ function CodeTab({ repo, branch, path, isOwner }: {
     {isOverview && repo.kind === "skill" && <LineageSection repo={repo} />}
     {isOverview && repo.kind === "skill" && <TestedWithSection repo={repo} />}
     {isOverview && repo.kind === "skill" && <ConsumersSection repo={repo} />}
-    {isOverview && repo.kind === "app" && <LoopMetricsSection repo={repo} />}
-    {isOverview && repo.kind === "app" && <DisagreementMatrixForRepo repo={repo} branch={branch} />}
+    {isOverview && (repo.kind === "agent" || repo.kind === "app") && <LoopMetricsSection repo={repo} />}
+    {isOverview && (repo.kind === "agent" || repo.kind === "app") && <DisagreementMatrixForRepo repo={repo} branch={branch} />}
     {isOverview && repo.kind === "dataset" && <DatasetPreviewSection repo={repo} />}
     </div>
   );

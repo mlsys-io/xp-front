@@ -37,9 +37,12 @@ export function Profile() {
 
   // The autoresearch repo kind was retired in xp.io 0.3 — every loop
   // now lives inside an app's manifest. The standalone counter is gone.
+  // Phase 4 (app→agent): the ACTOR (`app` field) dual-reads kind:agent ∪
+  // legacy kind:app; the knowledge bank (`agent` field) is now kind:memory.
+  // Field names kept to limit churn; the displayed labels are canonical.
   const byKind = {
-    app: repos?.filter((r) => r.kind === "app").length ?? 0,
-    agent: repos?.filter((r) => r.kind === "agent").length ?? 0,
+    app: repos?.filter((r) => r.kind === "agent" || r.kind === "app").length ?? 0,
+    agent: repos?.filter((r) => r.kind === "memory").length ?? 0,
     skill: repos?.filter((r) => r.kind === "skill").length ?? 0,
     dataset: repos?.filter((r) => r.kind === "dataset").length ?? 0,
   };
@@ -127,10 +130,10 @@ export function Profile() {
         {repos && repos.length > 0 && (
           <div className="mb-8 flex flex-wrap gap-2 text-[11px] uppercase tracking-widest text-gray-600">
             <span className="border border-gray-200 rounded-full px-3 py-1">
-              <span className="text-soul-300 mr-1">⁂</span> {byKind.app} app{byKind.app === 1 ? "" : "s"}
+              <span className="text-soul-300 mr-1">⁂</span> {byKind.app} agent{byKind.app === 1 ? "" : "s"}
             </span>
             <span className="border border-gray-200 rounded-full px-3 py-1">
-              <span className="text-soul-300 mr-1">❋</span> {byKind.agent} agentic kg
+              <span className="text-soul-300 mr-1">❋</span> {byKind.agent} memor{byKind.agent === 1 ? "y" : "ies"}
             </span>
             <span className="border border-gray-200 rounded-full px-3 py-1">
               <span className="text-soul-300 mr-1">⌘</span> {byKind.skill} skill{byKind.skill === 1 ? "" : "s"}

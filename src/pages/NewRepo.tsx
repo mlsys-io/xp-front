@@ -2,17 +2,17 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createRepo, type RepoKind, type Visibility } from "../api/client";
 
-// Four primitives surface to the user; under the hood `kind=skill` and
-// `kind=agent` are both flavors of Agentic KG (procedural know-how and
-// memory snapshots respectively). The two are presented as sub-options
-// within the Agentic KG choice rather than separate top-level kinds.
+// Four primitives surface to the user. Phase 4 (app→agent): the deployable
+// ACTOR is the "agent" (was "app"); the published bank is "memory" (was the
+// old "agent" kind). The `id`s remain the wire kind values (server normalizes
+// kind:app→agent on read); only the labels are canonical.
 const KINDS: { id: RepoKind; label: string; glyph: string; blurb: string }[] = [
-  { id: "app", glyph: "⁂", label: "Application",
+  { id: "app", glyph: "⁂", label: "Agent",
     blurb: "Domain goal + roles + autoresearch loops + skill / dataset references. The whole composition." },
-  { id: "agent", glyph: "❋", label: "Agentic KG — memory snapshot",
-    blurb: "Published bank.jsonl + bandit.json + config.json. Seed an app's knowledge agent with someone else's accumulated wisdom." },
-  { id: "skill", glyph: "⌘", label: "Agentic KG — skill",
-    blurb: "Procedural knowledge: a SKILL.md with instructions and an optional Python impl. Importable into any app's cycle via skill_imports[]." },
+  { id: "agent", glyph: "❋", label: "Memory — knowledge snapshot",
+    blurb: "Published bank.jsonl + bandit.json + config.json. Seed an agent's memory with someone else's accumulated wisdom." },
+  { id: "skill", glyph: "⌘", label: "Skill",
+    blurb: "Procedural knowledge: a SKILL.md with instructions and an optional Python impl. Importable into any agent's cycle via skill_imports[]." },
   { id: "dataset", glyph: "▤", label: "Dataset",
     blurb: "A versioned data asset — cases, baselines, snapshots. Loops pin a version for reproducibility." },
 ];

@@ -32,7 +32,7 @@ export function DashboardRepos() {
         <div>
           <h1 className="font-display text-2xl text-bark-300">My repos</h1>
           <p className="text-sm text-gray-700 mt-1">
-            Every app, AutoResearch loop, and agent you own.
+            Every agent, AutoResearch loop, and memory you own.
           </p>
         </div>
         <Link
@@ -50,8 +50,8 @@ export function DashboardRepos() {
       <div className="flex items-center gap-5 mb-6 flex-wrap">
         {([
           { id: "" as KindTab, label: "◎ All" },
-          { id: "app" as KindTab, label: "⁂ Apps" },
-          { id: "agent" as KindTab, label: "❋ Agentic KG" },
+          { id: "app" as KindTab, label: "⁂ Agents" },
+          { id: "agent" as KindTab, label: "❋ Memory" },
         ]).map((t) => (
           <button
             key={t.id || "all"}

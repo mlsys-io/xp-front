@@ -229,18 +229,6 @@ export function Git() {
 
         {/* ── Footer links ── */}
         <div className="border-t border-gray-200 pt-8 mt-4 flex flex-col items-center gap-3 text-center">
-          <Link
-            to="/learn/catalog"
-            className="text-sm text-soul-300 hover:text-soul-400 underline-offset-2 hover:underline"
-          >
-            Publishing to the catalog — semver, visibility, attestations →
-          </Link>
-          <Link
-            to="/learn"
-            className="text-sm text-gray-500 hover:text-soul-300 underline-offset-2 hover:underline"
-          >
-            ← How xp.io works
-          </Link>
           <Link to="/" className="text-sm text-gray-500 hover:text-soul-300 underline-offset-2 hover:underline">
             ← Marketspace
           </Link>

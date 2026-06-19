@@ -17,16 +17,20 @@ export function Overview() {
     })();
   }, []);
 
+  // Phase 4 (app→agent): the ACTOR is kind:agent (server normalizes kind:app →
+  // agent); dual-read counts both so un-normalized legacy `app` repos still
+  // tally. The MEMORY (knowledge) count is kind:memory (was the old `agent`
+  // kind). See docs/architecture/unified-components.md.
   const counts = {
-    app: repos?.filter((r) => r.kind === "app").length ?? 0,
-    agent: repos?.filter((r) => r.kind === "agent").length ?? 0,
+    agent: repos?.filter((r) => r.kind === "agent" || r.kind === "app").length ?? 0,
+    memory: repos?.filter((r) => r.kind === "memory").length ?? 0,
     skill: repos?.filter((r) => r.kind === "skill").length ?? 0,
     dataset: repos?.filter((r) => r.kind === "dataset").length ?? 0,
   };
 
   const stats = [
-    { value: counts.app, label: "apps", glyph: "⁂", dot: "bg-spirit-400", glow: "from-spirit-400/25", to: "/dashboard/repos" },
-    { value: counts.agent, label: "agentic kg", glyph: "❋", dot: "bg-atokirina-400", glow: "from-atokirina-400/25", to: "/dashboard/repos" },
+    { value: counts.agent, label: "agents", glyph: "⁂", dot: "bg-spirit-400", glow: "from-spirit-400/25", to: "/dashboard/repos" },
+    { value: counts.memory, label: "memories", glyph: "❋", dot: "bg-atokirina-400", glow: "from-atokirina-400/25", to: "/dashboard/repos" },
     { value: counts.skill, label: "skills", glyph: "⌘", dot: "bg-spirit-400", glow: "from-spirit-400/25", to: "/dashboard/repos" },
     { value: counts.dataset, label: "datasets", glyph: "▤", dot: "bg-soul-400", glow: "from-soul-400/25", to: "/dashboard/repos" },
   ];

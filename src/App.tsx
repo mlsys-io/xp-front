@@ -17,8 +17,6 @@ const DashboardRepos  = lazy(() => import("./pages/DashboardRepos").then(m => ({
 const Datasets        = lazy(() => import("./pages/Datasets").then(m => ({ default: m.Datasets })));
 const InboxPage       = lazy(() => import("./pages/Inbox").then(m => ({ default: m.InboxPage })));
 const Explore         = lazy(() => import("./pages/Explore").then(m => ({ default: m.Explore })));
-const Learn           = lazy(() => import("./pages/Learn").then(m => ({ default: m.Learn })));
-const LearnCatalog    = lazy(() => import("./pages/LearnCatalog").then(m => ({ default: m.LearnCatalog })));
 const NewRepo         = lazy(() => import("./pages/NewRepo").then(m => ({ default: m.NewRepo })));
 const Overview        = lazy(() => import("./pages/Overview").then(m => ({ default: m.Overview })));
 const Profile         = lazy(() => import("./pages/Profile").then(m => ({ default: m.Profile })));
@@ -48,9 +46,11 @@ export default function App() {
               under the user's session cookie. */}
           <Route path="/go" element={<Go />} />
           <Route path="/explore" element={<Explore />} />
-          <Route path="/learn" element={<Learn />} />
-          <Route path="/learn/catalog" element={<LearnCatalog />} />
           <Route path="/git" element={<Git />} />
+          {/* /learn removed — redirect to the marketspace home (mirrors the
+              /marketplace redirect convention; no SPA catch-all exists). */}
+          <Route path="/learn" element={<Navigate to="/" replace />} />
+          <Route path="/learn/catalog" element={<Navigate to="/" replace />} />
 
           {/* Phase 2 marketspace category landings — kind-scoped browses
               that share the <KindBrowse> shell. /marketspace stays as the
