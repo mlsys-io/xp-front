@@ -36,7 +36,10 @@ const hideCycles = (rs: Repo[]) => rs.filter(r => !(r.tags || []).includes("cycl
 const EXAMPLE_QUERIES = ["quant trading", "personal assistant", "consulting", "data labeling", "optimization"];
 
 // Sidebar kind order. Agents appended dynamically only when non-empty.
-const SIDEBAR_KINDS: KindTab[] = ["", "app", "workflow", "skill", "dataset"];
+// Canonical actor tab is "agent" (was "app"; the server normalizes app→agent
+// before cards reach the UI). Listing "app" here AND appending "agent" below
+// produced two "Agents" tabs — fixed by using "agent" once.
+const SIDEBAR_KINDS: KindTab[] = ["", "agent", "workflow", "skill", "dataset"];
 
 export function Marketspace() {
 
@@ -104,7 +107,9 @@ export function Marketspace() {
     return [...c.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 14).map(([t]) => t);
   }, [repos]);
 
-  const sidebarKinds = counts["agent"] > 0 ? [...SIDEBAR_KINDS, "agent" as KindTab] : SIDEBAR_KINDS;
+  // "agent" is already in SIDEBAR_KINDS; surface the knowledge tab ("memory")
+  // only when such repos exist (mirrors the old conditional, now for memory).
+  const sidebarKinds = counts["memory"] > 0 ? [...SIDEBAR_KINDS, "memory" as KindTab] : SIDEBAR_KINDS;
   const browse = (k: KindTab, query = "") => { setTab(k); setQ(query); setPage(0); };
   const showFeatured = tab === "" && !q.trim() && featured.length > 0;
   // Don't repeat the featured apps in the grid below.
