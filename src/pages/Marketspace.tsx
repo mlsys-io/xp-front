@@ -137,7 +137,6 @@ export function Marketspace() {
           </Link>
 
           <div className="flex items-center gap-4 text-xs shrink-0">
-            <Link to="/learn" className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">How it works</Link>
             <Link to="/git" className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">Git</Link>
             <a href={STUDIO_URL} className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">Studio ↗</a>
             {me ? (
@@ -161,8 +160,7 @@ export function Marketspace() {
               All about <span className="text-soul-300">AI workforce.</span>
             </h1>
             <p className="mt-2.5 text-sm text-gray-600 leading-relaxed">
-              A marketspace for your AI — <span className="text-gray-900 font-medium">experiments, experience, expertise</span>.{" "}
-              <Link to="/learn" className="text-soul-300 hover:text-soul-400 whitespace-nowrap">See how it works →</Link>
+              A marketspace for your AI — <span className="text-gray-900 font-medium">experiments, experience, expertise</span>.
             </p>
           </div>
 

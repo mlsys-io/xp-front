@@ -49,11 +49,6 @@ export function Header({ variant }: { variant: HeaderVariant }) {
         <Link to="/workflows" className="text-gray-600 hover:text-soul-300 transition-colors flex items-center gap-1">
           <span className="text-[11px]">▷</span> Workflows
         </Link>
-        {variant !== "learn" && (
-          <Link to="/learn" className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">
-            How it works
-          </Link>
-        )}
         <Link to="/git" className="text-gray-500 hover:text-soul-300 transition-colors hidden sm:block">
           Git
         </Link>
