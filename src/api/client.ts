@@ -343,8 +343,12 @@ export type PR = {
   opened_at: number;
   merged_at: number | null;
   merge_sha: string | null;
+  merge_method?: "merge" | "squash" | "ff-only";
+  head_branch_deleted?: boolean;
   closed_at: number | null;
 };
+
+export type MergeMethod = "merge" | "squash" | "ff-only";
 
 export type PRDiff = {
   base_sha: string;
@@ -392,13 +396,27 @@ export async function getPullDiff(
 }
 
 export async function mergePull(
-  owner: string, name: string, number: number, method: "merge" | "ff-only" = "merge",
+  owner: string, name: string, number: number,
+  opts: {
+    method?: MergeMethod;
+    commit_title?: string;
+    commit_message?: string;
+    delete_branch?: boolean;
+  } = {},
 ): Promise<PR> {
   const r = await api.post(
     `/api/v1/repos/${enc(owner)}/${enc(name)}/pulls/${number}/merge`,
-    { method },
+    { method: opts.method ?? "merge", ...opts },
   );
   return r.data as PR;
+}
+
+export async function deleteBranch(
+  owner: string, name: string, branch: string,
+): Promise<void> {
+  await api.delete(
+    `/api/v1/repos/${enc(owner)}/${enc(name)}/branches/${branch.split("/").map(enc).join("/")}`,
+  );
 }
 
 export async function closePull(
@@ -1032,7 +1050,7 @@ export type CIRun = {
   started_at: number | null;
   finished_at: number | null;
   steps: CIStepResult[];
-  triggered_by: "push" | "manual";
+  triggered_by: "push" | "manual" | "pr";
 };
 
 export async function getCIRuns(
@@ -1071,9 +1089,11 @@ export async function getCILogs(
 
 export async function triggerCI(
   owner: string, name: string,
-): Promise<{ run_id: string; status: string }> {
+  opts: { branch?: string; sha?: string } = {},
+): Promise<{ run_id: string; status: string; sha?: string; branch?: string }> {
   const r = await api.post(
     `/api/v1/repos/${enc(owner)}/${enc(name)}/ci/runs`,
+    opts,
   );
   return r.data;
 }
