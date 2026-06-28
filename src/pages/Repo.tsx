@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Link, useLocation, useNavigate, useParams, useSearchParams,
 } from "react-router-dom";
@@ -2405,21 +2405,26 @@ function PullDetail({
 }: {
   repo: RepoT; number: number; me: Me | null; isOwner: boolean;
 }) {
-  const nav = useNavigate();
   const [pr, setPr] = useState<PR | null | "missing">(null);
   const [diff, setDiff] = useState<PRDiff | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [method, setMethod] = useState<"merge" | "squash" | "ff-only">("squash");
+  const [commitTitle, setCommitTitle] = useState("");
+  const [commitMsg, setCommitMsg] = useState("");
+  const [deleteBr, setDeleteBr] = useState(true);
+  const seeded = useRef(false);
 
   const reload = async () => {
     try {
       const p = await getPull(repo.owner_sub, repo.name, number);
       setPr(p);
-      if (p.state === "open") {
-        getPullDiff(repo.owner_sub, repo.name, number).then(setDiff).catch(() => setDiff(null));
-      } else {
-        getPullDiff(repo.owner_sub, repo.name, number).then(setDiff).catch(() => setDiff(null));
+      if (!seeded.current) {
+        setCommitTitle(p.title || "");
+        setCommitMsg(p.body || "");
+        seeded.current = true;
       }
+      getPullDiff(repo.owner_sub, repo.name, number).then(setDiff).catch(() => setDiff(null));
     } catch {
       setPr("missing");
     }
@@ -2431,12 +2436,19 @@ function PullDetail({
 
   const canMerge = isOwner && pr.state === "open";
   const canClose = pr.state === "open" && !!me && (me.sub === pr.author_sub || me.sub === pr.base_owner);
+  const canDeleteBranch = !!me && me.sub === pr.head_owner;
 
-  const doMerge = async (method: "merge" | "ff-only") => {
+  const doMerge = async () => {
     setErr("");
     setBusy(true);
     try {
-      await mergePull(repo.owner_sub, repo.name, number, method);
+      await mergePull(repo.owner_sub, repo.name, number, {
+        method,
+        ...(method !== "ff-only"
+          ? { commit_title: commitTitle.trim() || pr.title, commit_message: commitMsg }
+          : {}),
+        delete_branch: canDeleteBranch && deleteBr,
+      });
       await reload();
     } catch (e: any) {
       setErr(e?.response?.data?.detail || "merge failed");
@@ -2480,35 +2492,15 @@ function PullDetail({
             <span className="font-mono text-gray-900">{pr.base_branch}</span>
           </div>
         </div>
-        <div className="shrink-0 flex items-center gap-2">
-          {canMerge && (
-            <>
-              <button
-                onClick={() => doMerge("merge")}
-                disabled={busy}
-                className="px-3 py-1.5 text-xs rounded-full border border-gray-300 text-soul-300 hover:text-soul-400 hover:border-soul-400 disabled:opacity-50"
-              >
-                {busy ? "merging…" : "✦ merge"}
-              </button>
-              <button
-                onClick={() => doMerge("ff-only")}
-                disabled={busy}
-                className="px-3 py-1.5 text-xs rounded-full border border-spirit-400/40 text-spirit-300 hover:border-spirit-400/70 disabled:opacity-50"
-              >
-                ff only
-              </button>
-            </>
-          )}
-          {canClose && (
-            <button
-              onClick={doClose}
-              disabled={busy}
-              className="px-3 py-1.5 text-xs rounded-full border border-atokirina-400/40 text-atokirina-400 hover:bg-atokirina-400/10 disabled:opacity-50"
-            >
-              close
-            </button>
-          )}
-        </div>
+        {canClose && !canMerge && (
+          <button
+            onClick={doClose}
+            disabled={busy}
+            className="shrink-0 px-3 py-1.5 text-xs rounded-full border border-atokirina-400/40 text-atokirina-400 hover:bg-atokirina-400/10 disabled:opacity-50"
+          >
+            close
+          </button>
+        )}
       </div>
 
       {err && <div className="mt-2 text-xs text-atokirina-400">{err}</div>}
@@ -2516,6 +2508,78 @@ function PullDetail({
       {pr.body && (
         <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
           <Markdown className="text-sm text-gray-900/90">{pr.body}</Markdown>
+        </div>
+      )}
+
+      <PRCIBlock pr={pr} me={me} />
+
+      {canMerge && (
+        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-gray-600">Merge method</span>
+            <div className="flex rounded-full border border-gray-300 overflow-hidden text-xs">
+              {(["squash", "merge", "ff-only"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMethod(m)}
+                  className={`px-3 py-1 ${method === m ? "bg-soul-300/15 text-soul-400" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  {m === "squash" ? "squash & merge" : m === "merge" ? "merge commit" : "fast-forward"}
+                </button>
+              ))}
+            </div>
+          </div>
+          {method !== "ff-only" ? (
+            <div className="space-y-2">
+              <input
+                value={commitTitle}
+                onChange={(e) => setCommitTitle(e.target.value)}
+                placeholder="Commit title"
+                className="w-full text-sm rounded-lg border border-gray-300 px-3 py-1.5 font-mono"
+              />
+              <textarea
+                value={commitMsg}
+                onChange={(e) => setCommitMsg(e.target.value)}
+                placeholder="Extended description (optional)"
+                rows={3}
+                className="w-full text-xs rounded-lg border border-gray-300 px-3 py-2 font-mono resize-y"
+              />
+            </div>
+          ) : (
+            <div className="text-xs text-gray-500">
+              Fast-forward keeps the head commits as-is with no merge commit (only possible when base has not diverged).
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <label className={`flex items-center gap-2 text-xs ${canDeleteBranch ? "text-gray-700" : "text-gray-400"}`}>
+              <input
+                type="checkbox"
+                checked={canDeleteBranch && deleteBr}
+                disabled={!canDeleteBranch}
+                onChange={(e) => setDeleteBr(e.target.checked)}
+              />
+              Delete <span className="font-mono">{pr.head_branch}</span> after merge
+              {!canDeleteBranch && <span className="text-gray-400">(branch owner only)</span>}
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={doMerge}
+                disabled={busy}
+                className="px-4 py-1.5 text-xs rounded-full border border-soul-300 text-soul-400 hover:bg-soul-300/10 disabled:opacity-50"
+              >
+                {busy ? "merging…" : "confirm merge"}
+              </button>
+              {canClose && (
+                <button
+                  onClick={doClose}
+                  disabled={busy}
+                  className="px-3 py-1.5 text-xs rounded-full border border-atokirina-400/40 text-atokirina-400 hover:bg-atokirina-400/10 disabled:opacity-50"
+                >
+                  close
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -2542,29 +2606,167 @@ function PullDetail({
                 </li>
               ))}
             </ul>
-            <div className="rounded-xl border border-gray-200 bg-white p-4 overflow-auto max-h-[70vh]">
-              <pre className="text-[11px] font-mono leading-relaxed">
-                {diff.unified_diff.split("\n").map((line, i) => (
-                  <div
-                    key={i}
-                    className={
-                      line.startsWith("+++") || line.startsWith("---") || line.startsWith("diff ") || line.startsWith("@@ ")
-                        ? "text-gray-600"
-                        : line.startsWith("+")
-                          ? "text-soul-300"
-                          : line.startsWith("-")
-                            ? "text-atokirina-400"
-                            : "text-gray-700"
-                    }
-                  >
-                    {line || " "}
-                  </div>
-                ))}
-              </pre>
-            </div>
+            <DiffView diff={diff} />
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// -- Structured, file-by-file diff viewer ------------------------------
+type DiffFile = { path: string; added: number; deleted: number; hunks: string[][] };
+
+function parseUnifiedDiff(text: string, stats: PRDiff["files"]): DiffFile[] {
+  const statByPath = new Map(stats.map((s) => [s.path, s]));
+  const files: DiffFile[] = [];
+  let cur: DiffFile | null = null;
+  let hunk: string[] | null = null;
+  const flush = () => { if (cur && hunk && hunk.length) cur.hunks.push(hunk); hunk = null; };
+  for (const line of text.split("\n")) {
+    if (line.startsWith("diff --git")) {
+      flush();
+      if (cur) files.push(cur);
+      const m = line.match(/ b\/(.+)$/);
+      const path = m ? m[1] : line.replace("diff --git ", "");
+      const st = statByPath.get(path);
+      cur = { path, added: st?.added ?? 0, deleted: st?.deleted ?? 0, hunks: [] };
+    } else if (line.startsWith("@@")) {
+      flush();
+      hunk = [line];
+    } else if (hunk) {
+      hunk.push(line);
+    }
+  }
+  flush();
+  if (cur) files.push(cur);
+  return files;
+}
+
+function DiffView({ diff }: { diff: PRDiff }) {
+  const files = useMemo(() => parseUnifiedDiff(diff.unified_diff, diff.files), [diff]);
+  if (!files.length) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-4 overflow-auto max-h-[70vh]">
+        <pre className="text-[11px] font-mono leading-relaxed whitespace-pre">{diff.unified_diff || "(no textual diff)"}</pre>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {files.map((f) => (
+        <details key={f.path} open className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+          <summary className="px-4 py-2 text-xs flex items-center justify-between cursor-pointer select-none bg-gray-50/60 hover:bg-gray-50">
+            <span className="font-mono text-gray-900 truncate">{f.path}</span>
+            <span className="shrink-0 ml-4 space-x-2 tabular-nums">
+              <span className="text-soul-300">+{f.added}</span>
+              <span className="text-atokirina-400">-{f.deleted}</span>
+            </span>
+          </summary>
+          <div className="overflow-auto max-h-[60vh] border-t border-gray-100">
+            <table className="w-full border-collapse text-[11px] font-mono leading-relaxed">
+              <tbody>{renderHunks(f.hunks)}</tbody>
+            </table>
+          </div>
+        </details>
+      ))}
+    </div>
+  );
+}
+
+function renderHunks(hunks: string[][]): ReactNode[] {
+  const rows: ReactNode[] = [];
+  let key = 0;
+  for (const hunk of hunks) {
+    let oldN = 0, newN = 0;
+    const header = hunk[0] || "";
+    const m = header.match(/@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+    if (m) { oldN = parseInt(m[1], 10); newN = parseInt(m[2], 10); }
+    rows.push(
+      <tr key={"h" + key++} className="bg-spirit-400/5">
+        <td className="px-2 text-right text-gray-400 select-none w-10">.</td>
+        <td className="px-2 text-right text-gray-400 select-none w-10">.</td>
+        <td className="px-3 text-spirit-300 whitespace-pre">{header}</td>
+      </tr>,
+    );
+    for (const line of hunk.slice(1)) {
+      const kind = line[0];
+      let lo = "", ln = "", cls = "text-gray-700", bg = "";
+      if (kind === "+") { ln = String(newN++); cls = "text-soul-400"; bg = "bg-soul-300/10"; }
+      else if (kind === "-") { lo = String(oldN++); cls = "text-atokirina-400"; bg = "bg-atokirina-400/5"; }
+      else if (kind === "\\") { /* no newline marker */ }
+      else { lo = String(oldN++); ln = String(newN++); }
+      rows.push(
+        <tr key={"l" + key++} className={bg}>
+          <td className="px-2 text-right text-gray-400 select-none w-10 align-top">{lo}</td>
+          <td className="px-2 text-right text-gray-400 select-none w-10 align-top">{ln}</td>
+          <td className={"px-3 whitespace-pre " + cls}>{line || " "}</td>
+        </tr>,
+      );
+    }
+  }
+  return rows;
+}
+
+// -- PR CI status + run-against-head -----------------------------------
+function PRCIBlock({ pr, me }: { pr: PR; me: Me | null }) {
+  const [runs, setRuns] = useState<CIRun[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const headOwner = pr.head_owner, headName = pr.head_name;
+  const canRun = !!me && me.sub === headOwner;
+
+  const load = () => {
+    getCIRuns(headOwner, headName, 30)
+      .then((rs) => setRuns(rs.filter((r) => r.branch === pr.head_branch)))
+      .catch(() => setRuns([]));
+  };
+  useEffect(() => { load(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [headOwner, headName, pr.head_branch]);
+
+  if (runs === null) return null;
+  const latest = runs.length ? runs[0] : null;
+  if (!latest && !canRun) return null;
+
+  const runCI = async () => {
+    setBusy(true); setMsg("");
+    try {
+      await triggerCI(headOwner, headName, { branch: pr.head_branch });
+      setMsg("CI queued");
+      setTimeout(load, 1200);
+    } catch (e: any) {
+      setMsg(e?.response?.data?.detail || "could not start CI");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const dot = latest
+    ? latest.status === "passed" ? "bg-green-400"
+      : latest.status === "failed" ? "bg-red-400"
+        : latest.status === "running" ? "bg-amber-400 animate-pulse"
+          : "bg-gray-300"
+    : "bg-gray-200";
+
+  return (
+    <div className="mt-4 rounded-xl border border-gray-200 bg-white px-4 py-2.5 flex items-center justify-between gap-3 text-xs">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className={"w-2 h-2 rounded-full inline-block " + dot} />
+        <span className="text-gray-700">
+          {latest
+            ? <>CI <span className="font-medium">{latest.status}</span> on <span className="font-mono">{pr.head_branch}</span> @ <span className="font-mono">{latest.sha.slice(0, 8)}</span></>
+            : <>No CI run yet for <span className="font-mono">{pr.head_branch}</span></>}
+        </span>
+        {msg && <span className="text-gray-400">- {msg}</span>}
+      </div>
+      {canRun && (
+        <button
+          onClick={runCI}
+          disabled={busy}
+          className="shrink-0 px-3 py-1 rounded-full border border-gray-300 text-gray-600 hover:border-soul-400 hover:text-soul-400 disabled:opacity-50"
+        >
+          {busy ? "starting..." : "run CI"}
+        </button>
+      )}
     </div>
   );
 }
